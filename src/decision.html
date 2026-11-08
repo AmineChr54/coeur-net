@@ -151,6 +151,16 @@ function chips(key, obj, opts, multi, onChange){
   });
   return row;
 }
+/* Valeur exacte facultative à côté des tranches (demande d'Anis : « on coche, puis on entre les valeurs ») */
+function exact(key, obj, unit, toStore, fromStore){
+  var inp = h('input', {class:'inp', inputmode:'decimal', id:'x-' + key, style:{width:'96px', minHeight:'40px'}, placeholder:T({fr:'exacte', ar:'بدقّة'}), value:obj[key + 'X'] ? fmt(fromStore(+obj[key]), unit === 'mmol/L' ? 1 : 0) : ''});
+  inp.addEventListener('change', function(){
+    var v = CS.num(inp.value);
+    if(isNaN(v)){ obj[key + 'X'] = false; } else { obj[key] = toStore(v); obj[key + 'X'] = true; }
+    save(); render();
+  });
+  return h('div', {class:'row', style:{gap:'6px'}}, inp, h('span', {class:'small muted', text:unit}));
+}
 function q(label, hint, ctl){ return h('div', {class:'q'}, h('div', {class:'ql'}, h('span', {text:label}), hint ? h('small', {text:hint}) : null), ctl); }
 function ageCtl(obj, min, max){
   var inp = h('input', {class:'inp', id:'age', inputmode:'numeric', value:obj.age});
@@ -336,9 +346,9 @@ function renderProfile(){
     c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', s, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
     c.appendChild(q({fr:'Âge', ar:'السن'}, s.score === 'globo' ? '40–80' : null, ageCtl(s, 18, 95)));
     c.appendChild(q({fr:'Facteurs de risque', ar:'عوامل الخطر'}, T({fr:'âge > 55 H / > 65 F compté seul · total : ', ar:'السن (> 55 رجل / > 65 امرأة) يُحتسب تلقائيًا · المجموع: '}) + nRF(s), chips('rf', s, RF, true)));
-    c.appendChild(q({fr:'Pression artérielle systolique', ar:'الضغط الانقباضي'}, 'mmHg', chips('sbp', s, [[110, '< 120'], [130, '120–139'], [150, '140–159'], [170, '160–179'], [190, '≥ 180']])));
+    c.appendChild(q({fr:'Pression artérielle systolique', ar:'الضغط الانقباضي'}, 'mmHg', h('div', {class:'stack', style:{gap:'8px'}}, chips('sbp', s, [[110, '< 120'], [130, '120–139'], [150, '140–159'], [170, '160–179'], [190, '≥ 180']], false, function(){ s.sbpX = false; save(); render(); }), exact('sbp', s, 'mmHg', function(v){ return v; }, function(v){ return v; }))));
     var cu = CS.units() === 'si' ? 'mmol/L' : 'mg/dL';
-    c.appendChild(q({fr:'Cholestérol total', ar:'الكوليسترول الكلي'}, cu, chips('tc', s, [[3.5, cholLabel(null, 4)], [4.5, cholLabel(4, 4.9)], [5.5, cholLabel(5, 5.9)], [6.5, cholLabel(6, 6.9)], [7.5, cholLabel(7, 7.9)], [8.5, cholLabel(8, null)]], false, function(){ if(+s.tc >= 8){ s.other = s.other || []; if(s.other.indexOf('single') < 0) s.other.push('single'); } save(); render(); })));
+    c.appendChild(q({fr:'Cholestérol total', ar:'الكوليسترول الكلي'}, cu, h('div', {class:'stack', style:{gap:'8px'}}, chips('tc', s, [[3.5, cholLabel(null, 4)], [4.5, cholLabel(4, 4.9)], [5.5, cholLabel(5, 5.9)], [6.5, cholLabel(6, 6.9)], [7.5, cholLabel(7, 7.9)], [8.5, cholLabel(8, null)]], false, function(){ s.tcX = false; if(+s.tc >= 8){ s.other = s.other || []; if(s.other.indexOf('single') < 0) s.other.push('single'); } save(); render(); }), exact('tc', s, cu, function(v){ return CS.units() === 'si' ? v : v / 38.67; }, function(v){ return CS.units() === 'si' ? v : v * 38.67; }))));
     if(s.score === 'score2') c.appendChild(q({fr:'HDL-cholestérol', ar:'الكوليسترول الجيد HDL'}, cu, chips('hdl', s, [[0.9, cholLabel(null, 1.0)], [1.15, cholLabel(1.0, 1.29)], [1.45, cholLabel(1.3, 1.59)], [1.8, cholLabel(1.6, null)]])));
     c.appendChild(q({fr:'Diabète', ar:'السكري'}, null, chips('dm', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])));
     subHost = h('div'); c.appendChild(subHost);
