@@ -1,0 +1,1653 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Décision partagée · Cœur Net</title>
+<style>
+/* Cœur Net — socle commun
+   Barre supérieure collante, contenu centré (max 1240px), grilles qui passent en une colonne sur téléphone,
+   barre d'onglets en bas sur téléphone. Propriétés logiques partout : l'arabe (RTL) se retourne tout seul. */
+:root{
+  --bg:#f3f6f9; --surface:#ffffff; --surface-2:#f0f4f8; --surface-3:#e3e9ef;
+  --line:#dde4eb; --line-strong:#c3cdd7;
+  --fg:#0f1d2b; --fg-2:#2d3e50; --muted:#5b6b7b;
+  --accent:#0b6e99; --accent-hover:#085a7e; --accent-ink:#ffffff; --accent-soft:#e2f0f6;
+  --heart:#d64545; --heart-soft:#fde9e9;
+  --ok:#137a4b; --ok-soft:#e2f4ea; --warn:#975a00; --warn-soft:#fdf1dc;
+  --crit:#b42318; --crit-soft:#fde7e5; --info:#1d5ea8; --info-soft:#e4eefa;
+  --g-echo:#0b6e99; --g-patient:#7a4bc4; --g-calc:#137a4b; --g-learn:#c26a00;
+  --paper:#fff8f6; --grid-minor:#f5cfcf; --grid-major:#e59a9a; --trace:#1a1a1a;
+  --shadow:0 1px 2px rgba(15,29,43,.05);
+  --shadow-md:0 4px 14px rgba(15,29,43,.08);
+  --shadow-lg:0 12px 36px rgba(15,29,43,.16);
+  --font:"Segoe UI Variable Text","Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Roboto,Arial,sans-serif;
+  --font-display:"Segoe UI Variable Display","Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Roboto,Arial,sans-serif;
+  --font-ar:"Segoe UI","SF Arabic","Geeza Pro","Noto Sans Arabic","Noto Naskh Arabic",Tahoma,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,Menlo,monospace;
+  --r:10px; --r-sm:8px; --r-lg:14px;
+  --tabbar-h:0px;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0e1114; --surface:#161a1f; --surface-2:#1d2228; --surface-3:#272d35;
+  --line:#2a3139; --line-strong:#3a434e;
+  --fg:#e9ebee; --fg-2:#c9ced5; --muted:#9aa3ae;
+  --accent:#4fb3dd; --accent-hover:#72c4e6; --accent-ink:#04202d; --accent-soft:#11303d;
+  --heart:#ff7a7a; --heart-soft:#3a1717;
+  --ok:#4fc68b; --ok-soft:#132d20; --warn:#f0a73c; --warn-soft:#33250f;
+  --crit:#ff6d62; --crit-soft:#3a1714; --info:#6ea9f0; --info-soft:#13263c;
+  --g-echo:#4fb3dd; --g-patient:#b08ef0; --g-calc:#4fc68b; --g-learn:#f0a73c;
+  --paper:#1a1416; --grid-minor:#3b2529; --grid-major:#663840; --trace:#f3eeee;
+  --shadow:0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 4px 14px rgba(0,0,0,.4);
+  --shadow-lg:0 12px 36px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+html[lang="ar"] body{font-family:var(--font-ar);font-size:15.5px;line-height:1.65}
+html[lang="ar"] h1,html[lang="ar"] h2,html[lang="ar"] h3,html[lang="ar"] h4{font-family:var(--font-ar);letter-spacing:0}
+html[lang="ar"] .eyebrow{letter-spacing:0;text-transform:none;font-size:.78rem}
+body.noscroll{overflow:hidden}
+h1,h2,h3,h4{font-family:var(--font-display);line-height:1.2;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:1.6rem;font-weight:650} h2{font-size:1.2rem;font-weight:650} h3{font-size:1.02rem;font-weight:650} h4{font-size:.92rem;font-weight:650}
+p{margin:0}
+a{color:var(--info)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+.num,.tnum{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono)}
+.muted{color:var(--muted)}
+.small{font-size:.84rem}
+.xs{font-size:.76rem}
+.eyebrow{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.ltr{direction:ltr;unicode-bidi:isolate}
+.ar,[lang="ar"] .ar{font-family:var(--font-ar)}
+
+/* Barre supérieure */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--surface)}
+.cs-top{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:color-mix(in srgb,var(--surface) 90%,transparent);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--line)}
+.cs-top-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:10px;min-height:58px;padding-block:8px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+.cs-back{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding-block:6px;padding-inline:9px 12px;cursor:pointer;font-size:.86rem;color:var(--fg-2);text-decoration:none;white-space:nowrap}
+.cs-back:hover{border-color:var(--line-strong);color:var(--fg)}
+.cs-back svg{width:16px;height:16px;flex:none}
+[dir="rtl"] .cs-back svg,[dir="rtl"] .flip-rtl{transform:scaleX(-1)}
+.cs-brand{display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-decoration:none;color:inherit}
+.cs-logo{width:32px;height:32px;flex:none;border-radius:9px;background:linear-gradient(140deg,#e25555,#b8233a);display:grid;place-items:center;box-shadow:0 2px 6px rgba(184,35,58,.3)}
+.cs-logo svg{width:20px;height:20px}
+.cs-titles{min-width:0}
+.cs-titles .eyebrow{display:block;line-height:1.15}
+.cs-titles h1{font-size:1.06rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-actions{display:flex;align-items:center;gap:6px;flex:none}
+.cs-doc{font-size:.8rem;color:var(--muted);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:38px;height:38px;border-radius:999px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer;color:var(--fg-2);flex:none;font-weight:700;font-size:.92rem;padding:0}
+.icon-btn:hover{border-color:var(--line-strong);color:var(--fg)}
+.icon-btn svg{width:18px;height:18px}
+.cs-lang{font-family:var(--font-ar)}
+@media (max-width:720px){
+  .hide-sm{display:none!important}
+  .cs-back span{display:none}
+  .cs-back{padding:7px}
+  .cs-top-in{gap:8px;min-height:54px}
+  .cs-titles h1{font-size:1rem}
+  .cs-actions .btn:not(.icon-btn){min-height:38px;padding:6px 10px}
+}
+
+/* Barre d'onglets du bas (téléphone) */
+.cs-tabbar{display:none}
+@media (max-width:720px){
+  body.has-tabbar{--tabbar-h:calc(62px + env(safe-area-inset-bottom,0px));padding-bottom:var(--tabbar-h)}
+  .cs-tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;inset:auto 0 0;z-index:55;background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .cs-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:62px;border:0;background:none;color:var(--muted);text-decoration:none;font-size:.7rem;font-weight:600;cursor:pointer;padding:0}
+  .cs-tab .ic svg{width:23px;height:23px;display:block}
+  .cs-tab.on{color:var(--accent)}
+  .cs-tab.on .ic{background:var(--accent-soft);border-radius:999px;padding:2px 14px}
+}
+
+/* Contenu */
+.wrap{max-width:1240px;margin:0 auto;padding-block:20px 28px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.end{justify-content:flex-end}
+.between{justify-content:space-between}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:900px){.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.g2,.g3,.g4{grid-template-columns:minmax(0,1fr)}}
+.split{display:grid;grid-template-columns:260px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.split{grid-template-columns:minmax(0,1fr)}}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);min-width:0}
+.card.flat{box-shadow:none}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.panel{background:var(--surface-2);border-radius:var(--r);padding:12px 14px}
+.divider{height:1px;background:var(--line);margin:4px 0}
+
+/* Champs */
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>label,.lbl{font-size:.82rem;font-weight:600;color:var(--fg-2)}
+.field .hint{font-size:.75rem;color:var(--muted)}
+.inp,select.inp,textarea.inp{width:100%;min-height:44px;border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:8px 11px;font-size:1rem}
+textarea.inp{min-height:84px;resize:vertical;line-height:1.45}
+.inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.inp-unit{display:flex;align-items:stretch}
+.inp-unit .inp{border-start-end-radius:0;border-end-end-radius:0;min-width:0}
+.inp-unit .u{display:flex;align-items:center;padding:0 10px;border:1px solid var(--line-strong);border-inline-start:0;border-start-end-radius:var(--r-sm);border-end-end-radius:var(--r-sm);background:var(--surface-2);font-size:.8rem;color:var(--muted);white-space:nowrap;direction:ltr}
+.inp.bad{border-color:var(--crit);box-shadow:0 0 0 3px var(--crit-soft)}
+input[inputmode="decimal"],input[type="number"]{direction:ltr;text-align:start}
+[dir="rtl"] input[inputmode="decimal"]{text-align:right}
+
+/* Contrôle segmenté */
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:3px;gap:3px}
+.seg button{border:0;background:transparent;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:.88rem;color:var(--fg-2);min-height:38px}
+.seg button:hover{color:var(--fg)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 0 0 1px var(--line-strong),0 1px 3px rgba(0,0,0,.06);font-weight:650}
+.seg.full{display:flex;flex-wrap:nowrap}.seg.full button{flex:1 1 0;min-width:0;padding:7px 6px;line-height:1.2}
+
+/* Puces de sélection (profil patient) */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:8px 14px;min-height:40px;cursor:pointer;font-size:.9rem;color:var(--fg-2);transition:background .15s,border-color .15s,color .15s}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.chip .ck{width:16px;height:16px;display:none}
+.chip[aria-pressed="true"] .ck{display:block}
+
+/* Bascule oui/non (grande cible tactile) */
+.tog{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);cursor:pointer;user-select:none;min-height:48px;transition:border-color .15s,background .15s}
+.tog:hover{border-color:var(--line-strong)}
+.tog input{position:absolute;opacity:0;pointer-events:none}
+.tog .sw{flex:none;width:38px;height:22px;border-radius:999px;background:var(--surface-3);position:relative;transition:background .15s}
+.tog .sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:16px;height:16px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.tog input:checked+.sw{background:var(--accent)}
+.tog input:checked+.sw::after{transform:translateX(16px)}
+[dir="rtl"] .tog input:checked+.sw::after{transform:translateX(-16px)}
+.tog input:focus-visible+.sw{outline:2px solid var(--accent);outline-offset:2px}
+.tog .t{flex:1;min-width:0;font-size:.92rem;line-height:1.3}
+.tog .t small{display:block;color:var(--muted);font-size:.76rem}
+.tog .pts{font-size:.78rem;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.tog:has(input:checked){border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent-soft) 55%,var(--surface))}
+
+/* Case à cocher simple */
+.chk{display:flex;gap:9px;align-items:flex-start;cursor:pointer;font-size:.92rem;line-height:1.35;padding:4px 0}
+.chk input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--accent);flex:none}
+
+/* Boutons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line-strong);background:var(--surface);color:var(--fg);border-radius:var(--r-sm);padding:8px 14px;min-height:44px;cursor:pointer;font-size:.9rem;font-weight:600;text-decoration:none;text-align:center;line-height:1.2;transition:background .15s,border-color .15s,transform .1s}
+.btn:active{transform:scale(.98)}
+.btn:hover{background:var(--surface-2)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.sm{min-height:34px;padding:5px 11px;font-size:.84rem}
+.btn.danger{color:var(--crit)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Badges et résultats */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:.76rem;font-weight:600;white-space:nowrap;background:var(--surface-3);color:var(--fg-2)}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.crit{background:var(--crit-soft);color:var(--crit)}
+.badge.info{background:var(--info-soft);color:var(--info)}
+.badge.acc{background:var(--accent-soft);color:var(--accent)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.result{border-radius:var(--r-lg);padding:16px;border:1px solid var(--line);background:var(--surface-2);position:relative;overflow:hidden}
+.result::before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:var(--muted)}
+.result.ok::before{background:var(--ok)} .result.warn::before{background:var(--warn)} .result.crit::before{background:var(--crit)} .result.info::before{background:var(--info)}
+.result .big{font-family:var(--font-display);font-size:2.4rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.result .big small{font-size:1rem;font-weight:500;color:var(--muted);margin-inline-start:4px}
+.result.ok .big{color:var(--ok)} .result.warn .big{color:var(--warn)} .result.crit .big{color:var(--crit)} .result.info .big{color:var(--info)}
+.cls{display:inline-block;font-size:.72rem;font-weight:700;padding:1px 7px;border-radius:4px;font-family:var(--mono)}
+.cls.I{background:var(--ok-soft);color:var(--ok)} .cls.IIa{background:var(--info-soft);color:var(--info)} .cls.IIb{background:var(--warn-soft);color:var(--warn)} .cls.III{background:var(--crit-soft);color:var(--crit)}
+
+/* Tableaux */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r)}
+table.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.tbl th,.tbl td{padding:8px 10px;text-align:start;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{background:var(--surface-2);font-weight:600;font-size:.78rem;color:var(--fg-2);white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.n,.tbl th.n{text-align:end;font-variant-numeric:tabular-nums}
+
+/* Onglets */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:550;font-size:.92rem;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Liste latérale */
+.navlist{display:flex;flex-direction:column;gap:2px}
+.navlist .grp{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:650;padding:12px 10px 4px}
+.navlist button{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:start;border:0;background:none;padding:9px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--fg-2);font-size:.9rem}
+.navlist button:hover{background:var(--surface-2);color:var(--fg)}
+.navlist button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+/* Pied de page */
+.cs-foot{border-top:1px solid var(--line);margin-top:10px}
+.cs-foot-in{max-width:1240px;margin:0 auto;padding-block:14px 22px;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:6px;font-size:.76rem;color:var(--muted)}
+.cs-foot strong{color:var(--fg-2);font-weight:600}
+
+/* Toast */
+.cs-toast{position:fixed;left:50%;bottom:calc(20px + var(--tabbar-h));transform:translateX(-50%) translateY(20px);background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:.88rem;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:120;max-width:calc(100% - 32px)}
+.cs-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Fenêtre modale ; « sheet » = feuille qui monte du bas sur téléphone */
+.modal-bg{position:fixed;inset:0;background:rgba(10,12,16,.45);z-index:90;display:grid;place-items:center;padding:16px;animation:fadeIn .15s ease}
+.modal{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);width:min(560px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:18px;border:1px solid var(--line);overscroll-behavior:contain}
+@media (max-width:720px){
+  .modal-bg.sheet{place-items:end stretch;padding:0}
+  .modal-bg.sheet .modal{width:100%;border-radius:20px 20px 0 0;max-height:88dvh;padding:10px 18px calc(18px + env(safe-area-inset-bottom,0px));animation:sheetUp .25s cubic-bezier(.2,.8,.2,1)}
+  .modal-bg.sheet .modal::before{content:"";display:block;width:40px;height:4px;border-radius:4px;background:var(--line-strong);margin:0 auto 10px}
+}
+@keyframes fadeIn{from{opacity:0}}
+@keyframes sheetUp{from{transform:translateY(100%)}}
+.set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:4px 0}
+.set-l{min-width:0;flex:1 1 180px}
+.set-t{font-weight:600;font-size:.94rem}
+
+/* Menu des outils (feuille) */
+.tm-list{display:flex;flex-direction:column;gap:4px}
+.tm-grp{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 4px 2px}
+.tm-item{display:flex;gap:12px;align-items:center;padding:10px;border-radius:var(--r);text-decoration:none;color:var(--fg)}
+.tm-item:hover,.tm-item.on{background:var(--surface-2)}
+.tm-ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:none;color:#fff;background:var(--g,var(--accent))}
+.tm-ic svg{width:22px;height:22px}
+.tm-tx{display:flex;flex-direction:column;min-width:0}
+.g-echo{--g:var(--g-echo)} .g-patient{--g:var(--g-patient)} .g-calc{--g:var(--g-calc)} .g-learn{--g:var(--g-learn)}
+
+/* Visite guidée */
+.tour-mask{position:fixed;inset:0;z-index:200;pointer-events:auto}
+.tour-hole{position:fixed;z-index:201;border-radius:12px;box-shadow:0 0 0 9999px rgba(8,14,22,.58);transition:all .3s cubic-bezier(.2,.8,.2,1);pointer-events:none;outline:2px solid var(--accent);outline-offset:3px}
+.tour-pop{position:fixed;z-index:202;width:min(380px,calc(100vw - 24px));background:var(--surface);color:var(--fg);border-radius:16px;box-shadow:var(--shadow-lg);border:1px solid var(--line);padding:16px 16px 12px;transition:top .3s,left .3s;animation:fadeIn .2s ease}
+.tour-pop h3{font-size:1.04rem;margin-bottom:6px}
+.tour-pop .tb{font-size:.92rem;line-height:1.55;color:var(--fg-2)}
+.tour-pop .tb p+p{margin-top:6px}
+.tour-pop .tb b{color:var(--fg)}
+.tour-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}
+.tour-dots{display:flex;gap:4px;flex-wrap:wrap;max-width:45%}
+.tour-dots i{width:6px;height:6px;border-radius:50%;background:var(--line-strong)}
+.tour-dots i.on{background:var(--accent);width:16px;border-radius:4px}
+.tour-step{font-size:.74rem;color:var(--muted);font-weight:600}
+@media (max-width:720px){
+  .tour-pop.sheet{left:0!important;right:0;top:auto!important;bottom:0;width:100%;border-radius:20px 20px 0 0;padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+}
+
+/* Graphiques SVG */
+.chart text{fill:var(--muted);font-size:10.5px;font-family:var(--font)}
+.chart .gridl{stroke:var(--line);stroke-width:1}
+.chart .axis{stroke:var(--line-strong);stroke-width:1}
+
+@media (hover:none){.btn:hover{background:var(--surface)}.btn.primary:hover{background:var(--accent)}.btn.ghost:hover{background:transparent}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+@media print{
+  body::before,.cs-top,.cs-foot,.cs-tabbar,.no-print{display:none!important}
+  body{background:#fff;color:#000;padding:0!important}
+  .card{box-shadow:none;border-color:#ccc}
+  .wrap{padding:0;max-width:none}
+}
+
+</style>
+<style>
+:root{--c-none:#cfd6de;--c-ev:#c42537;--c-avoid:#2f7fd8;--c-harm:#e08a00;--c-harm2:#7c5cc4}
+:root[data-theme="dark"]{--c-none:#3a434e;--c-ev:#ff5b6b;--c-avoid:#5aa5ff;--c-harm:#f0a73c;--c-harm2:#a68cf0}
+.da-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.da-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lay{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:980px){.lay{grid-template-columns:minmax(0,1fr)}}
+.prof{display:flex;flex-direction:column;gap:16px}
+.q{display:flex;flex-direction:column;gap:8px}
+.q>.ql{font-size:.86rem;font-weight:650;color:var(--fg-2);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.q>.ql small{font-weight:500;color:var(--muted)}
+.agebox{display:flex;align-items:center;gap:8px}
+.agebox .inp{width:84px;text-align:center;font-weight:700;font-size:1.1rem}
+.agebox .btn{width:44px;padding:0;font-size:1.2rem}
+.sub{border-inline-start:3px solid var(--accent-soft);padding-inline-start:12px;display:flex;flex-direction:column;gap:14px}
+.res{position:sticky;top:calc(70px + env(safe-area-inset-top,0px))}
+@media (max-width:980px){.res{position:static}}
+.gauge{display:flex;flex-direction:column;gap:8px}
+.gbar{position:relative;height:16px;border-radius:10px;display:flex;overflow:visible}
+.gbar span{flex:1;height:100%}
+.gbar span:first-child{border-radius:10px 0 0 10px}.gbar span:last-child{border-radius:0 10px 10px 0}
+[dir="rtl"] .gbar span:first-child{border-radius:0 10px 10px 0}[dir="rtl"] .gbar span:last-child{border-radius:10px 0 0 10px}
+.gbar .mk{position:absolute;top:-6px;width:4px;height:28px;border-radius:3px;background:var(--fg);box-shadow:0 0 0 3px var(--surface);transition:inset-inline-start .35s cubic-bezier(.2,.8,.2,1)}
+.glab{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted)}
+.bignum{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bignum b{font-family:var(--font-display);font-size:3rem;line-height:1;font-weight:750;letter-spacing:-.03em}
+.bignum .cat{font-size:1.05rem;font-weight:700}
+.lv-ok{color:var(--ok)} .lv-warn{color:var(--warn)} .lv-high{color:#d4572a} .lv-crit{color:var(--crit)}
+/* Couleurs de la figure ESC/EAS 2025 : jaune, orange, rouge, rouge foncé, bordeaux */
+:root{--r-low:#e9c11e;--r-mod:#f08c00;--r-high:#e8590c;--r-vhigh:#c0392b;--r-ext:#7b1d2a}
+.lvscale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.lvs{padding:8px 2px;border-radius:8px;text-align:center;font-size:.74rem;font-weight:650;background:var(--surface-2);color:var(--muted);border:2px solid transparent;position:relative}
+.lvs::after{content:"";position:absolute;inset:auto 6px 3px;height:3px;border-radius:3px;background:var(--rc);opacity:.7}
+.lvs-low{--rc:var(--r-low)} .lvs-mod{--rc:var(--r-mod)} .lvs-high{--rc:var(--r-high)} .lvs-vhigh{--rc:var(--r-vhigh)} .lvs-extreme{--rc:var(--r-ext)}
+.lvs.on{background:var(--rc);color:#fff;border-color:var(--rc);box-shadow:0 3px 10px color-mix(in srgb,var(--rc) 40%,transparent)}
+.lvs.on.lvs-low{color:#3a2f00}
+.lvs.on::after{display:none}
+.lv-ext{color:var(--r-ext)}
+:root[data-theme="dark"] .lv-ext{color:#ff8a8a}
+.badge.lvb-low{background:#fbf1c4;color:#6b5600} .badge.lvb-mod{background:#fde3c2;color:#8a4b00} .badge.lvb-high{background:#fbd9c6;color:#a33d07} .badge.lvb-vhigh{background:var(--crit-soft);color:var(--crit)} .badge.lvb-extreme{background:#f1d0d5;color:var(--r-ext)}
+/* Figure 9 : deux colonnes, mauve = chirurgie, bleu = TAVI */
+.f9h{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f9t{font-size:.8rem;font-weight:700;text-align:center;padding:6px;border-radius:999px;background:var(--surface-2)}
+.f9t.savr{color:#7a4bc4;background:#f1e9fc} .f9t.tavi{color:#1d5ea8;background:#e4eefa}
+:root[data-theme="dark"] .f9t.savr{background:#2a2040;color:#c8b0f5} :root[data-theme="dark"] .f9t.tavi{background:#13263c;color:#8ec0f5}
+.f9{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f9c{border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.f9c.savr{background:linear-gradient(90deg,#f6effd,transparent);border-inline-start:3px solid #b08ef0}
+.f9c.tavi{background:linear-gradient(270deg,#ecf3fc,transparent);border-inline-end:3px solid #5aa5ff}
+:root[data-theme="dark"] .f9c.savr{background:#1f1a2b} :root[data-theme="dark"] .f9c.tavi{background:#151e2a}
+.f9c .chip{font-size:.8rem;padding:6px 10px;min-height:34px;text-align:start}
+.f9c.savr .chip[aria-pressed="true"]{background:#7a4bc4;border-color:#7a4bc4}
+.f9c.tavi .chip[aria-pressed="true"]{background:#1d5ea8;border-color:#1d5ea8}
+.f9c ul{margin:0;padding-inline-start:18px;font-size:.84rem;display:flex;flex-direction:column;gap:3px}
+@media (max-width:460px){.f9,.f9out{grid-template-columns:minmax(0,1fr)}.f9h{display:none}}
+.f9out{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.verdict{font-size:1.12rem;font-weight:700;padding:12px 14px;border-radius:12px;border:2px solid}
+.verdict.v-tavi{color:#1d5ea8;border-color:#5aa5ff;background:#ecf3fc} .verdict.v-savr{color:#7a4bc4;border-color:#b08ef0;background:#f6effd} .verdict.v-eq{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+:root[data-theme="dark"] .verdict.v-tavi{background:#151e2a;color:#8ec0f5} :root[data-theme="dark"] .verdict.v-savr{background:#1f1a2b;color:#c8b0f5}
+.balance{width:100%;max-width:340px;display:block;margin:0 auto}
+.balance .bal-l{font:700 13px var(--font);fill:var(--fg-2)} .balance .bal-n{font:800 18px var(--font-display);fill:#fff}
+.esd{border-top:1px solid var(--line);padding-top:10px}
+.esd summary{cursor:pointer;display:flex;gap:8px;align-items:center;min-height:36px}
+.fig8{display:flex;flex-direction:column;gap:6px}
+.f8bar{position:relative;display:grid;grid-template-columns:28.6% 28.6% 14.3% 28.5%;height:34px;border-radius:10px;overflow:visible;font-size:.72rem;font-weight:650}
+.f8bar span{display:grid;place-items:center;color:#3a2f22;text-align:center;line-height:1.1}
+.f8-ross{background:linear-gradient(90deg,#f4d58d,#e9b98c);border-radius:10px 0 0 10px} .f8-mech{background:linear-gradient(90deg,#e9b98c,#d9a0a8)} .f8-grey{background:linear-gradient(90deg,#d9a0a8,#9fb3e6)} .f8-bio{background:#9fb3e6;border-radius:0 10px 10px 0}
+.f8mk{position:absolute;top:-5px;width:4px;height:44px;border-radius:3px;background:var(--fg);box-shadow:0 0 0 3px var(--surface)}
+.f8lab{position:relative;height:14px;font-size:.7rem;color:var(--muted)}
+.f8lab span{position:absolute;transform:translateX(-50%)}
+/* Diabète : carte à part, sous les facteurs de risque */
+.dmcard{border:2px dashed var(--line-strong);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:12px}
+.dmcard.on{border-style:solid;border-color:#d9822b;background:color-mix(in srgb,#fde3c2 35%,var(--surface))}
+:root[data-theme="dark"] .dmcard.on{background:#2a2014}
+.dmhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.dmeff{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--surface)}
+/* Grille KDIGO */
+.kdigo{display:grid;grid-template-columns:64px repeat(3,minmax(0,1fr));gap:4px;max-width:420px}
+.kh{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);line-height:1.15;text-align:center}
+.kh b{color:var(--fg-2);font-size:.8rem}
+.kv{align-items:flex-start}
+.kc{height:38px;border-radius:8px;border:2px solid transparent;cursor:pointer;display:grid;place-items:center;color:#fff}
+.kc svg{width:18px;height:18px}
+.k-g{background:#b9dfa8} .k-y{background:#f5e58c} .k-o{background:#f7b26b} .k-r{background:#ec8f8b}
+.kc.on{border-color:var(--fg);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--fg);color:var(--fg)}
+:root[data-theme="dark"] .k-g{background:#3d6b33} :root[data-theme="dark"] .k-y{background:#7a6d1c} :root[data-theme="dark"] .k-o{background:#8a521c} :root[data-theme="dark"] .k-r{background:#8a2f2b}
+.why{margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:4px}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{border:1.5px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.opt.fav{border-color:var(--ok);background:color-mix(in srgb,var(--ok-soft) 60%,var(--surface))}
+.opt.pos{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.opt.no{opacity:.75}
+.opt h4{font-size:1rem}
+.opt ul{margin:0;padding-inline-start:18px;font-size:.82rem;color:var(--fg-2);display:flex;flex-direction:column;gap:3px}
+.arrays{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.arr{border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.arr h3{font-size:1rem}
+.arr svg{width:100%;height:auto;max-width:280px;align-self:center}
+.arr .cnt{display:flex;flex-direction:column;gap:4px;font-size:.86rem}
+.arr .cnt div{display:flex;align-items:center;gap:8px}
+.arr .cnt b{margin-inline-start:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sw{width:12px;height:12px;border-radius:3px;flex:none}
+.summary{font-size:1.08rem;line-height:1.65}
+[dir="rtl"].summary{font-family:var(--font-ar);font-size:1.22rem;line-height:1.9}
+.ph-head{display:none}
+.mbar{display:none}
+@media (max-width:980px){
+  .mbar{display:flex;position:fixed;inset-inline:12px;bottom:calc(var(--tabbar-h) + 10px);z-index:30;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lg);cursor:pointer}
+  .mbar b{font-size:1.3rem;font-family:var(--font-display)}
+  main.wrap{padding-bottom:90px}
+}
+body.patient #prof-card,body.patient .tabs,body.patient #src,body.patient #reco{display:none}
+body.patient .lay{grid-template-columns:minmax(0,1fr)}
+body.patient .summary{font-size:1.35rem}
+body.patient [dir="rtl"].summary{font-size:1.5rem}
+@page{size:A4;margin:14mm}
+@media print{
+  .da-top,#prof-card,.mbar{display:none!important}
+  .lay{display:block}
+  .res{position:static}
+  .ph-head{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px;color:#111}
+  .arrays{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .arr{break-inside:avoid;border-color:#bbb}
+}
+</style>
+<script>
+/* Cœur Net — utilitaires communs (window.CS)
+   Langue : français par défaut, arabe standard (RTL) en option. Les textes sont des objets {fr, ar}
+   (et parfois {tn} = derja, réservé aux écrans destinés au patient). Changer de langue recharge la page. */
+(function(){
+  'use strict';
+  var P = 'cn.';
+  var VERSION = 'v1.0 · novembre 2026';
+  var SCHEMA = 1;
+
+  /* ---------- Stockage local (adaptateur : une synchro serveur pourra s'y brancher plus tard) ---------- */
+  var sync = { onChange:function(){} };            // remplacé par un vrai adaptateur le jour où barkhaus sera branché
+  var store = {
+    get: function(k, d){ try{ var v = localStorage.getItem(P+k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+    set: function(k, v){ try{ localStorage.setItem(P+k, JSON.stringify(v)); sync.onChange(k, v); }catch(e){} },
+    del: function(k){ try{ localStorage.removeItem(P+k); sync.onChange(k, undefined); }catch(e){} },
+    keys: function(){ var out = []; try{ for(var i = 0; i < localStorage.length; i++){ var k = localStorage.key(i); if(k && k.indexOf(P) === 0) out.push(k.slice(P.length)); } }catch(e){} return out; }
+  };
+  (function migrate(){ var v = store.get('schema', 0); if(v < SCHEMA) store.set('schema', SCHEMA); })();
+
+  /* ---------- Langue ---------- */
+  // ?lang=ar dans l'adresse force la langue (lien à partager) et la mémorise
+  try{ var qp = new URLSearchParams(location.search).get('lang'); if(qp === 'ar' || qp === 'fr') store.set('lang', qp); }catch(e){}
+  var LANG = store.get('lang', 'fr') === 'ar' ? 'ar' : 'fr';
+  document.documentElement.lang = LANG;
+  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr';
+  function lang(){ return LANG; }
+  function isAr(){ return LANG === 'ar'; }
+  function setLang(l){ if(l === LANG) return; store.set('lang', l); location.reload(); }
+  // t('texte') -> 'texte' ; t({fr, ar}) -> selon la langue ; t({fr, ar, tn}, 'tn') -> langue forcée
+  function t(x, force){
+    if(x == null) return '';
+    if(typeof x !== 'object') return String(x);
+    var l = force || LANG;
+    return x[l] != null ? x[l] : (x.fr != null ? x.fr : '');
+  }
+
+  /* ---------- Thème ---------- */
+  function applyTheme(){
+    var th = store.get('theme', null);
+    document.documentElement.setAttribute('data-theme', th === 'dark' ? 'dark' : 'light');
+  }
+  applyTheme();
+  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
+  function setTheme(th){ store.set('theme', th); applyTheme(); window.dispatchEvent(new Event('cs-theme')); }
+  function toggleTheme(){ setTheme(isDark() ? 'light' : 'dark'); }
+  window.addEventListener('storage', function(e){
+    if(e.key === P+'theme'){ applyTheme(); window.dispatchEvent(new Event('cs-theme')); }
+    if(e.key === P+'doctor'){ refreshDoctor(); }
+    if(e.key === P+'lang'){ location.reload(); }
+  });
+  function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+  /* ---------- DOM ---------- */
+  function $(s, r){ return (r||document).querySelector(s); }
+  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
+  function h(tag, attrs){
+    var el = document.createElement(tag);
+    if(attrs) for(var k in attrs){
+      var v = attrs[k];
+      if(v == null || v === false) continue;
+      if(k === 'class') el.className = v;
+      else if(k === 'html') el.innerHTML = v;
+      else if(k === 'text') el.textContent = t(v);
+      else if(k.slice(0,2) === 'on' && typeof v === 'function') el.addEventListener(k.slice(2), v);
+      else if(k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+      else el.setAttribute(k, v === true ? '' : (typeof v === 'object' ? t(v) : v));
+    }
+    for(var i = 2; i < arguments.length; i++) add(el, arguments[i]);
+    return el;
+  }
+  function add(el, c){
+    if(c == null || c === false) return;
+    if(Array.isArray(c)) c.forEach(function(x){ add(el, x); });
+    else if(c.nodeType) el.appendChild(c);
+    else el.appendChild(document.createTextNode(t(c)));
+  }
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  /* ---------- Format (chiffres occidentaux dans les deux langues, comme en Tunisie) ---------- */
+  function fmt(n, d){
+    if(n == null || isNaN(n)) return '–';
+    d = d == null ? 0 : d;
+    return Number(n).toLocaleString('fr-FR', {minimumFractionDigits:d, maximumFractionDigits:d});
+  }
+  function pct(n, d){ return fmt(n, d == null ? 1 : d) + ' %'; }
+  function clamp(x, a, b){ return Math.max(a, Math.min(b, x)); }
+  function num(v){ if(typeof v === 'number') return v; if(v == null) return NaN; v = String(v).replace(',', '.').trim(); return v === '' ? NaN : Number(v); }
+  function todayISO(off){ var d = new Date(); if(off) d.setDate(d.getDate()+off); return d.toISOString().slice(0,10); }
+  function locale(l){ return (l || LANG) === 'ar' ? 'ar-TN-u-nu-latn' : 'fr-FR'; }
+  function frDate(iso){ if(!iso) return ''; var d = new Date(iso); if(isNaN(d)) return iso; return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit', year:'numeric'}); }
+  function frDateLong(iso, l){ var d = iso ? new Date(iso) : new Date(); return d.toLocaleDateString(locale(l), {day:'numeric', month:'long', year:'numeric'}); }
+
+  /* ---------- Unités ---------- */
+  var conv = {
+    creat: {si:'µmol/L', mgdl:'mg/dL', f:88.4},
+    chol:  {si:'mmol/L', mgdl:'mg/dL', f:1/38.67},
+    gluc:  {si:'mmol/L', mgdl:'mg/dL', f:1/18.016},
+    hb:    {si:'g/L',    mgdl:'g/dL',  f:10}
+  };
+  function units(){ return store.get('units', 'mgdl'); }
+  function setUnits(u){ store.set('units', u); window.dispatchEvent(new Event('cs-units')); syncUnitSeg(); }
+  function unitLabel(kind){ return conv[kind][units()]; }
+  function toMgdl(kind, v){ return units() === 'si' ? v / conv[kind].f : v; }
+  function fromMgdl(kind, v){ return units() === 'si' ? v * conv[kind].f : v; }
+
+  /* ---------- Médecin ---------- */
+  function doctor(){ return (store.get('doctor', '') || '').trim(); }
+  function doctorLabel(){ var n = doctor().replace(/^dr\.?\s*/i, ''); return n ? t({fr:'Dr ', ar:'د. '}) + n : t({fr:'Dr …', ar:'د. …'}); }
+  function refreshDoctor(){ $$('[data-cs-doctor]').forEach(function(el){ el.textContent = doctorLabel(); }); window.dispatchEvent(new Event('cs-doctor')); }
+
+  /* ---------- Patient en cours (anonyme, partagé entre les outils) ---------- */
+  function patient(){ return store.get('patient', {}) || {}; }
+  function setPatient(p){ store.set('patient', p); window.dispatchEvent(new Event('cs-patient')); }
+  // Surface corporelle (m²) : Mosteller par défaut, Du Bois au choix
+  function bsa(heightCm, weightKg, formula){
+    var hh = num(heightCm), w = num(weightKg);
+    if(!(hh > 0) || !(w > 0)) return NaN;
+    if(formula === 'dubois') return 0.007184 * Math.pow(w, 0.425) * Math.pow(hh, 0.725);
+    return Math.sqrt(hh * w / 3600);
+  }
+
+  /* ---------- Icônes ---------- */
+  var I = {
+    back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+    sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+    moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',
+    heart:'<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5.4 5.4 0 0 0-7.7 0L12 6.7l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 22l7.7-7.6 1.1-1.1a5.4 5.4 0 0 0 0-7.7z" opacity=".55"/><path d="M3 12h4l2-4 3 8 2-4h7"/></svg>',
+    copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    print:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>',
+    download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>',
+    upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>',
+    x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+    reset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
+    search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+    play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5z"/></svg>',
+    pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>',
+    user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
+    alert:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    chev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
+    gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+    help:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01"/></svg>',
+    home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+    grid:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+    star:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>',
+    bolt:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg>'
+  };
+
+  /* ---------- Les outils de Cœur Net (accueil, menu, barre du bas) ---------- */
+  var TOOLS = [
+    {id:'diastolique', grp:'echo', min:2,
+      name:{fr:'Fonction diastolique', ar:'الوظيفة الانبساطية'},
+      d:{fr:'L’algorithme ASE 2025 pas à pas : grade, pressions de remplissage, phrase du compte rendu.', ar:'خوارزمية ASE 2025 خطوة بخطوة: الدرجة وضغوط الامتلاء وجملة التقرير.'}},
+    {id:'echo', grp:'echo', min:5,
+      name:{fr:'Compte rendu d’écho', ar:'تقرير تخطيط الصدى'},
+      d:{fr:'Saisie structurée, valeurs anormales signalées, compte rendu prêt à copier ou imprimer.', ar:'إدخال منظَّم وتمييز القيم غير الطبيعية وتقرير جاهز للنسخ أو الطباعة.'}},
+    {id:'consentement', grp:'patient', min:4,
+      name:{fr:'Consentement éclairé', ar:'الموافقة المستنيرة'},
+      d:{fr:'Expliquer la procédure au patient, puis imprimer un formulaire en français ou en arabe.', ar:'شرح الإجراء للمريض ثم طباعة استمارة بالفرنسية أو بالعربية.'}},
+    {id:'decision', grp:'patient', min:3,
+      name:{fr:'Décision partagée', ar:'القرار المشترك'},
+      d:{fr:'Construire le profil du patient : risque calculé, niveau de danger et options en images.', ar:'بناء ملف المريض: خطر محسوب ومستوى الخطورة والخيارات بالصور.'}},
+    {id:'education', grp:'patient', min:3,
+      name:{fr:'Éducation patient', ar:'تثقيف المريض'},
+      d:{fr:'Stent, infarctus, TAVI, pacemaker… expliqués avec des illustrations animées.', ar:'الدعامة والاحتشاء وTAVI والمنظِّم… مشروحة برسوم متحركة.'}},
+    {id:'scores', grp:'calc', min:1,
+      name:{fr:'Scores de risque', ar:'مقاييس الخطر'},
+      d:{fr:'SCORE2, CHA₂DS₂-VA, GRACE, EuroSCORE II… 20 scores avec interprétation.', ar:'SCORE2 وCHA₂DS₂-VA وGRACE وEuroSCORE II… عشرون مقياسًا مع التفسير.'}},
+    {id:'quiz', grp:'learn', min:5,
+      name:{fr:'Quiz de cardiologie', ar:'اختبار أمراض القلب'},
+      d:{fr:'Cas difficiles d’ECG, d’écho et de clinique. XP, niveaux, badges et coups critiques.', ar:'حالات صعبة في تخطيط القلب والصدى والسريريات. نقاط خبرة ومستويات وشارات.'}}
+  ];
+  var GROUPS = [
+    {id:'echo', name:{fr:'Échographie', ar:'تخطيط الصدى'}},
+    {id:'patient', name:{fr:'Avec le patient', ar:'مع المريض'}},
+    {id:'calc', name:{fr:'Calcul', ar:'الحساب'}},
+    {id:'learn', name:{fr:'Formation', ar:'التكوين'}}
+  ];
+  function tool(id){ for(var i = 0; i < TOOLS.length; i++) if(TOOLS[i].id === id) return TOOLS[i]; return null; }
+  function group(id){ for(var i = 0; i < GROUPS.length; i++) if(GROUPS[i].id === id) return GROUPS[i]; return null; }
+  var PAGE = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '') || 'index';
+
+  /* ---------- Toast, copier, télécharger ---------- */
+  var toastEl, toastT;
+  function toast(msg){
+    if(!toastEl){ toastEl = h('div', {class:'cs-toast', role:'status', 'aria-live':'polite'}); document.body.appendChild(toastEl); }
+    toastEl.textContent = t(msg); toastEl.classList.add('on');
+    clearTimeout(toastT); toastT = setTimeout(function(){ toastEl.classList.remove('on'); }, 2400);
+  }
+  function copy(text, okMsg){
+    var ok1 = okMsg || {fr:'Copié dans le presse-papiers', ar:'تم النسخ'};
+    function fallback(){
+      var ta = h('textarea', {style:{position:'fixed', left:'-9999px', top:'0'}}); ta.value = text; document.body.appendChild(ta);
+      ta.select(); var ok = false; try{ ok = document.execCommand('copy'); }catch(e){}
+      ta.remove(); toast(ok ? ok1 : {fr:'Copie impossible : sélectionnez le texte à la main', ar:'تعذّر النسخ: حدِّد النص يدويًا'});
+    }
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function(){ toast(ok1); }, fallback);
+      else fallback();
+    }catch(e){ fallback(); }
+  }
+  function download(name, content, mime){
+    try{
+      var blob = new Blob([content], {type:(mime || 'text/plain') + ';charset=utf-8'});
+      var a = h('a', {href:URL.createObjectURL(blob), download:name}); document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      toast({fr:'Fichier « ' + name + ' » enregistré', ar:'تم حفظ الملف « ' + name + ' »'});
+    }catch(e){ toast({fr:'Téléchargement impossible ici', ar:'التنزيل غير ممكن هنا'}); }
+  }
+  function toCSV(rows, cols){
+    var sep = ';';
+    function cell(v){ v = v == null ? '' : String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+    var out = [cols.map(function(c){ return cell(c.label || c.key); }).join(sep)];
+    rows.forEach(function(r){ out.push(cols.map(function(c){ return cell(typeof c.get === 'function' ? c.get(r) : r[c.key]); }).join(sep)); });
+    return '﻿' + out.join('\r\n');
+  }
+
+  /* ---------- Sauvegarde : exporter / importer toutes les données de cet appareil ---------- */
+  function exportBackup(){
+    var data = {};
+    store.keys().forEach(function(k){ data[k] = store.get(k); });
+    var payload = {app:'coeur-net', schema:SCHEMA, date:new Date().toISOString(), data:data};
+    download('coeur-net-sauvegarde-' + todayISO() + '.json', JSON.stringify(payload, null, 1), 'application/json');
+  }
+  function applyBackup(p){
+    if(!p || p.app !== 'coeur-net' || !p.data || typeof p.data !== 'object') return false;
+    store.keys().forEach(function(k){ store.del(k); });
+    Object.keys(p.data).forEach(function(k){ store.set(k, p.data[k]); });
+    return true;
+  }
+  function importBackup(){
+    var inp = h('input', {type:'file', accept:'application/json,.json', style:{display:'none'}});
+    inp.addEventListener('change', function(){
+      var f = inp.files && inp.files[0]; if(!f) return;
+      var r = new FileReader();
+      r.onload = function(){
+        var p; try{ p = JSON.parse(r.result); }catch(e){ p = null; }
+        if(!p || p.app !== 'coeur-net'){ toast({fr:'Ce fichier n’est pas une sauvegarde Cœur Net', ar:'هذا الملف ليس نسخة احتياطية من Cœur Net'}); return; }
+        ask({fr:'Remplacer les données de cet appareil par la sauvegarde du ' + frDate(p.date) + ' ?', ar:'استبدال بيانات هذا الجهاز بالنسخة الاحتياطية بتاريخ ' + frDate(p.date) + '؟'}, {fr:'Remplacer', ar:'استبدال'}).then(function(ok){
+          if(ok && applyBackup(p)) location.reload();
+        });
+      };
+      r.readAsText(f);
+    });
+    document.body.appendChild(inp); inp.click(); setTimeout(function(){ inp.remove(); }, 60000);
+  }
+
+  /* ---------- Modale (remplace confirm/prompt) ; feuille du bas sur téléphone ---------- */
+  function modal(content, opts){
+    opts = opts || {};
+    var bg = h('div', {class:'modal-bg' + (opts.sheet ? ' sheet' : ''), role:'dialog', 'aria-modal':'true'});
+    var box = h('div', {class:'modal'}, content);
+    bg.appendChild(box);
+    var prev = document.activeElement;
+    function close(){ bg.remove(); document.removeEventListener('keydown', onKey); if(!$('.modal-bg')) document.body.classList.remove('noscroll'); if(prev && prev.focus) try{ prev.focus(); }catch(e){} if(opts.onClose) opts.onClose(); }
+    function onKey(e){ if(e.key === 'Escape') close(); }
+    bg.addEventListener('click', function(e){ if(e.target === bg) close(); });
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(bg); document.body.classList.add('noscroll');
+    var f = box.querySelector('[autofocus],input,select,textarea,button.primary'); if(f && !opts.noFocus) setTimeout(function(){ f.focus(); }, 30);
+    return {close:close, el:box};
+  }
+  function ask(message, okLabel){
+    return new Promise(function(res){
+      var m, done = false;
+      function fin(v){ if(done) return; done = true; res(v); }
+      var content = h('div', {class:'stack'},
+        h('p', {text:message}),
+        h('div', {class:'row end'},
+          h('button', {class:'btn', text:{fr:'Annuler', ar:'إلغاء'}, onclick:function(){ fin(false); m.close(); }}),
+          h('button', {class:'btn primary', text:okLabel || {fr:'Confirmer', ar:'تأكيد'}, onclick:function(){ fin(true); m.close(); }})
+        ));
+      m = modal(content, {onClose:function(){ fin(false); }});
+    });
+  }
+
+  /* ---------- Contrôles segmentés ---------- */
+  function seg(el, value, onChange){
+    var btns = $$('button', el);
+    function set(v, silent){
+      value = v;
+      btns.forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.v === String(v) ? 'true' : 'false'); });
+      if(!silent && onChange) onChange(v);
+    }
+    btns.forEach(function(b){ b.type = 'button'; b.addEventListener('click', function(){ set(b.dataset.v); }); });
+    set(value, true);
+    return {get:function(){ return value; }, set:set};
+  }
+  function segEl(opts, value, onChange, cls){
+    var el = h('div', {class:'seg ' + (cls || ''), role:'group'});
+    opts.forEach(function(o){ el.appendChild(h('button', {type:'button', 'data-v':String(o[0]), text:o[1]})); });
+    el.ctl = seg(el, String(value), onChange);
+    return el;
+  }
+  function syncUnitSeg(){ $$('.cs-unitseg button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.v === units() ? 'true' : 'false'); }); }
+
+  /* ---------- Fenêtres communes : nom du médecin, patient en cours, réglages, menu des outils ---------- */
+  function editDoctor(){
+    var inp = h('input', {class:'inp', id:'cs-doc-name', placeholder:{fr:'ex. Anis Ben Salah', ar:'مثال: أنيس بن صالح'}, value:doctor()});
+    var m;
+    function save(){ store.set('doctor', inp.value.trim()); refreshDoctor(); m.close(); toast({fr:'Nom enregistré', ar:'تم حفظ الاسم'}); }
+    inp.addEventListener('keydown', function(e){ if(e.key === 'Enter') save(); });
+    m = modal(h('div', {class:'stack'},
+      h('h2', {text:{fr:'Nom du médecin', ar:'اسم الطبيب'}}),
+      h('p', {class:'muted small', text:{fr:'Affiché dans les en-têtes, les formulaires et les comptes rendus. Enregistré sur cet appareil.', ar:'يظهر في الترويسات والاستمارات والتقارير. يُحفظ على هذا الجهاز.'}}),
+      h('div', {class:'field'}, h('label', {for:'cs-doc-name', text:{fr:'Nom (sans « Dr »)', ar:'الاسم (دون «د.»)'}}), inp),
+      h('div', {class:'row end'},
+        h('button', {class:'btn', text:{fr:'Annuler', ar:'إلغاء'}, onclick:function(){ m.close(); }}),
+        h('button', {class:'btn primary', text:{fr:'Enregistrer', ar:'حفظ'}, onclick:save}))
+    ));
+  }
+  function patientSummary(p){
+    p = p || patient();
+    var parts = [];
+    if(p.sex) parts.push(t(p.sex === 'f' ? {fr:'Femme', ar:'امرأة'} : {fr:'Homme', ar:'رجل'}));
+    if(p.age) parts.push(p.age + t({fr:' ans', ar:' سنة'}));
+    if(p.height && p.weight){ parts.push(fmt(p.height) + ' cm · ' + fmt(p.weight) + ' kg'); parts.push(t({fr:'SC ', ar:'م.س.ج '}) + fmt(bsa(p.height, p.weight), 2) + ' m²'); }
+    if(p.rhythm) parts.push(t(p.rhythm === 'fa' ? {fr:'FA', ar:'رجفان أذيني'} : {fr:'Sinusal', ar:'نظم جيبي'}));
+    return parts.join(' · ');
+  }
+  function editPatient(){
+    var p = Object.assign({}, patient());
+    var m;
+    function numField(key, label, unit){
+      var inp = h('input', {class:'inp', inputmode:'decimal', enterkeyhint:'next', value:p[key] == null ? '' : String(p[key]).replace('.', ',')});
+      inp.addEventListener('input', function(){ var v = num(inp.value); p[key] = isNaN(v) ? null : v; paint(); });
+      return h('div', {class:'field'}, h('label', {text:label}), h('div', {class:'inp-unit'}, inp, h('span', {class:'u', text:unit})));
+    }
+    var out = h('div', {class:'panel small'});
+    function paint(){ var s = bsa(p.height, p.weight); out.textContent = isNaN(s) ? t({fr:'Taille et poids → surface corporelle (Mosteller) calculée automatiquement.', ar:'الطول والوزن ← تُحسب مساحة سطح الجسم (Mosteller) تلقائيًا.'}) : t({fr:'Surface corporelle (Mosteller) : ', ar:'مساحة سطح الجسم (Mosteller): '}) + fmt(s, 2) + ' m²'; }
+    paint();
+    m = modal(h('div', {class:'stack'},
+      h('div', {class:'row between'}, h('h2', {text:{fr:'Patient en cours', ar:'المريض الحالي'}}), h('span', {class:'badge info', text:{fr:'anonyme', ar:'دون اسم'}})),
+      h('p', {class:'muted small', text:{fr:'Ces valeurs pré-remplissent la fonction diastolique, les scores et la décision partagée. Aucun nom n’est demandé ; tout reste sur cet appareil.', ar:'تُعبِّئ هذه القيم مسبقًا الوظيفة الانبساطية والمقاييس والقرار المشترك. لا يُطلب أي اسم، ويبقى كل شيء على هذا الجهاز.'}}),
+      h('div', {class:'grid g2'},
+        numField('age', {fr:'Âge', ar:'السن'}, t({fr:'ans', ar:'سنة'})),
+        h('div', {class:'field'}, h('label', {text:{fr:'Sexe', ar:'الجنس'}}), segEl([['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]], p.sex || '', function(v){ p.sex = v; }, 'full')),
+        numField('height', {fr:'Taille', ar:'الطول'}, 'cm'),
+        numField('weight', {fr:'Poids', ar:'الوزن'}, 'kg'),
+        h('div', {class:'field'}, h('label', {text:{fr:'Rythme', ar:'النظم'}}), segEl([['sinus', {fr:'Sinusal', ar:'جيبي'}], ['fa', {fr:'FA', ar:'رجفان أذيني'}]], p.rhythm || '', function(v){ p.rhythm = v; }, 'full'))),
+      out,
+      h('div', {class:'row between'},
+        h('button', {class:'btn ghost danger', html:I.trash + '<span>' + esc(t({fr:'Nouveau patient', ar:'مريض جديد'})) + '</span>', onclick:function(){ setPatient({}); m.close(); toast({fr:'Patient effacé', ar:'تم مسح المريض'}); }}),
+        h('div', {class:'row'},
+          h('button', {class:'btn', text:{fr:'Annuler', ar:'إلغاء'}, onclick:function(){ m.close(); }}),
+          h('button', {class:'btn primary', text:{fr:'Enregistrer', ar:'حفظ'}, onclick:function(){ setPatient(p); m.close(); toast({fr:'Patient enregistré', ar:'تم حفظ المريض'}); }})))
+    ), {sheet:true, noFocus:true});
+  }
+  function settings(){
+    var m;
+    function rowItem(label, hint, ctl){ return h('div', {class:'set-row'}, h('div', {class:'set-l'}, h('div', {class:'set-t', text:label}), hint ? h('div', {class:'muted xs', text:hint}) : null), ctl); }
+    m = modal(h('div', {class:'stack'},
+      h('div', {class:'row between'}, h('h2', {text:{fr:'Réglages', ar:'الإعدادات'}}), h('button', {class:'icon-btn', 'aria-label':{fr:'Fermer', ar:'إغلاق'}, html:I.x, onclick:function(){ m.close(); }})),
+      rowItem({fr:'Langue', ar:'اللغة'}, {fr:'Arabe : arabe standard, lu de droite à gauche', ar:'العربية الفصحى، من اليمين إلى اليسار'},
+        segEl([['fr', 'Français'], ['ar', 'العربية']], LANG, setLang)),
+      rowItem({fr:'Thème', ar:'المظهر'}, null, segEl([['light', {fr:'Clair', ar:'فاتح'}], ['dark', {fr:'Sombre', ar:'داكن'}]], isDark() ? 'dark' : 'light', setTheme)),
+      rowItem({fr:'Unités biologiques', ar:'وحدات التحاليل'}, null, segEl([['mgdl', 'mg/dL'], ['si', 'SI']], units(), setUnits)),
+      rowItem({fr:'Médecin', ar:'الطبيب'}, doctorLabel(), h('button', {class:'btn sm', text:{fr:'Modifier', ar:'تعديل'}, onclick:function(){ m.close(); editDoctor(); }})),
+      rowItem({fr:'Patient en cours', ar:'المريض الحالي'}, patientSummary() || {fr:'Aucun', ar:'لا يوجد'}, h('button', {class:'btn sm', text:{fr:'Modifier', ar:'تعديل'}, onclick:function(){ m.close(); editPatient(); }})),
+      h('div', {class:'divider'}),
+      rowItem({fr:'Sauvegarde', ar:'النسخ الاحتياطي'}, {fr:'Pour passer d’un appareil à l’autre : exporter ici, importer là-bas.', ar:'للانتقال بين الأجهزة: صدِّر هنا واستورد هناك.'},
+        h('div', {class:'row'},
+          h('button', {class:'btn sm', html:I.download + '<span>' + esc(t({fr:'Exporter', ar:'تصدير'})) + '</span>', onclick:exportBackup}),
+          h('button', {class:'btn sm', html:I.upload + '<span>' + esc(t({fr:'Importer', ar:'استيراد'})) + '</span>', onclick:function(){ m.close(); importBackup(); }}))),
+      rowItem({fr:'PC sans Internet', ar:'حاسوب دون إنترنت'}, {fr:'Télécharger le site complet (.zip), le copier sur le PC (clé USB), dézipper et ouvrir index.html.', ar:'نزّل الموقع كاملًا (.zip) وانسخه إلى الحاسوب (مفتاح USB) ثم فكّ الضغط وافتح index.html.'},
+        h('a', {class:'btn sm', href:'coeur-net-hors-ligne.zip', download:'', html:I.download + '<span>' + esc(t({fr:'Version hors ligne', ar:'نسخة دون اتصال'})) + '</span>'})),
+      rowItem({fr:'Visites guidées', ar:'الجولات الإرشادية'}, {fr:'Les revoir à la prochaine ouverture de chaque outil.', ar:'إعادة عرضها عند فتح كل أداة.'},
+        h('button', {class:'btn sm', html:I.reset + '<span>' + esc(t({fr:'Réactiver', ar:'إعادة تفعيل'})) + '</span>', onclick:function(){ store.keys().forEach(function(k){ if(k.indexOf('tour.') === 0) store.del(k); }); toast({fr:'Les visites guidées reviendront', ar:'ستظهر الجولات الإرشادية من جديد'}); }})),
+      rowItem({fr:'Effacer toutes les données', ar:'مسح كل البيانات'}, {fr:'Remet l’application à zéro sur cet appareil.', ar:'يعيد التطبيق إلى حالته الأولى على هذا الجهاز.'},
+        h('button', {class:'btn sm danger', html:I.trash + '<span>' + esc(t({fr:'Effacer', ar:'مسح'})) + '</span>', onclick:function(){
+          ask({fr:'Effacer toutes les données de Cœur Net sur cet appareil ? Pensez à exporter une sauvegarde avant.', ar:'مسح كل بيانات Cœur Net على هذا الجهاز؟ يُستحسن تصدير نسخة احتياطية قبل ذلك.'}, {fr:'Tout effacer', ar:'مسح الكل'}).then(function(ok){ if(ok){ store.keys().forEach(function(k){ store.del(k); }); location.reload(); } });
+        }})),
+      h('p', {class:'muted xs', text:'Cœur Net ' + VERSION})
+    ), {sheet:true, noFocus:true});
+  }
+  function toolMenu(){
+    var m;
+    var list = h('div', {class:'tm-list'});
+    GROUPS.forEach(function(g){
+      list.appendChild(h('div', {class:'tm-grp', text:g.name}));
+      TOOLS.filter(function(x){ return x.grp === g.id; }).forEach(function(x){
+        list.appendChild(h('a', {class:'tm-item g-' + x.grp + (x.id === PAGE ? ' on' : ''), href:x.id + '.html'},
+          h('span', {class:'tm-ic', html:toolIcon(x.id)}),
+          h('span', {class:'tm-tx'}, h('b', {text:x.name}), h('span', {class:'muted xs', text:x.d}))));
+      });
+    });
+    m = modal(h('div', {class:'stack'},
+      h('div', {class:'row between'}, h('h2', {text:{fr:'Tous les outils', ar:'كل الأدوات'}}), h('button', {class:'icon-btn', 'aria-label':{fr:'Fermer', ar:'إغلاق'}, html:I.x, onclick:function(){ m.close(); }})),
+      list), {sheet:true, noFocus:true});
+  }
+
+  /* Petites icônes d'outil (trait, couleur héritée) */
+  function toolIcon(id){
+    var s = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">';
+    var p = {
+      diastolique:'<path d="M3 17c2.5 0 3-9 5.5-9s2.5 6 4.5 6 2-3 4-3 2 6 4 6"/><path d="M3 21h18" opacity=".45"/>',
+      echo:'<path d="M12 3L4.5 18h15z" opacity=".5"/><path d="M8 13c1.5-1 6.5-1 8 0M9.5 9.5c1-.6 4-.6 5 0"/><path d="M5 21h14"/>',
+      consentement:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 15.5h5"/>',
+      decision:'<circle cx="7" cy="7" r="2"/><circle cx="17" cy="7" r="2"/><path d="M4 21v-5a3 3 0 0 1 6 0v5M14 21v-5a3 3 0 0 1 6 0v5"/><path d="M12 4v16" opacity=".4"/>',
+      education:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M9 11h2l1-2 1 4 1-2h1"/>',
+      scores:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/>',
+      quiz:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>'
+    }[id] || '';
+    return s + p + '</svg>';
+  }
+
+  /* ---------- En-tête, pied de page, barre du bas (téléphone) ---------- */
+  function init(o){
+    o = o || {};
+    var me = tool(PAGE);
+    if(me) recordRecent(PAGE);
+    if(me) document.title = t(me.name) + ' · Cœur Net';
+    var top = document.getElementById('cs-top') || document.body.insertBefore(h('header', {id:'cs-top'}), document.body.firstChild);
+    top.className = 'cs-top no-print';
+    var actions = h('div', {class:'cs-actions'});
+    if(o.actions) add(actions, o.actions);
+    if(o.units){
+      var us = h('div', {class:'seg cs-unitseg hide-sm', role:'group', 'aria-label':'Unités'},
+        h('button', {'data-v':'mgdl', type:'button', text:'mg/dL'}), h('button', {'data-v':'si', type:'button', text:'SI'}));
+      $$('button', us).forEach(function(b){ b.addEventListener('click', function(){ setUnits(b.dataset.v); }); });
+      actions.appendChild(us);
+    }
+    actions.appendChild(h('button', {class:'btn ghost sm cs-doc hide-sm', type:'button', 'data-cs-doctor':'', title:{fr:'Modifier le nom du médecin', ar:'تعديل اسم الطبيب'}, onclick:editDoctor, text:doctorLabel()}));
+    actions.appendChild(h('button', {class:'icon-btn cs-lang', type:'button', title:{fr:'العربية', ar:'Français'}, 'aria-label':{fr:'Passer en arabe', ar:'التبديل إلى الفرنسية'}, text:LANG === 'ar' ? 'Fr' : 'ع', onclick:function(){ setLang(LANG === 'ar' ? 'fr' : 'ar'); }}));
+    if(o.tour !== false && CS.tour) actions.appendChild(h('button', {class:'icon-btn', id:'cs-help', type:'button', title:{fr:'Visite guidée', ar:'جولة إرشادية'}, 'aria-label':{fr:'Lancer la visite guidée', ar:'بدء الجولة الإرشادية'}, html:I.help, onclick:function(){ CS.tour.start(true); }}));
+    actions.appendChild(h('button', {class:'icon-btn hide-sm', id:'cs-settings', type:'button', title:{fr:'Réglages', ar:'الإعدادات'}, 'aria-label':{fr:'Réglages', ar:'الإعدادات'}, html:I.gear, onclick:settings}));
+    top.innerHTML = '';
+    var isHome = PAGE === 'index';
+    top.appendChild(h('div', {class:'cs-top-in'},
+      isHome ? null : h('a', {class:'cs-back', href:'index.html', 'aria-label':{fr:'Retour à l’accueil', ar:'العودة إلى الرئيسية'}, html:I.back + '<span>' + esc(t({fr:'Accueil', ar:'الرئيسية'})) + '</span>'}),
+      h('a', {class:'cs-brand', href:'index.html'},
+        h('div', {class:'cs-logo', 'aria-hidden':'true', html:I.heart}),
+        h('div', {class:'cs-titles'}, h('span', {class:'eyebrow', text:o.cat || (me ? group(me.grp).name : 'Cœur Net')}), h('h1', {text:o.title || (me ? me.name : 'Cœur Net')}))),
+      actions));
+    syncUnitSeg();
+    var foot = document.getElementById('cs-foot') || document.body.appendChild(h('footer', {id:'cs-foot'}));
+    foot.className = 'cs-foot no-print';
+    var fi = h('div', {class:'cs-foot-in'},
+      h('div', {html:t({fr:'<strong>Outil d’aide à la décision.</strong> Ne remplace pas le jugement clinique ; vérifier toute décision avec les recommandations en vigueur. Les données restent sur cet appareil.', ar:'<strong>أداة للمساعدة على القرار.</strong> لا تعوِّض الحكم السريري؛ يجب التحقق من كل قرار وفق التوصيات السارية. تبقى البيانات على هذا الجهاز.'})}));
+    if(o.refs && o.refs.length) fi.appendChild(h('div', {html:'<strong>' + esc(t({fr:'Références', ar:'المراجع'})) + ' :</strong> <span dir="ltr">' + o.refs.map(esc).join(' · ') + '</span>'}));
+    fi.appendChild(h('div', {text:'Cœur Net ' + VERSION}));
+    foot.innerHTML = ''; foot.appendChild(fi);
+    tabbar();
+    registerSW();
+    // Textes statiques des pages : <h2 data-ar="…">Texte français</h2>
+    if(LANG === 'ar') $$('[data-ar]').forEach(function(el){ el.textContent = el.getAttribute('data-ar'); });
+  }
+  function tabbar(){
+    if($('.cs-tabbar')) return;
+    function item(href, icon, label, on, click){
+      return h(href ? 'a' : 'button', {class:'cs-tab' + (on ? ' on' : ''), href:href || null, type:href ? null : 'button', onclick:click || null, 'aria-current':on ? 'page' : null},
+        h('span', {class:'ic', html:icon}), h('span', {class:'lb', text:label}));
+    }
+    var bar = h('nav', {class:'cs-tabbar no-print', 'aria-label':{fr:'Navigation', ar:'التنقل'}},
+      item('index.html', I.home, {fr:'Accueil', ar:'الرئيسية'}, PAGE === 'index'),
+      item('diastolique.html', toolIcon('diastolique'), {fr:'Diastole', ar:'الانبساط'}, PAGE === 'diastolique'),
+      item(null, I.grid, {fr:'Outils', ar:'الأدوات'}, false, toolMenu),
+      item('quiz.html', toolIcon('quiz'), {fr:'Quiz', ar:'اختبار'}, PAGE === 'quiz'),
+      item(null, I.gear, {fr:'Réglages', ar:'الإعدادات'}, false, settings));
+    document.body.appendChild(bar);
+    document.body.classList.add('has-tabbar');
+  }
+  function recordRecent(id){
+    var st = store.get('hub', {fav:[], recent:[]});
+    st.recent = [id].concat((st.recent || []).filter(function(x){ return x !== id; })).slice(0, 6);
+    st.last = {id:id, at:Date.now()};
+    store.set('hub', st);
+  }
+  function registerSW(){
+    if(!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
+    try{ navigator.serviceWorker.register('sw.js'); }catch(e){}
+  }
+
+  /* ---------- Niveaux du quiz (partagé avec l'accueil) ----------
+     Passer du niveau L au niveau L+1 coûte 100 + 60·(L−1) XP. */
+  var TITLES = [
+    {fr:'Externe', ar:'طالب خارجي'}, {fr:'Interne', ar:'طبيب داخلي'}, {fr:'Résident', ar:'طبيب مقيم'},
+    {fr:'Chef de clinique', ar:'رئيس عيادة'}, {fr:'Assistant hospitalo-universitaire', ar:'مساعد استشفائي جامعي'},
+    {fr:'Maître de conférences agrégé', ar:'أستاذ مبرِّز'}, {fr:'Professeur', ar:'أستاذ'}, {fr:'Légende du cœur', ar:'أسطورة القلب'}
+  ];
+  function level(xp){
+    xp = Math.max(0, Math.floor(xp || 0));
+    var L = 1, base = 0, need = 100;
+    while(xp >= base + need){ base += need; L++; need = 100 + 60 * (L - 1); }
+    return {lvl:L, xp:xp, base:base, next:base + need, pct:(xp - base) / need, title:TITLES[Math.min(TITLES.length - 1, Math.floor((L - 1) / 2))]};
+  }
+
+  /* ---------- Hasard reproductible ---------- */
+  function rng(seed){
+    var a = seed >>> 0;
+    return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; var r = Math.imul(a ^ a >>> 15, 1 | a); r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r; return ((r ^ r >>> 14) >>> 0) / 4294967296; };
+  }
+  function gauss(r){ var u = 1 - r(), v = r(); return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*v); }
+
+  window.CS = {
+    store:store, sync:sync, VERSION:VERSION, PAGE:PAGE, isDark:isDark, toggleTheme:toggleTheme, setTheme:setTheme, css:css,
+    lang:lang, isAr:isAr, setLang:setLang, t:t, locale:locale,
+    $:$, $$:$$, h:h, esc:esc, fmt:fmt, pct:pct, clamp:clamp, num:num, todayISO:todayISO, frDate:frDate, frDateLong:frDateLong,
+    units:units, setUnits:setUnits, unitLabel:unitLabel, toMgdl:toMgdl, fromMgdl:fromMgdl, conv:conv,
+    doctor:doctor, doctorLabel:doctorLabel, editDoctor:editDoctor,
+    patient:patient, setPatient:setPatient, editPatient:editPatient, patientSummary:patientSummary, bsa:bsa,
+    TOOLS:TOOLS, GROUPS:GROUPS, tool:tool, group:group, toolIcon:toolIcon, toolMenu:toolMenu, settings:settings,
+    exportBackup:exportBackup, importBackup:importBackup, applyBackup:applyBackup,
+    I:I, toast:toast, copy:copy, download:download, toCSV:toCSV, modal:modal, ask:ask, seg:seg, segEl:segEl, init:init,
+    back:function(){ location.href = 'index.html'; },
+    rng:rng, gauss:gauss, level:level
+  };
+})();
+
+</script>
+<script>
+/* Cœur Net — visite guidée (window.CS.tour)
+   CS.tour.define([{el:'#sel' | fn, title:{fr,ar}, body:{fr,ar} (HTML permis), before:fn, after:fn}], {key})
+   Démarre seule à la première ouverture de la page ; le bouton « ? » de l'en-tête la relance. */
+(function(){
+  'use strict';
+  var CS = window.CS, h = CS.h, t = CS.t;
+  var steps = [], key = 'tour.' + CS.PAGE, idx = 0, mask, hole, pop, active = false;
+
+  function define(list, opts){
+    steps = list || [];
+    if(opts && opts.key) key = 'tour.' + opts.key;
+    // première visite : on attend que la page soit dessinée
+    if(!CS.store.get(key, false)) setTimeout(function(){ if(!active && !document.querySelector('.modal-bg')) start(false); }, 700);
+  }
+  function target(s){
+    if(!s.el) return null;
+    var el = typeof s.el === 'function' ? s.el() : document.querySelector(s.el);
+    if(!el) return null;
+    var r = el.getBoundingClientRect();
+    if(r.width === 0 && r.height === 0) return null;
+    return el;
+  }
+  function isSheet(){ return window.matchMedia('(max-width:720px)').matches; }
+
+  function start(force){
+    if(!steps.length) return;
+    if(active) stop(false);
+    active = true; idx = 0;
+    mask = h('div', {class:'tour-mask', 'aria-hidden':'true'});
+    hole = h('div', {class:'tour-hole'});
+    pop = h('div', {class:'tour-pop', role:'dialog', 'aria-modal':'true', 'aria-live':'polite'});
+    mask.addEventListener('click', function(e){ e.stopPropagation(); });
+    document.body.appendChild(mask); document.body.appendChild(hole); document.body.appendChild(pop);
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    show(0);
+  }
+  function stop(done){
+    if(!active) return;
+    var s = steps[idx]; if(s && s.after) try{ s.after(); }catch(e){}
+    active = false;
+    [mask, hole, pop].forEach(function(x){ if(x) x.remove(); });
+    document.removeEventListener('keydown', onKey, true);
+    window.removeEventListener('resize', place);
+    window.removeEventListener('scroll', place, true);
+    CS.store.set(key, true);
+    if(done) CS.toast({fr:'Visite terminée. Le bouton « ? » la relance à tout moment.', ar:'انتهت الجولة. يعيد زر «؟» تشغيلها في أي وقت.'});
+  }
+  function onKey(e){
+    if(!active) return;
+    var rtl = CS.isAr();
+    if(e.key === 'Escape'){ e.preventDefault(); stop(false); }
+    else if(e.key === (rtl ? 'ArrowLeft' : 'ArrowRight') || e.key === 'Enter'){ e.preventDefault(); next(); }
+    else if(e.key === (rtl ? 'ArrowRight' : 'ArrowLeft')){ e.preventDefault(); prev(); }
+  }
+  function next(){ if(idx < steps.length - 1) show(idx + 1); else stop(true); }
+  function prev(){ if(idx > 0) show(idx - 1); }
+
+  function show(i){
+    var old = steps[idx]; if(old && old.after && i !== idx) try{ old.after(); }catch(e){}
+    idx = i;
+    var s = steps[i];
+    if(s.before) try{ s.before(); }catch(e){}
+    var last = i === steps.length - 1;
+    pop.innerHTML = '';
+    var dots = h('div', {class:'tour-dots'});
+    for(var k = 0; k < steps.length; k++) dots.appendChild(h('i', {class:k === i ? 'on' : ''}));
+    pop.appendChild(h('div', {class:'row between', style:{marginBottom:'6px'}},
+      h('span', {class:'tour-step', text:(i + 1) + ' / ' + steps.length}),
+      h('button', {class:'btn ghost sm', type:'button', text:{fr:'Passer', ar:'تخطٍّ'}, onclick:function(){ stop(false); }})));
+    pop.appendChild(h('h3', {text:s.title}));
+    pop.appendChild(h('div', {class:'tb', html:t(s.body)}));
+    pop.appendChild(h('div', {class:'tour-foot'}, dots,
+      h('div', {class:'row', style:{gap:'6px'}},
+        i > 0 ? h('button', {class:'btn sm', type:'button', text:{fr:'Précédent', ar:'السابق'}, onclick:prev}) : null,
+        h('button', {class:'btn sm primary', type:'button', text:last ? {fr:'Terminer', ar:'إنهاء'} : {fr:'Suivant', ar:'التالي'}, onclick:next}))));
+    var el = target(s);
+    if(el){
+      var r = el.getBoundingClientRect();
+      var vh = window.innerHeight, sheetH = isSheet() ? Math.min(pop.offsetHeight || 260, vh * .5) : 0;
+      var visibleTop = 70, visibleBottom = vh - sheetH - 16;
+      if(r.top < visibleTop || r.bottom > visibleBottom){
+        var y = window.scrollY + r.top - (isSheet() ? Math.max(70, (visibleBottom - r.height) / 2) : vh / 2 - r.height / 2);
+        window.scrollTo({top:Math.max(0, y), behavior:'smooth'});
+      }
+    }
+    place(); setTimeout(place, 360);
+    var f = pop.querySelector('.btn.primary'); if(f) f.focus({preventScroll:true});
+  }
+  function place(){
+    if(!active) return;
+    var s = steps[idx], el = target(s), sheet = isSheet();
+    pop.classList.toggle('sheet', sheet);
+    if(!el){
+      hole.style.cssText = 'top:50%;left:50%;width:0;height:0;outline:0';
+      if(!sheet){ pop.style.left = Math.max(12, (window.innerWidth - pop.offsetWidth) / 2) + 'px'; pop.style.top = Math.max(12, (window.innerHeight - pop.offsetHeight) / 2) + 'px'; }
+      return;
+    }
+    var r = el.getBoundingClientRect(), pad = 6;
+    hole.style.cssText = 'top:' + (r.top - pad) + 'px;left:' + (r.left - pad) + 'px;width:' + (r.width + pad * 2) + 'px;height:' + (r.height + pad * 2) + 'px';
+    if(sheet){ pop.style.left = ''; pop.style.top = ''; return; }
+    var pw = pop.offsetWidth, ph = pop.offsetHeight, vw = window.innerWidth, vh = window.innerHeight, gap = 14;
+    var top = r.bottom + gap;
+    if(top + ph > vh - 12) top = r.top - ph - gap;
+    if(top < 12){ // ni dessous ni dessus : à côté
+      top = Math.min(Math.max(12, r.top), vh - ph - 12);
+      var side = CS.isAr() ? r.left - pw - gap : r.right + gap;
+      if(side + pw > vw - 12 || side < 12) side = CS.isAr() ? r.right + gap : r.left - pw - gap;
+      pop.style.left = Math.min(Math.max(12, side), vw - pw - 12) + 'px';
+    } else {
+      var left = CS.isAr() ? r.right - pw : r.left;
+      pop.style.left = Math.min(Math.max(12, left), vw - pw - 12) + 'px';
+    }
+    pop.style.top = top + 'px';
+  }
+
+  CS.tour = {define:define, start:start, stop:stop, get active(){ return active; }};
+})();
+
+</script>
+<script>
+/* Cœur Net — formules de risque partagées (window.RISK)
+   Utilisées par « Scores de risque » et « Décision partagée ». Coefficients repris des publications originales :
+   SCORE2 / SCORE2-OP (Eur Heart J 2021), SCORE2-Diabetes (Eur Heart J 2023), PCE (ACC/AHA 2013),
+   EuroSCORE II (Nashef, Eur J Cardiothorac Surg 2012). */
+(function(root){
+  'use strict';
+  function cockcroft(age, wt, creatMgdl, female){ if(!(age > 0 && wt > 0 && creatMgdl > 0)) return NaN; return (140 - age) * wt / (72 * creatMgdl) * (female ? 0.85 : 1); }
+  function recal(risk, s1, s2){ return 1 - Math.exp(-Math.exp(s1 + s2 * Math.log(-Math.log(1 - risk)))); }
+  var S2_CAL = { // SCORE2 : [scale1, scale2] hommes / femmes
+    low:{m:[-0.5699,0.7476], f:[-0.7380,0.7019]}, moderate:{m:[-0.1565,0.8009], f:[-0.3143,0.7701]},
+    high:{m:[0.3207,0.9360], f:[0.5710,0.9369]}, veryhigh:{m:[0.5836,0.8294], f:[0.9412,0.8329]} };
+  var OP_CAL = {
+    low:{m:[-0.34,1.19], f:[-0.52,1.01]}, moderate:{m:[0.01,1.25], f:[-0.10,1.10]},
+    high:{m:[0.08,1.15], f:[0.38,1.09]}, veryhigh:{m:[0.05,0.70], f:[0.38,0.69]} };
+  // o: female, age, smoker, sbp (mmHg), tc et hdl (mmol/L), region ('low'|'moderate'|'high'|'veryhigh')
+  function score2(o){
+    var cage = (o.age - 60) / 5, csbp = (o.sbp - 120) / 20, ctc = o.tc - 6, chdl = (o.hdl - 1.3) / 0.5, sm = o.smoker ? 1 : 0, x, S0;
+    if(!o.female){ x = 0.3742*cage + 0.6012*sm + 0.2777*csbp + 0.1458*ctc - 0.2698*chdl - 0.0755*cage*sm - 0.0255*cage*csbp - 0.0281*cage*ctc + 0.0426*cage*chdl; S0 = 0.9605; }
+    else { x = 0.4648*cage + 0.7744*sm + 0.3131*csbp + 0.1002*ctc - 0.2606*chdl - 0.1088*cage*sm - 0.0277*cage*csbp - 0.0226*cage*ctc + 0.0613*cage*chdl; S0 = 0.9776; }
+    var raw = 1 - Math.pow(S0, Math.exp(x)); var c = S2_CAL[o.region][o.female ? 'f' : 'm'];
+    return recal(raw, c[0], c[1]);
+  }
+  function score2op(o){
+    var cage = o.age - 73, csbp = o.sbp - 150, ctc = o.tc - 6, chdl = o.hdl - 1.4, sm = o.smoker ? 1 : 0, dm = o.diabetes ? 1 : 0, x, S0, mean;
+    if(!o.female){ x = 0.0634*cage + 0.4245*dm + 0.3524*sm + 0.0094*csbp + 0.0850*ctc - 0.3564*chdl - 0.0174*cage*dm - 0.0247*cage*sm - 0.0005*cage*csbp + 0.0073*cage*ctc + 0.0091*cage*chdl; S0 = 0.7576; mean = 0.0929; }
+    else { x = 0.0789*cage + 0.6010*dm + 0.4921*sm + 0.0102*csbp + 0.0605*ctc - 0.3040*chdl - 0.0107*cage*dm - 0.0255*cage*sm - 0.0004*cage*csbp - 0.0009*cage*ctc + 0.0154*cage*chdl; S0 = 0.8082; mean = 0.2290; }
+    var raw = 1 - Math.pow(S0, Math.exp(x - mean)); var c = OP_CAL[o.region][o.female ? 'f' : 'm'];
+    return recal(raw, c[0], c[1]);
+  }
+  // + agediab (ans), a1c (mmol/mol), egfr (mL/min/1,73 m²)
+  function score2dm(o){
+    var cage = (o.age - 60) / 5, csbp = (o.sbp - 120) / 20, ctc = o.tc - 6, chdl = (o.hdl - 1.3) / 0.5, sm = o.smoker ? 1 : 0;
+    var cad = (o.agediab - 50) / 5, ca1c = (o.a1c - 31) / 9.34, ce = (Math.log(o.egfr) - 4.5) / 0.15, x, S0;
+    if(!o.female){ x = 0.5368*cage + 0.4774*sm + 0.1322*csbp + 0.6457 + 0.1102*ctc - 0.1087*chdl - 0.0672*cage*sm - 0.0268*cage*csbp - 0.0983*cage - 0.0181*cage*ctc + 0.0095*cage*chdl - 0.0998*cad + 0.0955*ca1c - 0.0591*ce + 0.0058*ce*ce - 0.0134*ca1c*cage + 0.0115*ce*cage; S0 = 0.9605; }
+    else { x = 0.6624*cage + 0.6139*sm + 0.1421*csbp + 0.8096 + 0.1127*ctc - 0.1568*chdl - 0.1122*cage*sm - 0.0167*cage*csbp - 0.1272*cage - 0.0200*cage*ctc + 0.0186*cage*chdl - 0.1180*cad + 0.1173*ca1c - 0.0640*ce + 0.0062*ce*ce - 0.0196*ca1c*cage + 0.0169*ce*cage; S0 = 0.9776; }
+    var raw = 1 - Math.pow(S0, Math.exp(x)); var c = S2_CAL[o.region][o.female ? 'f' : 'm'];
+    return recal(raw, c[0], c[1]);
+  }
+  function pce(o){ // ASCVD (AHA/ACC 2013), unités mg/dL
+    var la = Math.log(o.age), lt = Math.log(o.tc), lh = Math.log(o.hdl), ls = Math.log(o.sbp), sm = o.smoker ? 1 : 0, dm = o.diabetes ? 1 : 0, t = o.treated, s, S0, mean;
+    if(o.female && !o.aa){ s = -29.799*la + 4.884*la*la + 13.540*lt - 3.114*la*lt - 13.578*lh + 3.149*la*lh + (t ? 2.019 : 1.957)*ls + 7.574*sm - 1.665*la*sm + 0.661*dm; S0 = 0.9665; mean = -29.18; }
+    else if(o.female){ s = 17.114*la + 0.940*lt - 18.920*lh + 4.475*la*lh + (t ? 29.291*ls - 6.432*la*ls : 27.820*ls - 6.087*la*ls) + 0.691*sm + 0.874*dm; S0 = 0.9533; mean = 86.61; }
+    else if(!o.aa){ s = 12.344*la + 11.853*lt - 2.664*la*lt - 7.990*lh + 1.769*la*lh + (t ? 1.797 : 1.764)*ls + 7.837*sm - 1.795*la*sm + 0.658*dm; S0 = 0.9144; mean = 61.18; }
+    else { s = 2.469*la + 0.302*lt - 0.307*lh + (t ? 1.916 : 1.809)*ls + 0.549*sm + 0.645*dm; S0 = 0.8954; mean = 19.54; }
+    return 1 - Math.pow(S0, Math.exp(s - mean));
+  }
+  /* Seuils ESC 2021 (prévention) selon l'âge : [élevé, très élevé] en % à 10 ans */
+  function score2Thresholds(age){ return age < 50 ? [2.5, 7.5] : age < 70 ? [5, 10] : [7.5, 15]; }
+  /* EuroSCORE II. v : age, female, cc (clairance mL/min, ou NaN) | renal ('n'|'m'|'s'|'dial'), art, mob, redo, lung, endo,
+     crit, ins, nyha (1–4), ccs4, lv ('g'|'m'|'p'|'vp'), mi, pa ('n'|'m'|'s'), urg ('e'|'u'|'em'|'s'), wt ('0'..'3'), aorta */
+  function euroscore2(v){
+    var y = -5.324537;
+    y += 0.0285181 * Math.max(1, v.age - 59);
+    if(v.female) y += 0.2196434;
+    var renal = v.renal || (v.dial ? 'dial' : v.cc < 50 ? 's' : v.cc <= 85 ? 'm' : 'n');
+    y += {n:0, m:0.303553, s:0.8592256, dial:0.6421508}[renal];
+    if(v.art) y += 0.5360268; if(v.mob) y += 0.2407181; if(v.redo) y += 1.118599; if(v.lung) y += 0.1886564; if(v.endo) y += 0.6194522; if(v.crit) y += 1.086517; if(v.ins) y += 0.3542749;
+    y += {1:0, 2:0.1070545, 3:0.2958358, 4:0.5597929}[v.nyha || 1]; if(v.ccs4) y += 0.2226147;
+    y += {g:0, m:0.3150652, p:0.8084096, vp:0.9346919}[v.lv || 'g']; if(v.mi) y += 0.1528943;
+    y += {n:0, m:0.1788899, s:0.3491475}[v.pa || 'n']; y += {e:0, u:0.3174673, em:0.7039121, s:1.362947}[v.urg || 'e'];
+    y += {0:0, 1:0.0062118, 2:0.5521478, 3:0.9724533}[v.wt == null ? 1 : v.wt]; if(v.aorta) y += 0.6527205;
+    return Math.exp(y) / (1 + Math.exp(y)) * 100;
+  }
+  /* Globorisk (version « laboratoire »), calibré pour la Tunisie.
+     Ueda P et al., Lancet Diabetes Endocrinol 2017 ; Hajifathalian K et al., ibid. 2015.
+     Portage fidèle du paquet R globorisk (boyercb, licence MIT) : modèle de Cox centré sur les moyennes
+     nationales des facteurs de risque par âge et sexe, taux de base nationaux d'événements CV (fatals + non fatals)
+     pour chacune des 10 années de suivi. Données : window.GLOBO (fichier _globorisk_tun.js).
+     o : female (bool), age (40–80), sbp (mmHg), tc (mmol/L), dm (bool), smoker (bool) → risque à 10 ans (0–1) */
+  function globorisk(o, D){
+    D = D || root.GLOBO;
+    if(!D || !(o.age >= 40) || o.age > 80) return NaN;
+    var sex = o.female ? 1 : 0, age = Math.trunc(o.age), agec = age < 85 ? Math.trunc(age / 5) - 7 : 10;
+    var m = null;
+    for(var i = 0; i < D.rf.length; i++){ var r = D.rf[i]; if(r.sex === sex && r.agec === agec){ m = r; break; } }
+    var base = D.cvd[sex + '-' + age];
+    if(!m || !base) return NaN;
+    var c = D.coef;
+    var sbpc = o.sbp / 10 - m.mean_sbp, tcc = o.tc - m.mean_tc, dmc = (o.dm ? 1 : 0) - m.mean_dm, smkc = (o.smoker ? 1 : 0) - m.mean_smk;
+    var surv = 1;
+    for(var t = 0; t < 10; t++){
+      var lp = sbpc * c.main_sbpc + tcc * c.main_tcc + dmc * c.main__Idm_1 + smkc * c.main_smok +
+        sex * dmc * c.main_sexdm + sex * smkc * c.main_sexsmok +
+        (age + t) * (sbpc * c.tvc_sbpc + tcc * c.tvc_tcc + dmc * c.tvc_dm + smkc * c.tvc_smok);
+      surv *= Math.exp(-Math.exp(lp) * base[t]);
+    }
+    return 1 - surv;
+  }
+
+  /* HbA1c % -> mmol/mol (IFCC) */
+  function a1cToMmol(pct){ return (pct - 2.15) * 10.929; }
+  root.RISK = {cockcroft:cockcroft, score2:score2, score2op:score2op, score2dm:score2dm, pce:pce, score2Thresholds:score2Thresholds, euroscore2:euroscore2, globorisk:globorisk, a1cToMmol:a1cToMmol};
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* Globorisk — données Tunisie (ISO TUN, année de référence 2020) extraites du paquet R globorisk (boyercb, licence MIT).
+   Moyennes nationales des facteurs de risque par sexe et classe d'âge, taux de base d'événements CV (fatals + non fatals) par âge et année de suivi. */
+window.GLOBO = {"iso":"TUN","year":2020,"coef":{"main_sbpc":0.3070128560066223,"main_tcc":0.6149060726165771,"main__Idm_1":1.4753053188323975,"main_smok":1.8466835021972656,"main_sexdm":0.4050458073616028,"main_sexsmok":0.32538318634033203,"tvc_sbpc":-0.002247117692604661,"tvc_tcc":-0.006865651812404394,"tvc_dm":-0.013209526427090168,"tvc_smok":-0.02205285057425499},"rf":[{"sex":0,"agec":1,"mean_sbp":12.418218612670898,"mean_tc":4.699999809265137,"mean_dm":0.11995265632867813,"mean_smk":0.5600000023841858},{"sex":1,"agec":1,"mean_sbp":12.021601676940918,"mean_tc":4.690000057220459,"mean_dm":0.12499241530895233,"mean_smk":0.04099999740719795},{"sex":0,"agec":2,"mean_sbp":12.668922424316406,"mean_tc":4.769999980926514,"mean_dm":0.17053745687007904,"mean_smk":0.492000013589859},{"sex":1,"agec":2,"mean_sbp":12.406038284301758,"mean_tc":5.070000171661377,"mean_dm":0.17606884241104126,"mean_smk":0.06300000101327896},{"sex":0,"agec":3,"mean_sbp":12.992960929870605,"mean_tc":4.769999980926514,"mean_dm":0.2187201976776123,"mean_smk":0.47599998116493225},{"sex":1,"agec":3,"mean_sbp":12.821499824523926,"mean_tc":5.070000171661377,"mean_dm":0.2279021292924881,"mean_smk":0.054999999701976776},{"sex":0,"agec":4,"mean_sbp":13.33961009979248,"mean_tc":4.760000228881836,"mean_dm":0.2562975287437439,"mean_smk":0.4740000069141388},{"sex":1,"agec":4,"mean_sbp":13.22590446472168,"mean_tc":5.28000020980835,"mean_dm":0.26980993151664734,"mean_smk":0.06199999898672104},{"sex":0,"agec":5,"mean_sbp":13.657560348510742,"mean_tc":4.760000228881836,"mean_dm":0.2761046290397644,"mean_smk":0.43299999833106995},{"sex":1,"agec":5,"mean_sbp":13.577375411987305,"mean_tc":5.28000020980835,"mean_dm":0.2904822528362274,"mean_smk":0.02500000037252903},{"sex":0,"agec":6,"mean_sbp":13.921981811523438,"mean_tc":4.71999979019165,"mean_dm":0.2769615054130554,"mean_smk":0.47200000286102295},{"sex":1,"agec":6,"mean_sbp":13.851552963256836,"mean_tc":5.329999923706055,"mean_dm":0.2883647084236145,"mean_smk":0.05999999865889549},{"sex":0,"agec":7,"mean_sbp":14.13453197479248,"mean_tc":4.71999979019165,"mean_dm":0.26364579796791077,"mean_smk":0.4570000171661377},{"sex":1,"agec":7,"mean_sbp":14.041598320007324,"mean_tc":5.329999923706055,"mean_dm":0.2722567319869995,"mean_smk":0.10100000351667404},{"sex":0,"agec":8,"mean_sbp":14.298017501831055,"mean_tc":4.659999847412109,"mean_dm":0.24177250266075134,"mean_smk":0.34299999475479126},{"sex":1,"agec":8,"mean_sbp":14.141427993774414,"mean_tc":5.300000190734863,"mean_dm":0.2516537308692932,"mean_smk":0.0949999988079071},{"sex":0,"agec":9,"mean_sbp":14.415249824523926,"mean_tc":4.53000020980835,"mean_dm":0.21722730994224548,"mean_smk":0.3409999907016754},{"sex":1,"agec":9,"mean_sbp":14.144963264465332,"mean_tc":5.25,"mean_dm":0.23549562692642212,"mean_smk":0.07000000029802322}],"cvd":{"0-40":[0.002673467,0.002658646,0.002643897,0.002629218,0.00261461,0.00650725,0.006473997,0.006440888,0.00640793,0.006375113],"0-41":[0.002673467,0.002658646,0.002643897,0.002629218,0.006540651,0.00650725,0.006473997,0.006440888,0.00640793,0.011343179],"0-42":[0.002673467,0.002658646,0.002643897,0.006574204,0.006540651,0.00650725,0.006473997,0.006440888,0.011406113,0.011343179],"0-43":[0.002673467,0.002658646,0.006607903,0.006574204,0.006540651,0.00650725,0.006473997,0.011469338,0.011406113,0.011343179],"0-44":[0.002673467,0.006641755,0.006607903,0.006574204,0.006540651,0.00650725,0.011532862,0.011469338,0.011406113,0.011343179],"0-45":[0.006675754,0.006641755,0.006607903,0.006574204,0.006540651,0.011596691,0.011532862,0.011469338,0.011406113,0.011343179],"0-46":[0.006675754,0.006641755,0.006607903,0.006574204,0.011660814,0.011596691,0.011532862,0.011469338,0.011406113,0.016877871],"0-47":[0.006675754,0.006641755,0.006607903,0.01172524,0.011660814,0.011596691,0.011532862,0.011469338,0.0169678,0.016877871],"0-48":[0.006675754,0.006641755,0.011789971,0.01172524,0.011660814,0.011596691,0.011532862,0.017058123,0.0169678,0.016877871],"0-49":[0.006675754,0.011855013,0.011789971,0.01172524,0.011660814,0.011596691,0.017148845,0.017058123,0.0169678,0.016877871],"0-50":[0.011920354,0.011855013,0.011789971,0.01172524,0.011660814,0.017239965,0.017148845,0.017058123,0.0169678,0.016877871],"0-51":[0.011920354,0.011855013,0.011789971,0.01172524,0.017331488,0.017239965,0.017148845,0.017058123,0.0169678,0.020437006],"0-52":[0.011920354,0.011855013,0.011789971,0.017423425,0.017331488,0.017239965,0.017148845,0.017058123,0.020549715,0.020437006],"0-53":[0.011920354,0.011855013,0.017515754,0.017423425,0.017331488,0.017239965,0.017148845,0.020662926,0.020549715,0.020437006],"0-54":[0.011920354,0.01760849,0.017515754,0.017423425,0.017331488,0.017239965,0.020776618,0.020662926,0.020549715,0.020437006],"0-55":[0.017701637,0.01760849,0.017515754,0.017423425,0.017331488,0.020890823,0.020776618,0.020662926,0.020549715,0.020437006],"0-56":[0.017701637,0.01760849,0.017515754,0.017423425,0.021005511,0.020890823,0.020776618,0.020662926,0.020549715,0.025489861],"0-57":[0.017701637,0.01760849,0.017515754,0.021120714,0.021005511,0.020890823,0.020776618,0.020662926,0.025629131,0.025489861],"0-58":[0.017701637,0.01760849,0.021236409,0.021120714,0.021005511,0.020890823,0.020776618,0.025768992,0.025629131,0.025489861],"0-59":[0.017701637,0.021352608,0.021236409,0.021120714,0.021005511,0.020890823,0.025909424,0.025768992,0.025629131,0.025489861],"0-60":[0.021469325,0.021352608,0.021236409,0.021120714,0.021005511,0.026050428,0.025909424,0.025768992,0.025629131,0.025489861],"0-61":[0.021469325,0.021352608,0.021236409,0.021120714,0.026191995,0.026050428,0.025909424,0.025768992,0.025629131,0.032698896],"0-62":[0.021469325,0.021352608,0.021236409,0.026334155,0.026191995,0.026050428,0.025909424,0.025768992,0.032829538,0.032698896],"0-63":[0.021469325,0.021352608,0.026476897,0.026334155,0.026191995,0.026050428,0.025909424,0.032960583,0.032829538,0.032698896],"0-64":[0.021469325,0.026620222,0.026476897,0.026334155,0.026191995,0.026050428,0.033092007,0.032960583,0.032829538,0.032698896],"0-65":[0.026764117,0.026620222,0.026476897,0.026334155,0.026191995,0.033223826,0.033092007,0.032960583,0.032829538,0.032698896],"0-66":[0.026764117,0.026620222,0.026476897,0.026334155,0.033356022,0.033223826,0.033092007,0.032960583,0.032829538,0.046596028],"0-67":[0.026764117,0.026620222,0.026476897,0.03348862,0.033356022,0.033223826,0.033092007,0.032960583,0.046748124,0.046596028],"0-68":[0.026764117,0.026620222,0.033621609,0.03348862,0.033356022,0.033223826,0.033092007,0.046900563,0.046748124,0.046596028],"0-69":[0.026764117,0.033754993,0.033621609,0.03348862,0.033356022,0.033223826,0.047053356,0.046900563,0.046748124,0.046596028],"0-70":[0.033888757,0.033754993,0.033621609,0.03348862,0.033356022,0.047206506,0.047053356,0.046900563,0.046748124,0.046596028],"0-71":[0.033888757,0.033754993,0.033621609,0.03348862,0.047360025,0.047206506,0.047053356,0.046900563,0.046748124,0.062226549],"0-72":[0.033888757,0.033754993,0.033621609,0.04751388,0.047360025,0.047206506,0.047053356,0.046900563,0.062324867,0.062226549],"0-73":[0.033888757,0.033754993,0.047668096,0.04751388,0.047360025,0.047206506,0.047053356,0.062423296,0.062324867,0.062226549],"0-74":[0.033888757,0.047822662,0.047668096,0.04751388,0.047360025,0.047206506,0.062521823,0.062423296,0.062324867,0.062226549],"0-75":[0.047977589,0.047822662,0.047668096,0.04751388,0.047360025,0.062620454,0.062521823,0.062423296,0.062324867,0.062226549],"0-76":[0.047977589,0.047822662,0.047668096,0.04751388,0.062719196,0.062620454,0.062521823,0.062423296,0.062324867,0.098355331],"0-77":[0.047977589,0.047822662,0.047668096,0.062818035,0.062719196,0.062620454,0.062521823,0.062423296,0.098486215,0.098355331],"0-78":[0.047977589,0.047822662,0.062916972,0.062818035,0.062719196,0.062620454,0.062521823,0.098617256,0.098486215,0.098355331],"0-79":[0.047977589,0.063016005,0.062916972,0.062818035,0.062719196,0.062620454,0.098748378,0.098617256,0.098486215,0.098355331],"0-80":[0.063115157,0.063016005,0.062916972,0.062818035,0.062719196,0.09887962,0.098748378,0.098617256,0.098486215,0.098355331],"1-40":[0.001531673,0.001519349,0.00150712,0.001494985,0.001482944,0.003427956,0.00342854,0.003429125,0.003429709,0.003430295],"1-41":[0.001531673,0.001519349,0.00150712,0.001494985,0.00342737,0.003427956,0.00342854,0.003429125,0.003429709,0.005451781],"1-42":[0.001531673,0.001519349,0.00150712,0.003426785,0.00342737,0.003427956,0.00342854,0.003429125,0.005459646,0.005451781],"1-43":[0.001531673,0.001519349,0.003426201,0.003426785,0.00342737,0.003427956,0.00342854,0.005467521,0.005459646,0.005451781],"1-44":[0.001531673,0.003425617,0.003426201,0.003426785,0.00342737,0.003427956,0.005475407,0.005467521,0.005459646,0.005451781],"1-45":[0.003425033,0.003425617,0.003426201,0.003426785,0.00342737,0.005483307,0.005475407,0.005467521,0.005459646,0.005451781],"1-46":[0.003425033,0.003425617,0.003426201,0.003426785,0.005491214,0.005483307,0.005475407,0.005467521,0.005459646,0.007700609],"1-47":[0.003425033,0.003425617,0.003426201,0.005499132,0.005491214,0.005483307,0.005475407,0.005467521,0.007729556,0.007700609],"1-48":[0.003425033,0.003425617,0.00550706,0.005499132,0.005491214,0.005483307,0.005475407,0.007758602,0.007729556,0.007700609],"1-49":[0.003425033,0.005515,0.00550706,0.005499132,0.005491214,0.005483307,0.007787747,0.007758602,0.007729556,0.007700609],"1-50":[0.005522951,0.005515,0.00550706,0.005499132,0.005491214,0.007816997,0.007787747,0.007758602,0.007729556,0.007700609],"1-51":[0.005522951,0.005515,0.00550706,0.005499132,0.007846343,0.007816997,0.007787747,0.007758602,0.007729556,0.011363831],"1-52":[0.005522951,0.005515,0.00550706,0.00787579,0.007846343,0.007816997,0.007787747,0.007758602,0.011388104,0.011363831],"1-53":[0.005522951,0.005515,0.007905338,0.00787579,0.007846343,0.007816997,0.007787747,0.011412418,0.011388104,0.011363831],"1-54":[0.005522951,0.007934987,0.007905338,0.00787579,0.007846343,0.007816997,0.011436784,0.011412418,0.011388104,0.011363831],"1-55":[0.007964741,0.007934987,0.007905338,0.00787579,0.007846343,0.011461196,0.011436784,0.011412418,0.011388104,0.011363831],"1-56":[0.007964741,0.007934987,0.007905338,0.00787579,0.011485649,0.011461196,0.011436784,0.011412418,0.011388104,0.015133614],"1-57":[0.007964741,0.007934987,0.007905338,0.011510155,0.011485649,0.011461196,0.011436784,0.011412418,0.015176918,0.015133614],"1-58":[0.007964741,0.007934987,0.011534701,0.011510155,0.011485649,0.011461196,0.011436784,0.015220324,0.015176918,0.015133614],"1-59":[0.007964741,0.0115593,0.011534701,0.011510155,0.011485649,0.011461196,0.015263846,0.015220324,0.015176918,0.015133614],"1-60":[0.01158394,0.0115593,0.011534701,0.011510155,0.011485649,0.015307477,0.015263846,0.015220324,0.015176918,0.015133614],"1-61":[0.01158394,0.0115593,0.011534701,0.011510155,0.015351208,0.015307477,0.015263846,0.015220324,0.015176918,0.02464325],"1-62":[0.01158394,0.0115593,0.011534701,0.015395058,0.015351208,0.015307477,0.015263846,0.015220324,0.024719179,0.02464325],"1-63":[0.01158394,0.0115593,0.015439019,0.015395058,0.015351208,0.015307477,0.015263846,0.024795312,0.024719179,0.02464325],"1-64":[0.01158394,0.015483079,0.015439019,0.015395058,0.015351208,0.015307477,0.024871651,0.024795312,0.024719179,0.02464325],"1-65":[0.01552726,0.015483079,0.015439019,0.015395058,0.015351208,0.024948183,0.024871651,0.024795312,0.024719179,0.02464325],"1-66":[0.01552726,0.015483079,0.015439019,0.015395058,0.025024936,0.024948183,0.024871651,0.024795312,0.024719179,0.039204214],"1-67":[0.01552726,0.015483079,0.015439019,0.025101896,0.025024936,0.024948183,0.024871651,0.024795312,0.039313775,0.039204214],"1-68":[0.01552726,0.015483079,0.025179066,0.025101896,0.025024936,0.024948183,0.024871651,0.0394236,0.039313775,0.039204214],"1-69":[0.01552726,0.025256444,0.025179066,0.025101896,0.025024936,0.024948183,0.039533686,0.0394236,0.039313775,0.039204214],"1-70":[0.02533403,0.025256444,0.025179066,0.025101896,0.025024936,0.039644048,0.039533686,0.0394236,0.039313775,0.039204214],"1-71":[0.02533403,0.025256444,0.025179066,0.025101896,0.03975467,0.039644048,0.039533686,0.0394236,0.039313775,0.060873222],"1-72":[0.02533403,0.025256444,0.025179066,0.039865557,0.03975467,0.039644048,0.039533686,0.0394236,0.060973953,0.060873222],"1-73":[0.02533403,0.025256444,0.03997672,0.039865557,0.03975467,0.039644048,0.039533686,0.061074838,0.060973953,0.060873222],"1-74":[0.02533403,0.040088154,0.03997672,0.039865557,0.03975467,0.039644048,0.061175872,0.061074838,0.060973953,0.060873222],"1-75":[0.040199853,0.040088154,0.03997672,0.039865557,0.03975467,0.061277017,0.061175872,0.061074838,0.060973953,0.060873222],"1-76":[0.040199853,0.040088154,0.03997672,0.039865557,0.06137833,0.061277017,0.061175872,0.061074838,0.060973953,0.094969921],"1-77":[0.040199853,0.040088154,0.03997672,0.061479785,0.06137833,0.061277017,0.061175872,0.061074838,0.095176563,0.094969921],"1-78":[0.040199853,0.040088154,0.061581362,0.061479785,0.06137833,0.061277017,0.061175872,0.095383592,0.095176563,0.094969921],"1-79":[0.040199853,0.061683096,0.061581362,0.061479785,0.06137833,0.061277017,0.095591001,0.095383592,0.095176563,0.094969921],"1-80":[0.061784972,0.061683096,0.061581362,0.061479785,0.06137833,0.095798798,0.095591001,0.095383592,0.095176563,0.094969921]}};
+
+</script>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#b8233a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Cœur Net — outils de cardiologie gratuits pour les cardiologues tunisiens : fonction diastolique, écho, consentement, décision partagée, éducation, scores, quiz.">
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap stack">
+  <div class="da-top">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="da-act" id="acts"></div>
+  </div>
+  <div class="lay">
+    <section class="card prof" id="prof-card"></section>
+    <section class="res stack" id="res"></section>
+  </div>
+</main>
+<div class="mbar" id="mbar" role="button" tabindex="0"></div>
+<footer id="cs-foot"></footer>
+<script>
+(function(){
+'use strict';
+var h = CS.h, fmt = CS.fmt, T = CS.t, E = CS.esc;
+var pt = CS.patient();
+var st = CS.store.get('decision', null) || {
+  sc:'statin', lang:CS.lang(),
+  s:{},
+  t:{age:pt.age || 76, sex:pt.sex || 'm', renal:'m', nyha:'3', lv:'g', pa:'n', flags:[], femoral:'ok', valve:'tri', cad:'no', life:'ok'}
+};
+st.s = Object.assign({score:'globo', sex:pt.sex || 'm', age:pt.age || 58, rf:['hta'], sbp:150, tc:5.5, hdl:1.15, dm:'0', dmtype:'2', dmdur:'lt10', dmtod:'0', agediab:null, a1c:7.5, egfr:75,
+  ascvd:[], other:[], ckdG:null, ckdA:null, region:'high', inten:'high'}, st.s || {});
+st.t = Object.assign({age:pt.age || 76, sex:pt.sex || 'm', renal:'m', nyha:'3', lv:'g', pa:'n', flags:[], life:'ok'}, st.t || {});
+if(!st.sc) st.sc = 'statin'; if(!st.lang) st.lang = CS.lang();
+(function migrateTavi(t){ // ancien profil TAVI → facteurs de la figure 9
+  if(t.f9) return;
+  var f9 = [], fl = t.flags || [];
+  if(t.femoral !== 'no') f9.push('tf');
+  if(t.valve === 'bi') f9.push('bicuspid');
+  if(t.cad === 'complex') f9.push('cad');
+  ['frail', 'porc', 'chest'].forEach(function(k){ if(fl.indexOf(k) >= 0) f9.push(k); });
+  t.flags = fl.filter(function(k){ return ['frail', 'porc', 'chest'].indexOf(k) < 0; });
+  t.f9 = f9;
+})(st.t);
+function save(){ CS.store.set('decision', st); }
+function P(x){ return CS.t(x, st.lang); }  // texte destiné au patient (fr / ar / tn)
+var LV = {
+  low:{c:'ok', fr:'Faible', ar:'منخفض', tn:'ضعيف'},
+  lowmod:{c:'ok', fr:'Faible à modéré', ar:'منخفض إلى متوسط', tn:'ضعيف ولا متوسّط'},
+  mod:{c:'warn', fr:'Modéré', ar:'متوسط', tn:'متوسّط'},
+  high:{c:'high', fr:'Élevé', ar:'مرتفع', tn:'عالي'},
+  vhigh:{c:'crit', fr:'Très élevé', ar:'مرتفع جدًا', tn:'عالي برشا'},
+  extreme:{c:'ext', fr:'Extrême', ar:'أقصى', tn:'خطير برشا'}
+};
+
+/* ---------- Contrôles du profil ---------- */
+function chips(key, obj, opts, multi, onChange){
+  var row = h('div', {class:'chips', id:'q-' + key});
+  opts.forEach(function(o){
+    var v = String(o[0]);
+    var on = multi ? (obj[key] || []).indexOf(v) >= 0 : String(obj[key]) === v;
+    row.appendChild(h('button', {class:'chip', type:'button', 'aria-pressed':on ? 'true' : 'false', html:CS.I.check.replace('<svg', '<svg class="ck"') + '<span>' + E(T(o[1])) + '</span>', onclick:function(){
+      if(multi){ var a = obj[key] || []; var i = a.indexOf(v); if(i >= 0) a.splice(i, 1); else a.push(v); obj[key] = a; }
+      else obj[key] = o[0];
+      save(); (onChange || render)();
+    }}));
+  });
+  return row;
+}
+/* Valeur exacte facultative à côté des tranches (demande d'Anis : « on coche, puis on entre les valeurs ») */
+function exact(key, obj, unit, toStore, fromStore){
+  var inp = h('input', {class:'inp', inputmode:'decimal', id:'x-' + key, style:{width:'96px', minHeight:'40px'}, placeholder:T({fr:'exacte', ar:'بدقّة'}), value:obj[key + 'X'] ? fmt(fromStore(+obj[key]), unit === 'mmol/L' ? 1 : 0) : ''});
+  inp.addEventListener('change', function(){
+    var v = CS.num(inp.value);
+    if(isNaN(v)){ obj[key + 'X'] = false; } else { obj[key] = toStore(v); obj[key + 'X'] = true; }
+    save(); render();
+  });
+  return h('div', {class:'row', style:{gap:'6px'}}, inp, h('span', {class:'small muted', text:unit}));
+}
+function q(label, hint, ctl){ return h('div', {class:'q'}, h('div', {class:'ql'}, h('span', {text:label}), hint ? h('small', {text:hint}) : null), ctl); }
+function ageCtl(obj, min, max){
+  var inp = h('input', {class:'inp', id:'age', inputmode:'numeric', value:obj.age});
+  function set(v){ v = CS.clamp(Math.round(v), min, max); obj.age = v; inp.value = v; save(); renderRes(); renderSub(); }
+  inp.addEventListener('change', function(){ var v = CS.num(inp.value); if(!isNaN(v)) set(v); else inp.value = obj.age; });
+  inp.addEventListener('keydown', function(e){ if(e.key === 'Enter') inp.blur(); });
+  return h('div', {class:'agebox'},
+    h('button', {class:'btn', type:'button', 'aria-label':'−1', text:'−', onclick:function(){ set(obj.age - 1); }}), inp,
+    h('button', {class:'btn', type:'button', 'aria-label':'+1', text:'+', onclick:function(){ set(obj.age + 1); }}),
+    h('span', {class:'muted', text:{fr:'ans', ar:'سنة'}}));
+}
+var subHost = null, renderSub = function(){};
+function cholLabel(lo, hi, kind){ // libellés de tranches en mg/dL ou mmol/L
+  var f = function(x){ return CS.units() === 'si' ? fmt(x, 1) : fmt(Math.round(x * 38.67)); };
+  if(lo == null) return '< ' + f(hi);
+  if(hi == null) return '≥ ' + f(lo);
+  return f(lo) + '–' + f(hi);
+}
+
+/* ---------- Statine : calcul ----------
+   Catégories et objectifs de LDL-C : figure ESC/EAS 2025 (mise à jour dyslipidémies), transmise par Anis.
+   Score de risque : Globorisk calibré pour la Tunisie (« en Tunisie, à la place de SCORE2, on a Globorisk »),
+   SCORE2/SCORE2-OP au choix. Facteurs de risque majeurs : liste d'Anis (HTA, tabac, obésité, sédentarité,
+   âge > 55 ans H / > 65 ans F, dyslipidémie). IRC : grille KDIGO DFG × albuminurie. Le niveau retenu est le plus élevé. */
+var ORD = {low:0, mod:1, high:2, vhigh:3, extreme:4};
+var RF = [['hta', {fr:'Hypertension artérielle', ar:'ارتفاع ضغط الدم'}], ['smoke', {fr:'Tabagisme', ar:'التدخين'}], ['obese', {fr:'Obésité', ar:'السمنة'}],
+  ['sed', {fr:'Sédentarité', ar:'قلة النشاط البدني'}], ['dyslip', {fr:'Dyslipidémie', ar:'اضطراب الدهون'}]];
+var KG = [['G1', '≥ 90'], ['G2', '60–89'], ['G3a', '45–59'], ['G3b', '30–44'], ['G4', '15–29'], ['G5', '< 15']], KA = [['A1', '< 30'], ['A2', '30–299'], ['A3', '≥ 300']];
+// Couleur de la case (carte de chaleur KDIGO) et sévérité retenue par l'ESC
+function ckdCell(g, a){
+  var gi = ['G1', 'G2', 'G3a', 'G3b', 'G4', 'G5'].indexOf(g), ai = ['A1', 'A2', 'A3'].indexOf(a);
+  var heat = gi <= 1 ? ['g', 'y', 'o'][ai] : gi === 2 ? ['y', 'o', 'r'][ai] : gi === 3 ? ['o', 'r', 'r'][ai] : 'r';
+  var sev = gi >= 4 || (gi === 3 && ai >= 1) ? 'severe' : gi >= 2 || ai === 2 ? 'moderate' : null;
+  return {heat:heat, sev:sev};
+}
+function nRF(s){
+  var n = (s.rf || []).length;
+  if((s.sex === 'm' && s.age > 55) || (s.sex === 'f' && s.age > 65)) n++;
+  return n;
+}
+function scoreCalc(s){
+  var o = {female:s.sex === 'f', age:s.age, smoker:(s.rf || []).indexOf('smoke') >= 0, sbp:+s.sbp, tc:+s.tc, hdl:+s.hdl, region:s.region, diabetes:s.dm === '1', dm:s.dm === '1'};
+  if(s.score === 'score2'){
+    if(s.age < 40 || s.age > 89) return {model:'SCORE2', r:NaN, why:{fr:'SCORE2 : validé de 40 à 89 ans', ar:'SCORE2: معتمد من 40 إلى 89 سنة'}};
+    if(o.diabetes && s.age < 70){ o.agediab = s.agediab || Math.max(18, s.age - 5); o.a1c = RISK.a1cToMmol(+s.a1c); o.egfr = +s.egfr; return {model:'SCORE2-Diabetes', r:RISK.score2dm(o) * 100}; }
+    return s.age >= 70 ? {model:'SCORE2-OP', r:RISK.score2op(o) * 100} : {model:'SCORE2', r:RISK.score2(o) * 100};
+  }
+  var g = RISK.globorisk(o);
+  if(isNaN(g)) return {model:'Globorisk', r:NaN, why:{fr:'Globorisk : calibré de 40 à 80 ans', ar:'Globorisk: معاير من 40 إلى 80 سنة'}};
+  return {model:'Globorisk (Tunisie)', r:g * 100};
+}
+function statinCalc(){
+  var s = st.s, reasons = [], cat = null, oth = s.other || [];
+  function add(c, why){ reasons.push({cat:c, why:why}); if(cat == null || ORD[c] > ORD[cat]) cat = c; }
+  var asc = s.ascvd || [], n = nRF(s), dm = s.dm === '1', t1 = s.dmtype === '1', dur = s.dmdur;
+  var ck = s.ckdG && s.ckdA ? ckdCell(s.ckdG, s.ckdA) : null;
+  // Prévention secondaire
+  if(asc.indexOf('ascvd') >= 0){
+    if(asc.indexOf('recur') >= 0 || asc.indexOf('poly') >= 0) add('extreme', {fr:'Maladie CV avec récidive sous statine maximale tolérée, ou atteinte polyvasculaire', ar:'مرض قلبي وعائي مع انتكاس رغم أقصى جرعة ستاتين، أو إصابة متعددة الأوعية'});
+    else add('vhigh', {fr:'Maladie CV athéroscléreuse avérée (clinique ou imagerie)', ar:'مرض قلبي وعائي تصلّبي مؤكَّد (سريريًا أو بالتصوير)'});
+  }
+  // Hypercholestérolémie familiale
+  var nNoDys = n - ((s.rf || []).indexOf('dyslip') >= 0 ? 1 : 0);
+  if(oth.indexOf('fh') >= 0) add(asc.indexOf('ascvd') >= 0 || nNoDys > 0 ? 'vhigh' : 'high', asc.indexOf('ascvd') >= 0 || nNoDys > 0 ? {fr:'HF avec maladie CV ou un autre facteur majeur', ar:'فرط كوليسترول عائلي مع مرض قلبي أو عامل رئيسي آخر'} : {fr:'HF sans autre facteur majeur', ar:'فرط كوليسترول عائلي دون عامل رئيسي آخر'});
+  // IRC
+  if(ck && ck.sev === 'severe') add('vhigh', {fr:'IRC sévère (' + s.ckdG + ' ' + s.ckdA + ')', ar:'قصور كلوي شديد (' + s.ckdG + ' ' + s.ckdA + ')'});
+  else if(ck && ck.sev === 'moderate') add('high', {fr:'IRC modérée (' + s.ckdG + ' ' + s.ckdA + ')', ar:'قصور كلوي متوسط (' + s.ckdG + ' ' + s.ckdA + ')'});
+  // Facteur isolé très élevé
+  if(oth.indexOf('single') >= 0 || +s.sbp >= 180) add('high', {fr:'Facteur isolé très élevé (CT > 8 mmol/L, LDL-C > 4,9 mmol/L ou PA ≥ 180/110)', ar:'عامل منفرد مرتفع جدًا (كوليسترول كلي > 8 أو LDL > 4,9 مليمول/ل أو ضغط ≥ 180/110)'});
+  // Diabète
+  if(dm){
+    if(s.dmtod === '1' || n >= 3 || (t1 && dur === 'gt20')) add('vhigh', {fr:'Diabète avec atteinte d’organe cible, ≥ 3 facteurs majeurs, ou DT1 précoce de longue durée (> 20 ans)', ar:'سكري مع إصابة عضو مستهدف، أو 3 عوامل رئيسية فأكثر، أو سكري نوع 1 مبكر وطويل (> 20 سنة)'});
+    else if(dur !== 'lt10' || n >= 1) add('high', {fr:'Diabète sans atteinte d’organe, ≥ 10 ans d’évolution ou autre facteur de risque', ar:'سكري دون إصابة عضوية، منذ 10 سنوات فأكثر أو مع عامل خطر آخر'});
+    else if((t1 && s.age < 35) || (!t1 && s.age < 50)) add('mod', {fr:'Diabète du sujet jeune (DT1 < 35 ans, DT2 < 50 ans), < 10 ans d’évolution, sans autre facteur', ar:'سكري لدى شاب (نوع 1 < 35 سنة، نوع 2 < 50 سنة)، أقل من 10 سنوات، دون عامل آخر'});
+  }
+  // Score (prévention primaire)
+  var sc = null;
+  if(asc.indexOf('ascvd') < 0){
+    sc = scoreCalc(s);
+    if(!isNaN(sc.r)) add(sc.r >= 20 ? 'vhigh' : sc.r >= 10 ? 'high' : sc.r >= 2 ? 'mod' : 'low', {fr:sc.model + ' : ' + fmt(sc.r, 1) + ' % à 10 ans', ar:sc.model + ': ' + fmt(sc.r, 1) + ' % خلال 10 سنوات'});
+    else if(sc.why) reasons.push({cat:null, why:sc.why});
+  }
+  return {cat:cat, risk:sc && !isNaN(sc.r) ? sc.r : null, model:sc ? sc.model : null, reasons:reasons, n:n};
+}
+var LVL = [['low', LV.low], ['mod', LV.mod], ['high', LV.high], ['vhigh', LV.vhigh], ['extreme', LV.extreme]];
+function levelScale(cat){
+  return h('div', {class:'lvscale', id:'lvscale'}, LVL.map(function(x){ return h('div', {class:'lvs lvs-' + x[0] + (cat === x[0] ? ' on' : '')}, h('span', {text:x[1]})); }));
+}
+/* Objectif de LDL-C et classe de recommandation (figure ESC/EAS 2025) */
+var RECO = {
+  low:{fr:'Objectif LDL-C < 3,0 mmol/L (116 mg/dL) · classe IIb. Hygiène de vie en premier.', ar:'هدف LDL أقل من 3,0 مليمول/ل (116 ملغ/دل) · الفئة IIb. نمط الحياة أولًا.'},
+  mod:{fr:'Objectif LDL-C < 2,6 mmol/L (100 mg/dL) · classe IIa.', ar:'هدف LDL أقل من 2,6 مليمول/ل (100 ملغ/دل) · الفئة IIa.'},
+  high:{fr:'Objectif LDL-C < 1,8 mmol/L (70 mg/dL) et baisse ≥ 50 % · classe I.', ar:'هدف LDL أقل من 1,8 مليمول/ل (70 ملغ/دل) وانخفاض 50% على الأقل · الفئة I.'},
+  vhigh:{fr:'Objectif LDL-C < 1,4 mmol/L (55 mg/dL) et baisse ≥ 50 % · classe I (IIa en prévention primaire d’une HF à très haut risque).', ar:'هدف LDL أقل من 1,4 مليمول/ل (55 ملغ/دل) وانخفاض 50% على الأقل · الفئة I (IIa في الوقاية الأولية لفرط الكوليسترول العائلي).'},
+  extreme:{fr:'Objectif LDL-C < 1,0 mmol/L (40 mg/dL) · classe IIb.', ar:'هدف LDL أقل من 1,0 مليمول/ل (40 ملغ/دل) · الفئة IIb.'}
+};
+
+/* ---------- TAVI ou chirurgie : figures 8 et 9 des recommandations ESC/EACTS 2025 (envoyées par Anis) ----------
+   Figure 9 : facteurs en faveur du RVA chirurgical ou de la TAVI (âge, anatomie, pathologies associées) + gestion à vie.
+   Figure 8 : type de valve selon l'âge (Ross, mécanique, bioprothèse). Risque opératoire : EuroSCORE II
+   (le score STS est jugé trop long par Anis ; ses coefficients ne sont pas publiés sous une forme réutilisable). */
+var F9 = {
+  savrAna:[['annulus', {fr:'Anneau ou chambre de chasse hostiles (calcifications)', ar:'حلقة أو مخرج بطين غير ملائم (تكلّسات)'}], ['bicuspid', {fr:'Valve aortique bicuspide', ar:'صمام أبهري ثنائي الشرف'}],
+    ['annsize', {fr:'Dimensions de l’anneau inadaptées à la TAVI', ar:'مقاسات الحلقة غير ملائمة لـ TAVI'}], ['coro', {fr:'Risque d’obstruction coronaire', ar:'خطر انسداد الشرايين التاجية'}]],
+  taviAna:[['tf', {fr:'Voie fémorale adaptée à la TAVI', ar:'المدخل الفخذي ملائم لـ TAVI'}], ['porc', {fr:'Aorte porcelaine', ar:'أبهر خزفي'}],
+    ['grafts', {fr:'Pontages coronaires perméables', ar:'مجازات تاجية سليمة'}], ['chest', {fr:'Déformation thoracique sévère ou scoliose', ar:'تشوّه شديد في الصدر أو جنف'}]],
+  savrCon:[['vhd', {fr:'Autre valvulopathie primaire significative', ar:'اعتلال صمامي أولي آخر مهم'}], ['cad', {fr:'Coronaropathie complexe', ar:'مرض تاجي معقّد'}],
+    ['root', {fr:'Anévrisme de la racine ou de l’aorte ascendante', ar:'تمدّد جذر الأبهر أو الأبهر الصاعد'}], ['septal', {fr:'Hypertrophie septale nécessitant une myectomie', ar:'تضخّم الحاجز يستدعي استئصال العضلة'}]],
+  taviCon:[['comorb', {fr:'Comorbidités ou atteinte cardiaque augmentant le risque opératoire', ar:'أمراض مرافقة أو قلبية تزيد الخطر الجراحي'}], ['frail', {fr:'Fragilité', ar:'هشاشة'}],
+    ['rad', {fr:'Séquelles de radiothérapie thoracique', ar:'آثار علاج إشعاعي للصدر'}]]
+};
+function taviCalc(){
+  var v = st.t, f = v.flags || [], has = function(k){ return f.indexOf(k) >= 0; }, on = function(k){ return (v.f9 || []).indexOf(k) >= 0; };
+  var es = RISK.euroscore2({age:v.age, female:v.sex === 'f', renal:v.renal, nyha:+v.nyha, lv:v.lv, pa:v.pa, art:has('art'), mob:has('mob'), redo:has('redo') || on('grafts'), lung:has('lung'), ins:has('ins'), mi:has('mi'), wt:on('vhd') || on('cad') || on('root') ? 2 : 1, aorta:on('root')});
+  var esCat = es >= 8 ? 'vhigh' : es >= 4 ? 'high' : 'low';
+  var forS = [], forT = [];
+  if(v.age < 70) forS.push({fr:'Âge < 70 ans', ar:'السن أقل من 70 سنة'}); else forT.push({fr:'Âge ≥ 70 ans', ar:'السن 70 سنة فأكثر'});
+  function pick(list, arr){ list.forEach(function(x){ if(on(x[0])) arr.push(x[1]); }); }
+  pick(F9.savrAna, forS); pick(F9.savrCon, forS); pick(F9.taviAna, forT); pick(F9.taviCon, forT);
+  if(es >= 4) forT.push(es >= 8 ? {fr:'Risque opératoire élevé (EuroSCORE II ' + fmt(es, 1) + ' %)', ar:'خطر جراحي مرتفع (EuroSCORE II ' + fmt(es, 1) + ' %)'} : {fr:'Risque opératoire intermédiaire (EuroSCORE II ' + fmt(es, 1) + ' %)', ar:'خطر جراحي متوسط (EuroSCORE II ' + fmt(es, 1) + ' %)'});
+  var life = v.life === 'short', bal = forT.length - forS.length;
+  var lean = life ? 'med' : bal >= 2 ? 'tavi' : bal <= -2 ? 'savr' : bal === 1 ? 'tavi1' : bal === -1 ? 'savr1' : 'eq';
+  var notes = [];
+  if(!on('tf') && !life) notes.push({fr:'Voie fémorale non adaptée (ou non évaluée) : TAVI par voie alternative possible en centre expert, à discuter ; scanner indispensable.', ar:'المدخل الفخذي غير ملائم (أو لم يُقيَّم): يمكن مناقشة TAVI عبر مدخل بديل في مركز متخصّص؛ المفراس ضروري.'});
+  if(on('bicuspid') && v.age >= 70) notes.push({fr:'Bicuspidie après 70 ans : la TAVI reste possible si l’anatomie le permet (scanner).', ar:'صمام ثنائي الشرف بعد 70 سنة: تبقى TAVI ممكنة إذا سمح التشريح (المفراس).'});
+  notes.push({fr:'Coût élevé et accès limité de la TAVI en Tunisie ; bioprothèse : durabilité d’environ 10 ans.', ar:'كلفة TAVI مرتفعة وإتاحتها محدودة في تونس؛ الصمام البيولوجي: متانة في حدود 10 سنوات.'});
+  return {es:es, esCat:esCat, forS:forS, forT:forT, bal:bal, lean:lean, life:life, notes:notes, fem:on('tf'),
+    inop:on('porc') || on('chest') || es >= 8, low:es < 4 && !on('frail') && !on('comorb') && !on('porc') && !on('chest') && !on('rad')};
+}
+/* Figure 8 : type de valve selon l'âge */
+function valveType(age){
+  if(age < 60) return {k:'mech', t:{fr:'Avant 60 ans : valve mécanique en général (anticoagulation à vie : risques embolique et hémorragique) ; Ross chez l’adulte jeune en centre expert (complexité technique).', ar:'قبل 60 سنة: صمام ميكانيكي عادةً (مضادّ تخثّر مدى الحياة: خطر الانصمام والنزيف)؛ وعملية Ross لدى الشاب في مركز متخصّص (تعقيد تقني).'}};
+  if(age < 70) return {k:'grey', t:{fr:'Entre 60 et 70 ans : mécanique ou bioprothèse, à décider avec le patient (anticoagulation contre durabilité).', ar:'بين 60 و70 سنة: صمام ميكانيكي أو بيولوجي يُقرَّر مع المريض (مضادّ التخثّر مقابل المتانة).'}};
+  return {k:'bio', t:{fr:'À partir de 70 ans : bioprothèse, chirurgicale (RVA) ou TAVI ; limite : durabilité.', ar:'من 70 سنة: صمام بيولوجي، جراحيًا أو عبر TAVI؛ الحدّ: المتانة.'}};
+}
+function balanceSvg(nS, nT){
+  var ang = CS.clamp((nT - nS) * 5, -14, 14);
+  return '<svg viewBox="0 0 320 150" class="balance" dir="ltr" role="img" aria-label="' + E(T({fr:'Balance chirurgie / TAVI', ar:'ميزان الجراحة / TAVI'})) + '">' +
+    '<path d="M160 40 L148 132 L172 132Z" fill="var(--line-strong)"/><rect x="120" y="130" width="80" height="8" rx="4" fill="var(--line-strong)"/>' +
+    '<g style="transform:rotate(' + ang + 'deg);transform-origin:160px 40px;transition:transform .5s cubic-bezier(.2,.8,.2,1)">' +
+      '<rect x="30" y="36" width="260" height="8" rx="4" fill="var(--fg-2)"/><circle cx="160" cy="40" r="7" fill="var(--fg)"/>' +
+      '<g style="transform:rotate(' + (-ang) + 'deg);transform-origin:46px 40px"><path d="M46 40 L22 86 M46 40 L70 86" stroke="var(--line-strong)" stroke-width="2"/><path d="M14 86 Q46 108 78 86Z" fill="#b08ef0"/><text x="46" y="128" text-anchor="middle" class="bal-l">RVA</text><text x="46" y="100" text-anchor="middle" class="bal-n">' + nS + '</text></g>' +
+      '<g style="transform:rotate(' + (-ang) + 'deg);transform-origin:274px 40px"><path d="M274 40 L250 86 M274 40 L298 86" stroke="var(--line-strong)" stroke-width="2"/><path d="M242 86 Q274 108 306 86Z" fill="#5aa5ff"/><text x="274" y="128" text-anchor="middle" class="bal-l">TAVI</text><text x="274" y="100" text-anchor="middle" class="bal-n">' + nT + '</text></g>' +
+    '</g></svg>';
+}
+
+/* ---------- Pictogrammes ---------- */
+function iconArray(cats){
+  var counts = cats.map(function(c){ return Math.round(c.n); });
+  var cells = []; cats.forEach(function(c, i){ for(var k = 0; k < counts[i]; k++) cells.push(c.k); });
+  while(cells.length < 100) cells.push('none'); cells = cells.slice(0, 100);
+  var s = '<svg viewBox="0 0 250 320" role="img" dir="ltr" aria-label="100">';
+  cells.forEach(function(k, i){
+    var x = (i % 10) * 25, y = Math.floor(i / 10) * 32, col = 'var(--c-' + k + ')';
+    s += '<g transform="translate(' + x + ' ' + y + ')"><circle cx="12.5" cy="7" r="5" style="fill:' + col + '"/><path d="M4 30 C4 19 8 14 12.5 14 C17 14 21 19 21 30Z" style="fill:' + col + '"/></g>';
+  });
+  return s + '</svg>';
+}
+function arraysEl(list){
+  var box = h('div', {class:'arrays', id:'arrays'}), d = st.lang === 'fr' ? 'ltr' : 'rtl';
+  list.forEach(function(a){
+    var cnt = h('div', {class:'cnt'});
+    a[1].forEach(function(c){ cnt.appendChild(h('div', {dir:d}, h('span', {class:'sw', style:{background:'var(--c-' + c.k + ')'}}), h('span', {text:P(c.l)}), h('b', {text:(c.n < 1 && c.n > 0 ? '< 1' : fmt(c.n, c.n < 10 && c.n % 1 ? 1 : 0)) + ' / 100'}))); });
+    var none = 100 - a[1].reduce(function(s, c){ return s + Math.round(c.n); }, 0);
+    cnt.appendChild(h('div', {dir:d}, h('span', {class:'sw', style:{background:'var(--c-none)'}}), h('span', {text:P({fr:'Aucun de ces événements', ar:'لا شيء من هذه الأحداث', tn:'ما صار شي'})}), h('b', {text:Math.max(0, none) + ' / 100'})));
+    box.appendChild(h('div', {class:'arr'}, h('h3', {dir:d, text:P(a[0])}), h('div', {html:iconArray(a[1])}), cnt));
+  });
+  return box;
+}
+/* Jauge : segs = [[fin du segment, couleur], …] en unités de la valeur ; graduations aux limites */
+function gauge(val, max, segs){
+  var pos = CS.clamp(val / max, 0, 1) * 100, prev = 0;
+  var bar = h('div', {class:'gbar'});
+  segs.forEach(function(s){ bar.appendChild(h('span', {style:{background:s[1], flex:'0 0 ' + ((Math.min(s[0], max) - prev) / max * 100) + '%'}})); prev = Math.min(s[0], max); });
+  bar.appendChild(h('i', {class:'mk', style:{insetInlineStart:'calc(' + pos + '% - 2px)'}}));
+  var lab = h('div', {class:'glab', style:{position:'relative', height:'16px'}});
+  [0].concat(segs.slice(0, -1).map(function(s){ return s[0]; })).forEach(function(x){ lab.appendChild(h('span', {style:{position:'absolute', insetInlineStart:(x / max * 100) + '%', transform:CS.isAr() ? 'translateX(50%)' : 'translateX(-50%)'}, text:fmt(x, x % 1 ? 1 : 0) + (x ? ' %' : '')})); });
+  lab.appendChild(h('span', {style:{position:'absolute', insetInlineEnd:'0'}, text:fmt(max) + ' %+'}));
+  return h('div', {class:'gauge', id:'gauge'}, bar, lab);
+}
+
+/* ---------- Rendu ---------- */
+var SC = {statin:{fr:'Statine en prévention primaire', ar:'الستاتين في الوقاية الأولية'}, tavi:{fr:'Rétrécissement aortique : TAVI, chirurgie ou traitement médical', ar:'تضيّق الصمام الأبهري: TAVI أو جراحة أو علاج دوائي'}};
+function renderTabs(){
+  var tb = CS.$('#tabs'); tb.innerHTML = '';
+  Object.keys(SC).forEach(function(k){ tb.appendChild(h('button', {role:'tab', type:'button', id:'tab-' + k, 'aria-selected':st.sc === k ? 'true' : 'false', text:SC[k], onclick:function(){ st.sc = k; save(); render(); }})); });
+}
+function renderProfile(){
+  var c = CS.$('#prof-card'); c.innerHTML = '';
+  c.appendChild(h('div', {class:'row between'}, h('h2', {text:{fr:'Profil du patient', ar:'ملف المريض'}}), h('button', {class:'btn sm ghost', type:'button', html:CS.I.user + '<span>' + E(T({fr:'Patient en cours', ar:'المريض الحالي'})) + '</span>', onclick:function(){
+    var p = CS.patient(); if(p.age){ st.s.age = st.t.age = p.age; } if(p.sex){ st.s.sex = st.t.sex = p.sex; } save(); render(); CS.toast({fr:'Âge et sexe repris du patient en cours', ar:'تم أخذ السن والجنس من المريض الحالي'});
+  }})));
+  if(st.sc === 'statin'){
+    var s = st.s;
+    c.appendChild(q({fr:'Score de risque', ar:'مقياس الخطر'}, null, CS.segEl([['globo', {fr:'Globorisk (Tunisie)', ar:'Globorisk (تونس)'}], ['score2', 'SCORE2']], s.score, function(x){ s.score = x; save(); render(); }, 'full')));
+    c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', s, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
+    c.appendChild(q({fr:'Âge', ar:'السن'}, s.score === 'globo' ? '40–80' : null, ageCtl(s, 18, 95)));
+    // Diabète : facteur de risque « à part » (Anis) — le risque dépend de son ancienneté et du nombre de facteurs associés
+    var dmCard = h('div', {class:'dmcard' + (s.dm === '1' ? ' on' : ''), id:'q-dmcard'});
+    dmCard.appendChild(h('div', {class:'dmhead'},
+      h('div', null, h('b', {text:{fr:'Diabète', ar:'السكري'}}), h('div', {class:'xs muted', text:{fr:'Facteur à part : le risque dépend de son ancienneté et des facteurs associés', ar:'عامل خاص: يتوقّف الخطر على مدّته وعلى العوامل المرافقة'}})),
+      chips('dm', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])));
+    subHost = h('div'); dmCard.appendChild(subHost);
+    c.appendChild(dmCard);
+    renderSub = function(){
+      subHost.innerHTML = '';
+      if(s.dm !== '1') return;
+      var yNow = new Date().getFullYear();
+      var yr = h('input', {class:'inp', inputmode:'numeric', id:'dmyear', placeholder:{fr:'ex. 2015', ar:'مثال 2015'}, value:s.dmyear || '', style:{width:'110px'}});
+      yr.addEventListener('change', function(){
+        var y = Math.round(CS.num(yr.value));
+        if(isNaN(y) || y < 1930 || y > yNow){ s.dmyear = null; save(); render(); return; }
+        var dur = yNow - y; s.dmyear = y;
+        s.dmdur = dur < 10 ? 'lt10' : dur <= 20 ? '10to20' : 'gt20';
+        s.agediab = Math.max(1, s.age - dur);
+        save(); render();
+      });
+      var dur = s.dmyear ? yNow - s.dmyear : null;
+      // Ce que le diabète entraîne, d'après la figure ESC/EAS 2025
+      var n = nRF(s), t1 = s.dmtype === '1', eff;
+      if(s.dmtod === '1' || n >= 3 || (t1 && s.dmdur === 'gt20')) eff = ['vhigh', {fr:'Atteinte d’organe, ≥ 3 facteurs associés ou DT1 > 20 ans → très élevé', ar:'إصابة عضوية أو 3 عوامل فأكثر أو سكري نوع 1 > 20 سنة ← مرتفع جدًا'}];
+      else if(s.dmdur !== 'lt10' || n >= 1) eff = ['high', {fr:'≥ 10 ans d’évolution ou ≥ 1 facteur associé → élevé', ar:'10 سنوات فأكثر أو عامل مرافق واحد على الأقل ← مرتفع'}];
+      else if((t1 && s.age < 35) || (!t1 && s.age < 50)) eff = ['mod', {fr:'Sujet jeune, < 10 ans, sans autre facteur → modéré', ar:'شاب، أقل من 10 سنوات، دون عامل آخر ← متوسط'}];
+      else eff = [null, {fr:'Sans autre critère : le score décide', ar:'دون معيار آخر: المقياس هو الذي يحدّد'}];
+      var box = h('div', {class:'sub'},
+        q({fr:'Type', ar:'النوع'}, null, chips('dmtype', s, [['2', {fr:'Type 2', ar:'النوع 2'}], ['1', {fr:'Type 1', ar:'النوع 1'}]])),
+        q({fr:'Année du diagnostic', ar:'سنة التشخيص'}, dur != null ? T({fr:'→ ', ar:'← '}) + dur + T({fr:' ans d’évolution', ar:' سنة من المرض'}) : null, h('div', {class:'stack', style:{gap:'8px'}}, yr,
+          chips('dmdur', s, [['lt10', {fr:'< 10 ans', ar:'< 10 سنوات'}], ['10to20', {fr:'10–20 ans', ar:'10–20 سنة'}], ['gt20', {fr:'> 20 ans', ar:'> 20 سنة'}]], false, function(){ s.dmyear = null; save(); render(); }))),
+        q({fr:'Atteinte d’organe cible', ar:'إصابة عضو مستهدف'}, {fr:'rein, rétine, nerf, microalbuminurie…', ar:'الكلى، الشبكية، الأعصاب…'}, chips('dmtod', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])),
+        h('div', {class:'dmeff', id:'dmeff'}, h('span', {class:'small', text:T({fr:'Facteurs associés : ', ar:'العوامل المرافقة: '}) + n}), eff[0] ? h('span', {class:'badge lvb-' + eff[0], text:LV[eff[0]]}) : null, h('span', {class:'small', text:eff[1]})));
+      if(s.score === 'score2' && s.age < 70){
+        if(!s.agediab) s.agediab = Math.max(18, s.age - 5);
+        var ad = h('input', {class:'inp', inputmode:'numeric', id:'agediab', value:s.agediab, style:{width:'90px'}});
+        ad.addEventListener('change', function(){ var v = CS.num(ad.value); if(!isNaN(v)){ s.agediab = CS.clamp(Math.round(v), 10, s.age); save(); renderRes(); } ad.value = s.agediab; });
+        box.appendChild(h('p', {class:'small muted', text:{fr:'SCORE2-Diabetes (avant 70 ans) : trois données de plus.', ar:'SCORE2-Diabetes (قبل 70 سنة): ثلاث معطيات إضافية.'}}));
+        box.appendChild(q({fr:'Âge au diagnostic', ar:'السن عند التشخيص'}, null, h('div', {class:'agebox'}, ad, h('span', {class:'muted', text:{fr:'ans', ar:'سنة'}}))));
+        box.appendChild(q('HbA1c', '%', chips('a1c', s, [[6.5, '< 7'], [7.5, '7–7,9'], [8.5, '8–8,9'], [9.5, '≥ 9']])));
+        box.appendChild(q({fr:'DFG', ar:'معدل الترشيح'}, 'mL/min/1,73 m²', chips('egfr', s, [[100, '≥ 90'], [75, '60–89'], [52, '45–59'], [37, '30–44']])));
+      }
+      subHost.appendChild(box);
+    };
+    renderSub();
+    c.appendChild(q({fr:'Facteurs de risque', ar:'عوامل الخطر'}, T({fr:'âge > 55 H / > 65 F compté seul · total : ', ar:'السن (> 55 رجل / > 65 امرأة) يُحتسب تلقائيًا · المجموع: '}) + nRF(s), chips('rf', s, RF, true)));
+    c.appendChild(q({fr:'Pression artérielle systolique', ar:'الضغط الانقباضي'}, 'mmHg', h('div', {class:'stack', style:{gap:'8px'}}, chips('sbp', s, [[110, '< 120'], [130, '120–139'], [150, '140–159'], [170, '160–179'], [190, '≥ 180']], false, function(){ s.sbpX = false; save(); render(); }), exact('sbp', s, 'mmHg', function(v){ return v; }, function(v){ return v; }))));
+    var cu = CS.units() === 'si' ? 'mmol/L' : 'mg/dL';
+    c.appendChild(q({fr:'Cholestérol total', ar:'الكوليسترول الكلي'}, cu, h('div', {class:'stack', style:{gap:'8px'}}, chips('tc', s, [[3.5, cholLabel(null, 4)], [4.5, cholLabel(4, 4.9)], [5.5, cholLabel(5, 5.9)], [6.5, cholLabel(6, 6.9)], [7.5, cholLabel(7, 7.9)], [8.5, cholLabel(8, null)]], false, function(){ s.tcX = false; if(+s.tc >= 8){ s.other = s.other || []; if(s.other.indexOf('single') < 0) s.other.push('single'); } save(); render(); }), exact('tc', s, cu, function(v){ return CS.units() === 'si' ? v : v / 38.67; }, function(v){ return CS.units() === 'si' ? v : v * 38.67; }))));
+    if(s.score === 'score2') c.appendChild(q({fr:'HDL-cholestérol', ar:'الكوليسترول الجيد HDL'}, cu, chips('hdl', s, [[0.9, cholLabel(null, 1.0)], [1.15, cholLabel(1.0, 1.29)], [1.45, cholLabel(1.3, 1.59)], [1.8, cholLabel(1.6, null)]])));
+    c.appendChild(q({fr:'Maladie cardiovasculaire', ar:'مرض قلبي وعائي'}, {fr:'prévention secondaire', ar:'وقاية ثانوية'}, chips('ascvd', s, [['ascvd', {fr:'Maladie CV avérée (IDM, AVC, AOMI, plaque)', ar:'مرض قلبي وعائي مؤكَّد'}], ['recur', {fr:'Récidive sous statine maximale', ar:'انتكاس رغم أقصى ستاتين'}], ['poly', {fr:'Atteinte coronaire + périphérique', ar:'إصابة تاجية وطرفية'}]], true, function(){ var a = s.ascvd || []; if((a.indexOf('recur') >= 0 || a.indexOf('poly') >= 0) && a.indexOf('ascvd') < 0) a.push('ascvd'); save(); render(); })));
+    c.appendChild(q({fr:'Autres situations', ar:'حالات أخرى'}, null, chips('other', s, [['fh', {fr:'Hypercholestérolémie familiale', ar:'فرط كوليسترول عائلي'}], ['single', {fr:'CT > 8 · LDL > 4,9 mmol/L · PA ≥ 180/110', ar:'كوليسترول > 8 · LDL > 4,9 · ضغط ≥ 180/110'}]], true)));
+    // Grille KDIGO
+    var grid = h('div', {class:'kdigo', id:'kdigo'});
+    grid.appendChild(h('span')); KA.forEach(function(a){ grid.appendChild(h('span', {class:'kh', html:'<b>' + a[0] + '</b><small>' + a[1] + '</small>'})); });
+    KG.forEach(function(g){
+      grid.appendChild(h('span', {class:'kh kv', html:'<b>' + g[0] + '</b><small>' + g[1] + '</small>'}));
+      KA.forEach(function(a){ var cell = ckdCell(g[0], a[0]), on = s.ckdG === g[0] && s.ckdA === a[0];
+        grid.appendChild(h('button', {type:'button', class:'kc k-' + cell.heat + (on ? ' on' : ''), 'aria-pressed':on ? 'true' : 'false', 'aria-label':g[0] + ' ' + a[0], onclick:function(){ if(on){ s.ckdG = s.ckdA = null; } else { s.ckdG = g[0]; s.ckdA = a[0]; } save(); render(); }}, on ? h('span', {html:CS.I.check}) : null)); });
+    });
+    c.appendChild(q({fr:'Fonction rénale (KDIGO)', ar:'وظيفة الكلى (KDIGO)'}, {fr:'DFG mL/min/1,73 m² × albuminurie mg/g · touchez la case', ar:'معدل الترشيح × البيلة الألبومينية · المس الخانة'}, grid));
+    if(s.score === 'score2'){
+      var reg = h('select', {class:'inp', id:'region'}, [['low', {fr:'Faible', ar:'منخفض'}], ['moderate', {fr:'Modéré', ar:'متوسط'}], ['high', {fr:'Élevé', ar:'مرتفع'}], ['veryhigh', {fr:'Très élevé', ar:'مرتفع جدًا'}]].map(function(o){ return h('option', {value:o[0], text:o[1], selected:s.region === o[0]}); }));
+      reg.addEventListener('change', function(){ s.region = reg.value; save(); renderRes(); });
+      c.appendChild(q({fr:'Région de risque ESC (SCORE2)', ar:'منطقة الخطر حسب ESC (SCORE2)'}, {fr:'calibration', ar:'المعايرة'}, reg));
+    }
+  } else {
+    var v = st.t;
+    function grp(id, list){ var r = chips('f9', v, list, true); r.id = 'q-' + id; return r; }
+    c.appendChild(q({fr:'Âge', ar:'السن'}, {fr:'seuil 70 ans', ar:'العتبة 70 سنة'}, ageCtl(v, 18, 99)));
+    c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', v, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
+    c.appendChild(h('div', {class:'f9h'}, h('span', {class:'f9t savr', text:{fr:'En faveur de la chirurgie (RVA)', ar:'لصالح الجراحة'}}), h('span', {class:'f9t tavi', text:{fr:'En faveur de la TAVI', ar:'لصالح TAVI'}})));
+    c.appendChild(h('div', {class:'f9'}, h('div', {class:'f9c savr'}, h('b', {class:'small', text:{fr:'Anatomie → chirurgie', ar:'التشريح ← الجراحة'}}), grp('f9sa', F9.savrAna)), h('div', {class:'f9c tavi'}, h('b', {class:'small', text:{fr:'Anatomie → TAVI', ar:'التشريح ← TAVI'}}), grp('f9ta', F9.taviAna))));
+    c.appendChild(h('div', {class:'f9'}, h('div', {class:'f9c savr'}, h('b', {class:'small', text:{fr:'Pathologies associées → chirurgie', ar:'أمراض مرافقة ← الجراحة'}}), grp('f9sc', F9.savrCon)), h('div', {class:'f9c tavi'}, h('b', {class:'small', text:{fr:'Pathologies associées → TAVI', ar:'أمراض مرافقة ← TAVI'}}), grp('f9tc', F9.taviCon))));
+    c.appendChild(q({fr:'Espérance de vie', ar:'أمد الحياة المتوقَّع'}, null, chips('life', v, [['ok', {fr:'> 1 an', ar:'أكثر من سنة'}], ['short', {fr:'< 1 an / comorbidité sévère', ar:'أقل من سنة / مرض مرافق شديد'}]])));
+    var det = h('details', {class:'esd', id:'esd'}, h('summary', {html:'<b>' + E(T({fr:'Risque opératoire : EuroSCORE II', ar:'الخطر الجراحي: EuroSCORE II'})) + '</b> <span class="badge">' + fmt(taviCalc().es, 1) + ' %</span>'}),
+      h('div', {class:'stack', style:{marginTop:'10px'}},
+        q({fr:'Essoufflement (NYHA)', ar:'ضيق التنفس (NYHA)'}, null, chips('nyha', v, [['1', 'I'], ['2', 'II'], ['3', 'III'], ['4', 'IV']])),
+        q({fr:'FEVG', ar:'الكسر القذفي'}, null, chips('lv', v, [['g', '> 50 %'], ['m', '31–50 %'], ['p', '21–30 %'], ['vp', '≤ 20 %']])),
+        q({fr:'Fonction rénale (clairance)', ar:'وظيفة الكلى (التصفية)'}, 'mL/min', chips('renal', v, [['n', '> 85'], ['m', '50–85'], ['s', '< 50'], ['dial', {fr:'Dialyse', ar:'غسيل الكلى'}]])),
+        q({fr:'PAPs', ar:'الضغط الرئوي الانقباضي'}, 'mmHg', chips('pa', v, [['n', '< 31'], ['m', '31–54'], ['s', '≥ 55']])),
+        q({fr:'Antécédents', ar:'السوابق'}, {fr:'plusieurs choix', ar:'عدة اختيارات'}, chips('flags', v, [
+          ['redo', {fr:'Chirurgie cardiaque antérieure', ar:'جراحة قلب سابقة'}], ['art', {fr:'Artériopathie', ar:'اعتلال الشرايين'}], ['lung', {fr:'BPCO', ar:'انسداد رئوي مزمن'}],
+          ['ins', {fr:'Diabète insulinotraité', ar:'سكري معالج بالأنسولين'}], ['mob', {fr:'Mobilité réduite', ar:'حركة محدودة'}], ['mi', {fr:'IDM < 90 jours', ar:'احتشاء منذ أقل من 90 يومًا'}]], true))));
+    det.open = !!st._esOpen; det.addEventListener('toggle', function(){ st._esOpen = det.open; });
+    c.appendChild(det);
+  }
+}
+function renderRes(){
+  var box = CS.$('#res'); box.innerHTML = '';
+  var d = st.lang === 'fr' ? 'ltr' : 'rtl';
+  var out = h('div', {class:'card stack', id:'out'});
+  out.appendChild(h('div', {class:'ph-head', html:'<div><b>' + E(T(SC[st.sc])) + '</b><br><small>' + E(CS.doctorLabel()) + '</small></div><div><small>' + E(CS.frDate(CS.todayISO())) + '</small></div>'}));
+  var mb = CS.$('#mbar'); mb.innerHTML = '';
+  if(st.sc === 'statin'){
+    var r = statinCalc(), lv = r.cat ? LV[r.cat] : null;
+    var top = h('div', {class:'stack', id:'risk'});
+    top.appendChild(h('span', {class:'eyebrow', text:T({fr:'Catégorie de risque cardiovasculaire · ESC/EAS 2025', ar:'فئة الخطر القلبي الوعائي · ESC/EAS 2025'})}));
+    top.appendChild(h('div', {class:'bignum'}, lv ? h('b', {class:'lv-' + lv.c, style:{fontSize:'2.2rem'}, text:T(lv)}) : h('span', {class:'cat muted', text:'—'}), r.risk != null ? h('span', {class:'cat muted', text:r.model + ' ' + fmt(r.risk, 1) + ' %'}) : null));
+    top.appendChild(levelScale(r.cat));
+    if(r.risk != null) top.appendChild(gauge(r.risk, 30, [[2, '#e9c11e'], [10, '#f08c00'], [20, '#e8590c'], [30, '#c0392b']]));
+    if(r.reasons.length) top.appendChild(h('ul', {class:'why small', id:'why'}, r.reasons.map(function(x){ return h('li', null, x.cat ? h('span', {class:'badge lvb-' + x.cat, text:LV[x.cat]}) : null, ' ', T(x.why)); })));
+    if(r.cat) top.appendChild(h('div', {class:'result ' + (ORD[r.cat] >= 3 ? 'crit' : ORD[r.cat] === 2 ? 'warn' : 'ok'), id:'reco', html:E(T(RECO[r.cat]))}));
+    out.appendChild(top);
+    if(lv){ mb.appendChild(h('span', {class:'small muted', text:T({fr:'Risque', ar:'الخطر'})})); mb.appendChild(h('b', {class:'lv-' + lv.c, text:T(lv)})); if(r.risk != null) mb.appendChild(h('span', {class:'small muted', text:fmt(r.risk, 1) + ' %'})); }
+    if(r.risk != null){
+      var inten = CS.segEl([['mod', {fr:'Modérée', ar:'متوسطة'}], ['high', {fr:'Forte', ar:'قوية'}]], st.s.inten, function(x){ st.s.inten = x; save(); renderRes(); });
+      out.appendChild(h('div', {class:'row'}, h('span', {class:'small muted', text:{fr:'Intensité de la statine', ar:'شدة الستاتين'}}), inten));
+      var rr = st.s.inten === 'high' ? 0.43 : 0.31, r0 = r.risk, r1 = r0 * (1 - rr);
+      var ev = {fr:'Infarctus ou AVC', ar:'احتشاء أو سكتة دماغية', tn:'جلطة قلبية ولا دماغية'};
+      var A = [{k:'ev', l:ev, n:r0}];
+      var B = [{k:'ev', l:ev, n:r1}, {k:'avoid', l:{fr:'Événement évité', ar:'حدث تمّ تجنّبه', tn:'حادث تفاداه الدواء'}, n:r0 - r1}, {k:'harm', l:{fr:'Diabète apparu plus tôt', ar:'ظهور السكري مبكرًا', tn:'سكري جا بكري'}, n:st.s.inten === 'high' ? 1.2 : 0.7}, {k:'harm2', l:{fr:'Douleurs musculaires dues à la statine', ar:'آلام عضلية بسبب الستاتين', tn:'وجيعة عضلات من الدواء'}, n:1}];
+      var it = st.s.inten === 'high' ? {fr:'forte', ar:'قوية', tn:'قوية'} : {fr:'modérée', ar:'متوسطة', tn:'متوسطة'};
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Votre risque est ' + LV[r.cat].fr.toLowerCase() + '. Sur 100 personnes comme vous pendant 10 ans, environ ' + fmt(r0) + ' feront un infarctus ou un AVC sans statine, contre ' + fmt(r1) + ' avec une statine d’intensité ' + it.fr + ' : ' + fmt(r0 - r1) + ' événement(s) évité(s). Les douleurs musculaires réellement dues à la statine concernent environ 1 personne sur 100.',
+        ar:'مستوى خطرك ' + LV[r.cat].ar + '. من بين 100 شخص يشبهونك، خلال 10 سنوات، سيُصاب نحو ' + fmt(r0) + ' بنوبة قلبية أو سكتة دماغية دون ستاتين، مقابل ' + fmt(r1) + ' مع ستاتين بشدة ' + it.ar + '، أي أن الدواء يجنّب نحو ' + fmt(r0 - r1) + ' حدثًا. أما آلام العضلات الناتجة فعلًا عن الستاتين فتصيب نحو شخص واحد من كل 100.',
+        tn:'الخطر متاعك ' + LV[r.cat].tn + '. على 100 شخص كيفك في 10 سنين، تقريب ' + fmt(r0) + ' يصيرلهم جلطة من غير دواء، و' + fmt(r1) + ' بالدواء. ' + fmt(r0 - r1) + ' حوادث تفاداهم الدواء. وجيعة العضلات اللي جاية حقيقة من الدواء: تقريب شخص على 100.'})}));
+      out.appendChild(arraysEl([[{fr:'Sans statine', ar:'دون ستاتين', tn:'من غير دواء'}, A], [{fr:'Avec statine', ar:'مع الستاتين', tn:'بالدواء'}, B]]));
+    }
+    out.appendChild(h('p', {class:'xs muted', id:'src', text:T({fr:'Sources : ', ar:'المصادر: '}) + 'catégories et objectifs : ESC/EAS 2025 (dyslipidémies, mise à jour) ; Globorisk lab, calibration Tunisie (Ueda, Lancet Diabetes Endocrinol 2017) ; SCORE2/SCORE2-OP (Eur Heart J 2021) ; IRC : KDIGO ; réduction relative ≈ 22 % par mmol/L de LDL (CTT 2010) ; effets indésirables : CTT 2022. Estimations arrondies.'}));
+  } else {
+    var x = taviCalc(), lvE = LV[x.esCat];
+    var LEAN = {
+      tavi:{c:'tavi', t:{fr:'La balance penche nettement vers la TAVI', ar:'يميل الميزان بوضوح نحو TAVI'}},
+      tavi1:{c:'tavi', t:{fr:'Légèrement en faveur de la TAVI : à discuter en Heart Team', ar:'ميل خفيف نحو TAVI: يُناقَش في فريق القلب'}},
+      savr:{c:'savr', t:{fr:'La balance penche nettement vers la chirurgie (RVA)', ar:'يميل الميزان بوضوح نحو الجراحة'}},
+      savr1:{c:'savr', t:{fr:'Légèrement en faveur de la chirurgie : à discuter en Heart Team', ar:'ميل خفيف نحو الجراحة: يُناقَش في فريق القلب'}},
+      eq:{c:'eq', t:{fr:'Équilibre : décision en réunion Heart Team (cardiologue, chirurgien, anesthésiste)', ar:'توازن: يُتّخذ القرار في اجتماع فريق القلب (طبيب القلب والجرّاح وطبيب التخدير)'}},
+      med:{c:'eq', t:{fr:'Espérance de vie < 1 an ou comorbidité sévère : bénéfice improbable de l’intervention, privilégier le confort', ar:'أمد حياة أقل من سنة أو مرض مرافق شديد: فائدة التدخل غير مرجّحة، والأولوية للراحة'}}
+    };
+    var L = LEAN[x.lean];
+    var top2 = h('div', {class:'stack', id:'risk'});
+    top2.appendChild(h('span', {class:'eyebrow', text:T({fr:'TAVI ou chirurgie · figure 9 ESC/EACTS 2025', ar:'TAVI أو الجراحة · الشكل 9 من ESC/EACTS 2025'})}));
+    top2.appendChild(h('div', {class:'verdict v-' + L.c, id:'reco', text:L.t}));
+    top2.appendChild(h('div', {html:balanceSvg(x.forS.length, x.forT.length)}));
+    top2.appendChild(h('div', {class:'f9out'},
+      h('div', {class:'f9c savr'}, h('b', {text:T({fr:'Pour la chirurgie', ar:'لصالح الجراحة'}) + ' (' + x.forS.length + ')'}), x.forS.length ? h('ul', null, x.forS.map(function(z){ return h('li', {text:z}); })) : h('p', {class:'small muted', text:'—'})),
+      h('div', {class:'f9c tavi'}, h('b', {text:T({fr:'Pour la TAVI', ar:'لصالح TAVI'}) + ' (' + x.forT.length + ')'}), x.forT.length ? h('ul', null, x.forT.map(function(z){ return h('li', {text:z}); })) : h('p', {class:'small muted', text:'—'}))));
+    top2.appendChild(h('div', {class:'row', style:{gap:'8px'}}, h('span', {class:'small muted', text:'EuroSCORE II'}), h('b', {class:'lv-' + lvE.c, text:fmt(x.es, 1) + ' %'}), h('span', {class:'small lv-' + lvE.c, text:T(x.esCat === 'low' ? {fr:'faible', ar:'منخفض'} : x.esCat === 'high' ? {fr:'intermédiaire', ar:'متوسط'} : {fr:'élevé', ar:'مرتفع'})})));
+    top2.appendChild(gauge(x.es, 16, [[4, 'var(--ok)'], [8, 'var(--warn)'], [16, 'var(--crit)']]));
+    if(x.notes.length) top2.appendChild(h('ul', {class:'why small'}, x.notes.map(function(z){ return h('li', {text:z}); })));
+    // Figure 8 : type de valve selon l'âge
+    var vt = valveType(st.t.age), pos = CS.clamp((st.t.age - 20) / 70, 0, 1) * 100;
+    top2.appendChild(h('div', {class:'fig8', id:'fig8'},
+      h('b', {class:'small', text:{fr:'Type de valve selon l’âge (figure 8)', ar:'نوع الصمام حسب السن (الشكل 8)'}}),
+      h('div', {class:'f8bar', dir:'ltr'}, h('span', {class:'f8-ross', text:'Ross'}), h('span', {class:'f8-mech', text:{fr:'Mécanique', ar:'ميكانيكي'}}), h('span', {class:'f8-grey', text:'60–70'}), h('span', {class:'f8-bio', text:{fr:'Bioprothèse', ar:'بيولوجي'}}), h('i', {class:'f8mk', style:{left:'calc(' + pos + '% - 2px)'}})),
+      h('div', {class:'f8lab', dir:'ltr'}, h('span', {style:{left:(40 / 70 * 100) + '%'}, text:'60'}), h('span', {style:{left:(50 / 70 * 100) + '%'}, text:'70'})),
+      h('p', {class:'small', text:vt.t})));
+    top2.appendChild(h('div', {class:'panel small', id:'lifetime'}, h('b', {text:{fr:'Gestion à vie : anticiper la prochaine intervention', ar:'التدبير مدى الحياة: توقّع التدخل القادم'}}),
+      h('ul', {class:'why', style:{marginTop:'6px'}}, [
+        {fr:'RVA puis réintervention : risque d’une chirurgie redux.', ar:'جراحة ثم إعادة تدخل: خطر جراحة ثانية.'},
+        {fr:'Chirurgie après TAVI : risque accru lié à l’explantation de la valve.', ar:'جراحة بعد TAVI: خطر أكبر بسبب نزع الصمام.'},
+        {fr:'Valve-in-valve (TAVI dans une bioprothèse) : risque d’obstruction coronaire, accès coronaire difficile, mismatch.', ar:'صمام داخل صمام: خطر انسداد الشرايين التاجية وصعوبة الوصول إليها وعدم التلاؤم.'}].map(function(z){ return h('li', {text:z}); }))));
+    out.appendChild(top2);
+    mb.appendChild(h('span', {class:'small muted', text:'RVA ' + x.forS.length + ' · TAVI ' + x.forT.length})); mb.appendChild(h('b', {class:'lv-' + (L.c === 'tavi' ? 'ok' : L.c === 'savr' ? 'high' : 'warn'), text:T(x.lean.indexOf('tavi') === 0 ? {fr:'→ TAVI', ar:'← TAVI'} : x.lean.indexOf('savr') === 0 ? {fr:'→ Chirurgie', ar:'← الجراحة'} : {fr:'Heart Team', ar:'فريق القلب'})}));
+    out.appendChild(h('p', {class:'xs muted', text:{fr:'Orientation d’après les facteurs de la figure 9 : la décision revient à la Heart Team, avec le patient.', ar:'توجيه حسب عوامل الشكل 9: القرار لفريق القلب بالتشاور مع المريض.'}}));
+    // Pictogrammes seulement quand l'essai correspond au profil : PARTNER 1B = inopérable vrai ; PARTNER 3 = bas risque non fragile
+    if(!x.life && x.inop && x.fem){
+      var T2 = [{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:30.7}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:10.6}, {k:'harm2', l:{fr:'Complication vasculaire majeure', ar:'مضاعفة وعائية كبرى', tn:'مشكل في الشريان'}, n:16}];
+      var M = [{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:50.7}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:4.5}];
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Chez les patients qui ne peuvent pas être opérés, à 1 an : sur 100 personnes, environ 51 décèdent avec le traitement médical seul, contre 31 avec la TAVI. 20 vies sauvées pour 100 patients traités, au prix de plus d’AVC et de complications vasculaires (moins fréquentes avec les valves actuelles).',
+        ar:'لدى المرضى الذين لا يمكن إجراء الجراحة لهم، بعد سنة: من بين 100 شخص يتوفّى نحو 51 مع العلاج الدوائي وحده، مقابل 31 مع TAVI. أي إنقاذ 20 حياة لكل 100 مريض، مقابل سكتات دماغية ومضاعفات وعائية أكثر (أقل تواترًا مع الصمامات الحالية).',
+        tn:'مريض ما ينجمش يعمل عملية، بعد عام: على 100 شخص، تقريب 51 يموتو بالدواء برك، و31 بالتافي. 20 حياة تتسلّك على كل 100 مريض، مقابل جلطات ومشاكل شرايين أكثر (أقل مع الصمامات الجديدة).'})}));
+      out.appendChild(arraysEl([[{fr:'TAVI', ar:'TAVI', tn:'التافي'}, T2], [{fr:'Traitement médical seul', ar:'العلاج الدوائي وحده', tn:'الدواء برك'}, M]]));
+      out.appendChild(h('p', {class:'xs muted', id:'src', text:'PARTNER 1B (Leon MB, NEJM 2010), 1 an, valves de première génération. ESC/EACTS 2025 (valvulopathies).'}));
+    } else if(!x.life && !x.low){
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Pour un patient à risque opératoire intermédiaire ou fragile, la TAVI fait au moins aussi bien que la chirurgie à 1 et 2 ans (essais PARTNER 2 et SURTAVI), avec une récupération plus rapide. Sans intervention, le rétrécissement serré avec symptômes est grave (survie moyenne 2 à 3 ans).',
+        ar:'لدى المريض ذي الخطر الجراحي المتوسط أو الهش، تعطي TAVI نتائج لا تقل عن الجراحة بعد سنة وسنتين (دراستا PARTNER 2 وSURTAVI)، مع تعافٍ أسرع. ودون تدخل، يكون التضيّق الشديد المصحوب بأعراض خطيرًا (متوسط البقاء من سنتين إلى 3 سنوات).',
+        tn:'مريض خطر العملية عندو متوسّط ولا ضعيف البنية: التافي تعطي نتيجة كيف العملية ولا خير بعد عام وعامين، والراحة أسرع. من غير تدخّل، التضييق الشديد مع الأعراض خطير (العمر المتوسط 2 ولا 3 سنين).'})}));
+      out.appendChild(h('p', {class:'xs muted', id:'src', text:'PARTNER 2 (Leon MB, NEJM 2016), SURTAVI (Reardon MJ, NEJM 2017) : non-infériorité de la TAVI à risque intermédiaire. ESC/EACTS 2025 (valvulopathies).'}));
+    } else if(!x.life){
+      var Tl =[{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:1.0}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:1.2}, {k:'harm2', l:{fr:'Pacemaker nécessaire', ar:'الحاجة إلى منظِّم ضربات', tn:'يلزمو بيس ماكر'}, n:6.5}, {k:'avoid', l:{fr:'FA nouvelle', ar:'رجفان أذيني جديد', tn:'رجفان جديد'}, n:5}];
+      var Sl = [{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:2.5}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:3.1}, {k:'harm2', l:{fr:'Pacemaker nécessaire', ar:'الحاجة إلى منظِّم ضربات', tn:'يلزمو بيس ماكر'}, n:4}, {k:'avoid', l:{fr:'FA nouvelle', ar:'رجفان أذيني جديد', tn:'رجفان جديد'}, n:39.5}];
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Chez les patients à faible risque opératoire, à 1 an, la TAVI et la chirurgie donnent une survie excellente. La TAVI expose un peu plus au pacemaker ; la chirurgie expose davantage à la FA après l’opération et demande une convalescence plus longue. Sans intervention, le rétrécissement serré avec symptômes est grave (survie moyenne 2 à 3 ans).',
+        ar:'لدى المرضى ذوي الخطر الجراحي المنخفض، بعد سنة، تعطي TAVI والجراحة نتائج بقاء ممتازة. تزيد TAVI قليلًا من الحاجة إلى منظِّم ضربات القلب، بينما تزيد الجراحة من الرجفان الأذيني بعد العملية وتتطلّب نقاهة أطول. ودون تدخل، يكون التضيّق الشديد المصحوب بأعراض خطيرًا (متوسط البقاء من سنتين إلى 3 سنوات).',
+        tn:'مريض خطر العملية عندو ضعيف، بعد عام: التافي والعملية الجراحية يعطيو نتيجة مليحة برشا. التافي فيها شوية أكثر بيس ماكر، والعملية فيها رجفان أكثر وتلزمها راحة أطول. من غير تدخّل، التضييق الشديد مع الأعراض خطير (العمر المتوسط 2 ولا 3 سنين).'})}));
+      out.appendChild(arraysEl([[{fr:'TAVI', ar:'TAVI', tn:'التافي'}, Tl], [{fr:'Chirurgie (remplacement valvulaire)', ar:'الجراحة (استبدال الصمام)', tn:'العملية الجراحية'}, Sl]]));
+      out.appendChild(h('p', {class:'xs muted', id:'src', text:'PARTNER 3 (Mack MJ, NEJM 2019), 1 an, patients à faible risque. ESC/EACTS 2025 : TAVI recommandée dès 70 ans si valve tricuspide et accès fémoral adapté (classe I) ; chirurgie pour les moins de 70 ans à faible risque.'}));
+    }
+  }
+  box.appendChild(out);
+}
+function renderActs(){
+  var a = CS.$('#acts'); a.innerHTML = '';
+  var ls = CS.segEl([['fr', 'Français'], ['ar', 'العربية'], ['tn', 'تونسي']], st.lang, function(v){ st.lang = v; save(); renderRes(); });
+  ls.id = 'plang';
+  a.appendChild(h('span', {class:'small muted', text:{fr:'Pour le patient :', ar:'للمريض:'}}));
+  a.appendChild(ls);
+  var pm = h('button', {class:'btn sm', id:'pmode', type:'button', 'aria-pressed':document.body.classList.contains('patient') ? 'true' : 'false', text:document.body.classList.contains('patient') ? {fr:'Quitter le mode patient', ar:'الخروج من وضع المريض'} : {fr:'Mode patient', ar:'وضع المريض'}, onclick:function(){ document.body.classList.toggle('patient'); renderActs(); }});
+  a.appendChild(pm);
+  a.appendChild(h('button', {class:'btn sm', type:'button', id:'prt', html:CS.I.print + '<span>' + E(T({fr:'Imprimer', ar:'طباعة'})) + '</span>', onclick:function(){ window.print(); }}));
+}
+function render(){ renderTabs(); renderActs(); renderProfile(); renderRes(); }
+CS.$('#mbar').addEventListener('click', function(){ CS.$('#out').scrollIntoView({behavior:'smooth', block:'start'}); });
+window.addEventListener('cs-units', render);
+CS.init({units:true, refs:['SCORE2 / SCORE2-OP (Eur Heart J 2021)', 'SCORE2-Diabetes (Eur Heart J 2023)', 'EuroSCORE II (Nashef 2012)', 'ESC/EACTS 2025 valvulopathies', 'Pictogrammes de 100 personnes (Ottawa Decision Support Framework)']});
+render();
+
+CS.tour.define([
+  {title:{fr:'La décision partagée', ar:'القرار المشترك'}, body:{fr:'<p>Vous construisez le <b>profil du patient</b> en touchant des choix ; l’outil calcule son <b>risque</b>, son <b>niveau de danger</b> et ce que recommandent les guidelines.</p><p>Puis vous montrez au patient, en images, ce que chaque option change pour 100 personnes comme lui.</p>', ar:'<p>تبني <b>ملف المريض</b> بلمس الاختيارات، فتحسب الأداة <b>خطره</b> و<b>مستوى الخطورة</b> وما توصي به التوصيات.</p><p>ثم تُري المريض بالصور ما يغيّره كل خيار لدى 100 شخص يشبهونه.</p>'}},
+  {el:'#tabs', title:{fr:'Deux décisions', ar:'قراران'}, body:{fr:'<b>Statine en prévention primaire</b> (SCORE2) et <b>rétrécissement aortique</b> : TAVI, chirurgie ou traitement médical (EuroSCORE II + Heart Team).', ar:'<b>الستاتين في الوقاية الأولية</b> (SCORE2) و<b>تضيّق الصمام الأبهري</b>: TAVI أو الجراحة أو العلاج الدوائي (EuroSCORE II وفريق القلب).'}},
+  {el:'#prof-card', before:function(){ if(st.sc !== 'statin'){ st.sc = 'statin'; render(); } }, title:{fr:'Le profil, en quelques touches', ar:'الملف ببضع لمسات'}, body:{fr:'Chaque ligne est une question. Touchez la bonne tranche : pas besoin de la valeur exacte. Le bouton <b>Patient en cours</b> reprend l’âge et le sexe déjà saisis.', ar:'كل سطر سؤال. المس الشريحة المناسبة دون حاجة إلى القيمة الدقيقة. يأخذ زر <b>المريض الحالي</b> السن والجنس المُدخلين سابقًا.'}},
+  {el:'#q-rf', title:{fr:'Les facteurs de risque', ar:'عوامل الخطر'}, body:{fr:'HTA, tabac, obésité, sédentarité, dyslipidémie ; l’âge (> 55 ans chez l’homme, > 65 ans chez la femme) est compté tout seul. Leur nombre sert aux règles du diabète et de l’HF.', ar:'ارتفاع الضغط والتدخين والسمنة وقلة النشاط واضطراب الدهون؛ ويُحتسب السن (> 55 للرجل، > 65 للمرأة) تلقائيًا. ويُستعمل عددها في قواعد السكري وفرط الكوليسترول العائلي.'}},
+  {el:'#kdigo', title:{fr:'La fonction rénale en un geste', ar:'وظيفة الكلى بلمسة'}, body:{fr:'La grille KDIGO : touchez la case DFG × albuminurie. IRC modérée → risque élevé ; IRC sévère → très élevé.', ar:'شبكة KDIGO: المس خانة معدل الترشيح × البيلة الألبومينية. قصور متوسط ← خطر مرتفع؛ قصور شديد ← مرتفع جدًا.'}},
+  {el:'#risk', title:{fr:'Le niveau de risque', ar:'مستوى الخطر'}, body:{fr:'Une des <b>5 catégories</b> de la figure ESC/EAS 2025, de faible à extrême, avec <b>Globorisk</b> calibré pour la Tunisie. La liste explique pourquoi ; en dessous, l’<b>objectif de LDL-C</b> et la classe de recommandation.', ar:'إحدى <b>الفئات الخمس</b> في شكل ESC/EAS 2025، من منخفض إلى أقصى، مع <b>Globorisk</b> المعاير لتونس. تشرح القائمة السبب، وتحتها <b>هدف LDL</b> وفئة التوصية.'}},
+  {el:'#arrays', title:{fr:'Expliquer au patient', ar:'الشرح للمريض'}, body:{fr:'100 personnes comme lui, avec et sans traitement. Le texte au-dessus est dans la langue choisie : <b>français, arabe ou tunisien</b>.', ar:'مئة شخص يشبهونه، مع العلاج ودونه. النص أعلاه باللغة المختارة: <b>الفرنسية أو العربية أو التونسية</b>.'}},
+  {el:'#pmode', title:{fr:'Mode patient et impression', ar:'وضع المريض والطباعة'}, body:{fr:'Le mode patient cache les réglages et agrandit le texte pour tourner l’écran vers lui. « Imprimer » donne une fiche à lui remettre.', ar:'يخفي وضع المريض الإعدادات ويكبّر النص لتدير الشاشة نحوه. وتعطي «طباعة» ورقة تسلّمها له.'}},
+  {el:'#tab-tavi', before:function(){ st.sc = 'tavi'; save(); render(); }, title:{fr:'TAVI ou chirurgie : la figure 9, en touches', ar:'TAVI أو الجراحة: الشكل 9 باللمس'}, body:{fr:'Les facteurs de la <b>figure 9 ESC/EACTS 2025</b> : à gauche ce qui favorise la chirurgie, à droite la TAVI. Touchez ceux qui sont présents : la <b>balance</b> penche, avec la liste des raisons.', ar:'عوامل <b>الشكل 9 من ESC/EACTS 2025</b>: يسارًا ما يرجّح الجراحة، ويمينًا TAVI. المس الموجود منها فيميل <b>الميزان</b> مع قائمة الأسباب.'}},
+  {el:'#esd', title:{fr:'Le risque opératoire, sans le STS', ar:'الخطر الجراحي دون STS'}, body:{fr:'L’<b>EuroSCORE II</b> se remplit en quelques touches (NYHA, FEVG, rein, PAPs, antécédents) et compte dans la balance s’il dépasse 4 %.', ar:'يُملأ <b>EuroSCORE II</b> ببضع لمسات (NYHA والكسر القذفي والكلى والضغط الرئوي والسوابق) ويُحتسب في الميزان إذا تجاوز 4%.'}},
+  {el:'#fig8', title:{fr:'Quelle valve, selon l’âge', ar:'أي صمام حسب السن'}, body:{fr:'La <b>figure 8</b> : Ross chez le jeune, mécanique avant 60 ans, bioprothèse (chirurgie ou TAVI) après 70 ans ; entre les deux, on décide avec le patient. En dessous : la gestion à vie de la valve.', ar:'<b>الشكل 8</b>: Ross لدى الشاب، صمام ميكانيكي قبل 60 سنة، وصمام بيولوجي (جراحة أو TAVI) بعد 70 سنة؛ وبينهما يُقرَّر مع المريض. وتحته: تدبير الصمام مدى الحياة.'}, after:function(){ st.sc = 'statin'; save(); render(); }}
+]);
+})();
+</script>
+</body>
+</html>
