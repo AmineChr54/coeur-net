@@ -406,7 +406,6 @@ function renderProfile(){
     c.appendChild(q({fr:'Score de risque', ar:'مقياس الخطر'}, null, CS.segEl([['globo', {fr:'Globorisk (Tunisie)', ar:'Globorisk (تونس)'}], ['score2', 'SCORE2']], s.score, function(x){ s.score = x; save(); render(); }, 'full')));
     c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', s, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
     c.appendChild(q({fr:'Âge', ar:'السن'}, s.score === 'globo' ? '40–80' : null, ageCtl(s, 18, 95)));
-    c.appendChild(q({fr:'Facteurs de risque', ar:'عوامل الخطر'}, T({fr:'âge > 55 H / > 65 F compté seul · total : ', ar:'السن (> 55 رجل / > 65 امرأة) يُحتسب تلقائيًا · المجموع: '}) + nRF(s), chips('rf', s, RF, true)));
     // Diabète : facteur de risque « à part » (Anis) — le risque dépend de son ancienneté et du nombre de facteurs associés
     var dmCard = h('div', {class:'dmcard' + (s.dm === '1' ? ' on' : ''), id:'q-dmcard'});
     dmCard.appendChild(h('div', {class:'dmhead'},
@@ -452,6 +451,7 @@ function renderProfile(){
       subHost.appendChild(box);
     };
     renderSub();
+    c.appendChild(q({fr:'Facteurs de risque', ar:'عوامل الخطر'}, T({fr:'âge > 55 H / > 65 F compté seul · total : ', ar:'السن (> 55 رجل / > 65 امرأة) يُحتسب تلقائيًا · المجموع: '}) + nRF(s), chips('rf', s, RF, true)));
     c.appendChild(q({fr:'Pression artérielle systolique', ar:'الضغط الانقباضي'}, 'mmHg', h('div', {class:'stack', style:{gap:'8px'}}, chips('sbp', s, [[110, '< 120'], [130, '120–139'], [150, '140–159'], [170, '160–179'], [190, '≥ 180']], false, function(){ s.sbpX = false; save(); render(); }), exact('sbp', s, 'mmHg', function(v){ return v; }, function(v){ return v; }))));
     var cu = CS.units() === 'si' ? 'mmol/L' : 'mg/dL';
     c.appendChild(q({fr:'Cholestérol total', ar:'الكوليسترول الكلي'}, cu, h('div', {class:'stack', style:{gap:'8px'}}, chips('tc', s, [[3.5, cholLabel(null, 4)], [4.5, cholLabel(4, 4.9)], [5.5, cholLabel(5, 5.9)], [6.5, cholLabel(6, 6.9)], [7.5, cholLabel(7, 7.9)], [8.5, cholLabel(8, null)]], false, function(){ s.tcX = false; if(+s.tc >= 8){ s.other = s.other || []; if(s.other.indexOf('single') < 0) s.other.push('single'); } save(); render(); }), exact('tc', s, cu, function(v){ return CS.units() === 'si' ? v : v / 38.67; }, function(v){ return CS.units() === 'si' ? v : v * 38.67; }))));
