@@ -46,6 +46,7 @@ traduites ; l'heure renvoie au moment de l'enregistrement. Confiance : ●●●
 | Une échelle de risque (faible, modéré, élevé, très élevé) | 19:33:41 + figure ESC/EAS 2025 envoyée par Anis | 5 catégories de la figure (avec **extrême**) et objectif de LDL-C + classe | ●●● |
 | Décision : c'est surtout le médecin qui décide | 19:32:47 | Pictogrammes gardés pour l'expliquer au patient | ●●○ |
 | TAVI : le score STS est trop compliqué | 19:35:12 | EuroSCORE II à puces | ●●● |
+| « TAVI vs RVA : à part l'âge de 70 ans, il y a le STS, long et compliqué… si tu trouves un moyen de le rendre simple ; le risque CV c'est facile, la TAVI c'est dur » + figures 8 et 9 ESC/EACTS 2025 envoyées | message d'Anis | Onglet refait sur la **figure 9** : facteurs « en faveur du RVA / de la TAVI » en une touche, **balance** qui penche avec les raisons, **figure 8** (type de valve selon l'âge), gestion à vie. STS non implémenté (coefficients non publiés sous forme réutilisable) : EuroSCORE II à la place | ●●● |
 | TAVI ≈ 10 ans de durabilité, plus chère ; chirurgie plus durable mais plus lourde ; d'abord l'âge, puis réunion Heart Team | 19:35:43–19:36:26 | Ajouté aux raisons affichées ; seuil ESC/EACTS 2025 (≥ 70 ans, tricuspide, fémoral) | ●●● |
 | Ouvrir l'outil en consultation, sur le téléphone, **hors ligne** ; PC du service sans Internet | 19:36:56–19:37:31 | Application hors ligne (PWA) + **version .zip** pour les PC | ●●● |
 | Formulaire de consentement de télémédecine tunisien comme modèle | 19:34:13 | À recevoir | ●○○ |

@@ -45,6 +45,36 @@
 .lv-ext{color:var(--r-ext)}
 :root[data-theme="dark"] .lv-ext{color:#ff8a8a}
 .badge.lvb-low{background:#fbf1c4;color:#6b5600} .badge.lvb-mod{background:#fde3c2;color:#8a4b00} .badge.lvb-high{background:#fbd9c6;color:#a33d07} .badge.lvb-vhigh{background:var(--crit-soft);color:var(--crit)} .badge.lvb-extreme{background:#f1d0d5;color:var(--r-ext)}
+/* Figure 9 : deux colonnes, mauve = chirurgie, bleu = TAVI */
+.f9h{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f9t{font-size:.8rem;font-weight:700;text-align:center;padding:6px;border-radius:999px;background:var(--surface-2)}
+.f9t.savr{color:#7a4bc4;background:#f1e9fc} .f9t.tavi{color:#1d5ea8;background:#e4eefa}
+:root[data-theme="dark"] .f9t.savr{background:#2a2040;color:#c8b0f5} :root[data-theme="dark"] .f9t.tavi{background:#13263c;color:#8ec0f5}
+.f9{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.f9c{border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.f9c.savr{background:linear-gradient(90deg,#f6effd,transparent);border-inline-start:3px solid #b08ef0}
+.f9c.tavi{background:linear-gradient(270deg,#ecf3fc,transparent);border-inline-end:3px solid #5aa5ff}
+:root[data-theme="dark"] .f9c.savr{background:#1f1a2b} :root[data-theme="dark"] .f9c.tavi{background:#151e2a}
+.f9c .chip{font-size:.8rem;padding:6px 10px;min-height:34px;text-align:start}
+.f9c.savr .chip[aria-pressed="true"]{background:#7a4bc4;border-color:#7a4bc4}
+.f9c.tavi .chip[aria-pressed="true"]{background:#1d5ea8;border-color:#1d5ea8}
+.f9c ul{margin:0;padding-inline-start:18px;font-size:.84rem;display:flex;flex-direction:column;gap:3px}
+@media (max-width:460px){.f9,.f9out{grid-template-columns:minmax(0,1fr)}.f9h{display:none}}
+.f9out{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.verdict{font-size:1.12rem;font-weight:700;padding:12px 14px;border-radius:12px;border:2px solid}
+.verdict.v-tavi{color:#1d5ea8;border-color:#5aa5ff;background:#ecf3fc} .verdict.v-savr{color:#7a4bc4;border-color:#b08ef0;background:#f6effd} .verdict.v-eq{color:var(--warn);border-color:var(--warn);background:var(--warn-soft)}
+:root[data-theme="dark"] .verdict.v-tavi{background:#151e2a;color:#8ec0f5} :root[data-theme="dark"] .verdict.v-savr{background:#1f1a2b;color:#c8b0f5}
+.balance{width:100%;max-width:340px;display:block;margin:0 auto}
+.balance .bal-l{font:700 13px var(--font);fill:var(--fg-2)} .balance .bal-n{font:800 18px var(--font-display);fill:#fff}
+.esd{border-top:1px solid var(--line);padding-top:10px}
+.esd summary{cursor:pointer;display:flex;gap:8px;align-items:center;min-height:36px}
+.fig8{display:flex;flex-direction:column;gap:6px}
+.f8bar{position:relative;display:grid;grid-template-columns:28.6% 28.6% 14.3% 28.5%;height:34px;border-radius:10px;overflow:visible;font-size:.72rem;font-weight:650}
+.f8bar span{display:grid;place-items:center;color:#3a2f22;text-align:center;line-height:1.1}
+.f8-ross{background:linear-gradient(90deg,#f4d58d,#e9b98c);border-radius:10px 0 0 10px} .f8-mech{background:linear-gradient(90deg,#e9b98c,#d9a0a8)} .f8-grey{background:linear-gradient(90deg,#d9a0a8,#9fb3e6)} .f8-bio{background:#9fb3e6;border-radius:0 10px 10px 0}
+.f8mk{position:absolute;top:-5px;width:4px;height:44px;border-radius:3px;background:var(--fg);box-shadow:0 0 0 3px var(--surface)}
+.f8lab{position:relative;height:14px;font-size:.7rem;color:var(--muted)}
+.f8lab span{position:absolute;transform:translateX(-50%)}
 /* Grille KDIGO */
 .kdigo{display:grid;grid-template-columns:64px repeat(3,minmax(0,1fr));gap:4px;max-width:420px}
 .kh{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);line-height:1.15;text-align:center}
@@ -126,6 +156,16 @@ var st = CS.store.get('decision', null) || {
 };
 st.s = Object.assign({score:'globo', sex:pt.sex || 'm', age:pt.age || 58, rf:['hta'], sbp:150, tc:5.5, hdl:1.15, dm:'0', dmtype:'2', dmdur:'lt10', dmtod:'0', agediab:null, a1c:7.5, egfr:75,
   ascvd:[], other:[], ckdG:null, ckdA:null, region:'high', inten:'high'}, st.s || {});
+(function migrateTavi(t){ // ancien profil TAVI → facteurs de la figure 9
+  if(t.f9) return;
+  var f9 = [], fl = t.flags || [];
+  if(t.femoral !== 'no') f9.push('tf');
+  if(t.valve === 'bi') f9.push('bicuspid');
+  if(t.cad === 'complex') f9.push('cad');
+  ['frail', 'porc', 'chest'].forEach(function(k){ if(fl.indexOf(k) >= 0) f9.push(k); });
+  t.flags = fl.filter(function(k){ return ['frail', 'porc', 'chest'].indexOf(k) < 0; });
+  t.f9 = f9;
+})(st.t);
 function save(){ CS.store.set('decision', st); }
 function P(x){ return CS.t(x, st.lang); }  // texte destiné au patient (fr / ar / tn)
 var LV = {
@@ -258,40 +298,53 @@ var RECO = {
   extreme:{fr:'Objectif LDL-C < 1,0 mmol/L (40 mg/dL) · classe IIb.', ar:'هدف LDL أقل من 1,0 مليمول/ل (40 ملغ/دل) · الفئة IIb.'}
 };
 
-/* ---------- TAVI : calcul ---------- */
+/* ---------- TAVI ou chirurgie : figures 8 et 9 des recommandations ESC/EACTS 2025 (envoyées par Anis) ----------
+   Figure 9 : facteurs en faveur du RVA chirurgical ou de la TAVI (âge, anatomie, pathologies associées) + gestion à vie.
+   Figure 8 : type de valve selon l'âge (Ross, mécanique, bioprothèse). Risque opératoire : EuroSCORE II
+   (le score STS est jugé trop long par Anis ; ses coefficients ne sont pas publiés sous une forme réutilisable). */
+var F9 = {
+  savrAna:[['annulus', {fr:'Anneau ou chambre de chasse hostiles (calcifications)', ar:'حلقة أو مخرج بطين غير ملائم (تكلّسات)'}], ['bicuspid', {fr:'Valve aortique bicuspide', ar:'صمام أبهري ثنائي الشرف'}],
+    ['annsize', {fr:'Dimensions de l’anneau inadaptées à la TAVI', ar:'مقاسات الحلقة غير ملائمة لـ TAVI'}], ['coro', {fr:'Risque d’obstruction coronaire', ar:'خطر انسداد الشرايين التاجية'}]],
+  taviAna:[['tf', {fr:'Voie fémorale adaptée à la TAVI', ar:'المدخل الفخذي ملائم لـ TAVI'}], ['porc', {fr:'Aorte porcelaine', ar:'أبهر خزفي'}],
+    ['grafts', {fr:'Pontages coronaires perméables', ar:'مجازات تاجية سليمة'}], ['chest', {fr:'Déformation thoracique sévère ou scoliose', ar:'تشوّه شديد في الصدر أو جنف'}]],
+  savrCon:[['vhd', {fr:'Autre valvulopathie primaire significative', ar:'اعتلال صمامي أولي آخر مهم'}], ['cad', {fr:'Coronaropathie complexe', ar:'مرض تاجي معقّد'}],
+    ['root', {fr:'Anévrisme de la racine ou de l’aorte ascendante', ar:'تمدّد جذر الأبهر أو الأبهر الصاعد'}], ['septal', {fr:'Hypertrophie septale nécessitant une myectomie', ar:'تضخّم الحاجز يستدعي استئصال العضلة'}]],
+  taviCon:[['comorb', {fr:'Comorbidités ou atteinte cardiaque augmentant le risque opératoire', ar:'أمراض مرافقة أو قلبية تزيد الخطر الجراحي'}], ['frail', {fr:'Fragilité', ar:'هشاشة'}],
+    ['rad', {fr:'Séquelles de radiothérapie thoracique', ar:'آثار علاج إشعاعي للصدر'}]]
+};
 function taviCalc(){
-  var v = st.t, f = v.flags || [], has = function(k){ return f.indexOf(k) >= 0; };
-  var es = RISK.euroscore2({age:v.age, female:v.sex === 'f', renal:v.renal, nyha:+v.nyha, lv:v.lv, pa:v.pa, art:has('art'), mob:has('mob'), redo:has('redo'), lung:has('lung'), ins:has('ins'), mi:has('mi'), wt:1});
+  var v = st.t, f = v.flags || [], has = function(k){ return f.indexOf(k) >= 0; }, on = function(k){ return (v.f9 || []).indexOf(k) >= 0; };
+  var es = RISK.euroscore2({age:v.age, female:v.sex === 'f', renal:v.renal, nyha:+v.nyha, lv:v.lv, pa:v.pa, art:has('art'), mob:has('mob'), redo:has('redo') || on('grafts'), lung:has('lung'), ins:has('ins'), mi:has('mi'), wt:on('vhd') || on('cad') || on('root') ? 2 : 1, aorta:on('root')});
   var esCat = es >= 8 ? 'vhigh' : es >= 4 ? 'high' : 'low';
-  var frail = has('frail'), porcel = has('porc'), hostile = has('chest');
-  var surgHard = frail || porcel || hostile || es >= 8;
-  var fem = v.femoral === 'ok', tri = v.valve === 'tri', cad = v.cad === 'complex', life = v.life === 'short';
-  var O = {tavi:{s:'pos', r:[]}, surg:{s:'pos', r:[]}, med:{s:'no', r:[]}};
-  function R(k, x){ O[k].r.push(x); }
-  if(life){
-    O.med.s = 'fav'; R('med', {fr:'Espérance de vie < 1 an ou comorbidité sévère : bénéfice improbable de l’intervention (futilité).', ar:'أمد حياة متوقَّع أقل من سنة أو مرض مرافق شديد: فائدة التدخل غير مرجَّحة.'});
-    O.tavi.s = 'no'; O.surg.s = 'no'; R('tavi', {fr:'Discuter en Heart Team ; privilégier le confort.', ar:'يُناقَش في فريق القلب؛ مع إعطاء الأولوية للراحة.'}); R('surg', {fr:'Non adaptée dans ce contexte.', ar:'غير ملائمة في هذا السياق.'});
-  } else {
-    R('med', {fr:'RA serré symptomatique : sans intervention, survie moyenne de 2 à 3 ans.', ar:'تضيّق أبهري شديد مع أعراض: دون تدخل، متوسط البقاء من سنتين إلى 3 سنوات.'});
-    // TAVI
-    if(!fem){ O.tavi.s = 'pos'; R('tavi', {fr:'Accès fémoral non adapté : voie alternative possible en centre expert.', ar:'المدخل الفخذي غير ملائم: يمكن اعتماد مدخل بديل في مركز متخصّص.'}); }
-    if(fem && tri && v.age >= 70){ O.tavi.s = 'fav'; R('tavi', {fr:'≥ 70 ans, valve tricuspide, accès fémoral : TAVI recommandée quel que soit le risque chirurgical (ESC 2025, classe I).', ar:'70 سنة فأكثر، صمام ثلاثي الشرف، مدخل فخذي ملائم: يوصى بـ TAVI مهما كان الخطر الجراحي (ESC 2025، الفئة I).'}); }
-    else if(fem && surgHard){ O.tavi.s = 'fav'; R('tavi', {fr:'Risque chirurgical élevé ou chirurgie difficile : TAVI privilégiée.', ar:'خطر جراحي مرتفع أو جراحة صعبة: تُفضَّل TAVI.'}); }
-    else if(fem && v.age < 70){ R('tavi', {fr:'< 70 ans : TAVI à discuter en Heart Team (durabilité, gestion à vie de la valve).', ar:'أقل من 70 سنة: تُناقَش TAVI في فريق القلب (متانة الصمام وتدبيره مدى الحياة).'}); }
-    if(!tri){ if(O.tavi.s === 'fav') O.tavi.s = 'pos'; R('tavi', {fr:'Bicuspidie : données plus limitées, anatomie à évaluer au scanner.', ar:'صمام ثنائي الشرف: المعطيات أقل، ويجب تقييم التشريح بالمفراس.'}); }
-    if(cad){ R('tavi', {fr:'Coronaropathie complexe : revascularisation à planifier.', ar:'مرض تاجي معقّد: يجب التخطيط لإعادة التروية.'}); }
-    // Chirurgie
-    if(surgHard){ O.surg.s = 'no'; R('surg', {fr:'Risque opératoire élevé ou chirurgie difficile (' + [es >= 8 ? 'EuroSCORE II ≥ 8 %' : '', frail ? 'fragilité' : '', porcel ? 'aorte porcelaine' : '', hostile ? 'thorax hostile' : ''].filter(Boolean).join(', ') + ').', ar:'خطر جراحي مرتفع أو جراحة صعبة.'}); }
-    else if(v.age < 70 && es < 4){ O.surg.s = 'fav'; R('surg', {fr:'< 70 ans et risque opératoire faible : chirurgie (RVA) recommandée.', ar:'أقل من 70 سنة وخطر جراحي منخفض: يوصى بالجراحة (استبدال الصمام).'}); }
-    else { R('surg', {fr:'Alternative valable : en discuter (durabilité, préférences du patient).', ar:'بديل مقبول: يُناقَش (متانة الصمام وتفضيلات المريض).'}); }
-    if(!surgHard && (cad || !tri)){ if(O.surg.s !== 'fav'){ O.surg.s = v.age < 75 ? 'fav' : 'pos'; } R('surg', {fr:cad ? 'Coronaropathie complexe : chirurgie combinée (RVA + pontages) possible.' : 'Bicuspidie : la chirurgie reste la référence si l’opérabilité le permet.', ar:cad ? 'مرض تاجي معقّد: جراحة مشتركة (استبدال الصمام مع المجازة) ممكنة.' : 'صمام ثنائي الشرف: تبقى الجراحة المرجع إن سمحت الحالة.'}); }
-    if(O.tavi.s === 'fav' && O.surg.s === 'fav') O.surg.s = 'pos';
-    // Points pratiques soulevés par Anis : durabilité de la bioprothèse et coût en Tunisie
-    R('tavi', {fr:'Valve biologique : durabilité de l’ordre de 10 ans ; coût élevé et accès limité en Tunisie.', ar:'صمام بيولوجي: متانة في حدود 10 سنوات؛ كلفة مرتفعة وإتاحة محدودة في تونس.'});
-    if(O.surg.s !== 'no') R('surg', {fr:'Plus lourde (sternotomie, convalescence), mais valve plus durable ; mécanique possible chez le sujet jeune (AVK à vie).', ar:'أثقل (شقّ القصّ ونقاهة أطول) لكن الصمام أمتن؛ ويمكن اختيار صمام ميكانيكي لدى الشاب (مضادّ تخثّر مدى الحياة).'});
-    if(v.age >= 65 && v.age < 75 && !surgHard) R('tavi', {fr:'Zone intermédiaire d’âge : décision en réunion Heart Team (cardiologue, chirurgien, anesthésiste).', ar:'سنّ وسطى: يُتّخذ القرار في اجتماع فريق القلب (طبيب القلب والجرّاح وطبيب التخدير).'});
-  }
-  return {es:es, esCat:esCat, O:O, surgHard:surgHard, life:life, fem:fem, inop:porcel || hostile || es >= 8, low:es < 4 && !frail && !porcel && !hostile};
+  var forS = [], forT = [];
+  if(v.age < 70) forS.push({fr:'Âge < 70 ans', ar:'السن أقل من 70 سنة'}); else forT.push({fr:'Âge ≥ 70 ans', ar:'السن 70 سنة فأكثر'});
+  function pick(list, arr){ list.forEach(function(x){ if(on(x[0])) arr.push(x[1]); }); }
+  pick(F9.savrAna, forS); pick(F9.savrCon, forS); pick(F9.taviAna, forT); pick(F9.taviCon, forT);
+  if(es >= 4) forT.push(es >= 8 ? {fr:'Risque opératoire élevé (EuroSCORE II ' + fmt(es, 1) + ' %)', ar:'خطر جراحي مرتفع (EuroSCORE II ' + fmt(es, 1) + ' %)'} : {fr:'Risque opératoire intermédiaire (EuroSCORE II ' + fmt(es, 1) + ' %)', ar:'خطر جراحي متوسط (EuroSCORE II ' + fmt(es, 1) + ' %)'});
+  var life = v.life === 'short', bal = forT.length - forS.length;
+  var lean = life ? 'med' : bal >= 2 ? 'tavi' : bal <= -2 ? 'savr' : bal === 1 ? 'tavi1' : bal === -1 ? 'savr1' : 'eq';
+  var notes = [];
+  if(!on('tf') && !life) notes.push({fr:'Voie fémorale non adaptée (ou non évaluée) : TAVI par voie alternative possible en centre expert, à discuter ; scanner indispensable.', ar:'المدخل الفخذي غير ملائم (أو لم يُقيَّم): يمكن مناقشة TAVI عبر مدخل بديل في مركز متخصّص؛ المفراس ضروري.'});
+  if(on('bicuspid') && v.age >= 70) notes.push({fr:'Bicuspidie après 70 ans : la TAVI reste possible si l’anatomie le permet (scanner).', ar:'صمام ثنائي الشرف بعد 70 سنة: تبقى TAVI ممكنة إذا سمح التشريح (المفراس).'});
+  notes.push({fr:'Coût élevé et accès limité de la TAVI en Tunisie ; bioprothèse : durabilité d’environ 10 ans.', ar:'كلفة TAVI مرتفعة وإتاحتها محدودة في تونس؛ الصمام البيولوجي: متانة في حدود 10 سنوات.'});
+  return {es:es, esCat:esCat, forS:forS, forT:forT, bal:bal, lean:lean, life:life, notes:notes, fem:on('tf'),
+    inop:on('porc') || on('chest') || es >= 8, low:es < 4 && !on('frail') && !on('comorb') && !on('porc') && !on('chest') && !on('rad')};
+}
+/* Figure 8 : type de valve selon l'âge */
+function valveType(age){
+  if(age < 60) return {k:'mech', t:{fr:'Avant 60 ans : valve mécanique en général (anticoagulation à vie : risques embolique et hémorragique) ; Ross chez l’adulte jeune en centre expert (complexité technique).', ar:'قبل 60 سنة: صمام ميكانيكي عادةً (مضادّ تخثّر مدى الحياة: خطر الانصمام والنزيف)؛ وعملية Ross لدى الشاب في مركز متخصّص (تعقيد تقني).'}};
+  if(age < 70) return {k:'grey', t:{fr:'Entre 60 et 70 ans : mécanique ou bioprothèse, à décider avec le patient (anticoagulation contre durabilité).', ar:'بين 60 و70 سنة: صمام ميكانيكي أو بيولوجي يُقرَّر مع المريض (مضادّ التخثّر مقابل المتانة).'}};
+  return {k:'bio', t:{fr:'À partir de 70 ans : bioprothèse, chirurgicale (RVA) ou TAVI ; limite : durabilité.', ar:'من 70 سنة: صمام بيولوجي، جراحيًا أو عبر TAVI؛ الحدّ: المتانة.'}};
+}
+function balanceSvg(nS, nT){
+  var ang = CS.clamp((nT - nS) * 5, -14, 14);
+  return '<svg viewBox="0 0 320 150" class="balance" dir="ltr" role="img" aria-label="' + E(T({fr:'Balance chirurgie / TAVI', ar:'ميزان الجراحة / TAVI'})) + '">' +
+    '<path d="M160 40 L148 132 L172 132Z" fill="var(--line-strong)"/><rect x="120" y="130" width="80" height="8" rx="4" fill="var(--line-strong)"/>' +
+    '<g style="transform:rotate(' + ang + 'deg);transform-origin:160px 40px;transition:transform .5s cubic-bezier(.2,.8,.2,1)">' +
+      '<rect x="30" y="36" width="260" height="8" rx="4" fill="var(--fg-2)"/><circle cx="160" cy="40" r="7" fill="var(--fg)"/>' +
+      '<g style="transform:rotate(' + (-ang) + 'deg);transform-origin:46px 40px"><path d="M46 40 L22 86 M46 40 L70 86" stroke="var(--line-strong)" stroke-width="2"/><path d="M14 86 Q46 108 78 86Z" fill="#b08ef0"/><text x="46" y="128" text-anchor="middle" class="bal-l">RVA</text><text x="46" y="100" text-anchor="middle" class="bal-n">' + nS + '</text></g>' +
+      '<g style="transform:rotate(' + (-ang) + 'deg);transform-origin:274px 40px"><path d="M274 40 L250 86 M274 40 L298 86" stroke="var(--line-strong)" stroke-width="2"/><path d="M242 86 Q274 108 306 86Z" fill="#5aa5ff"/><text x="274" y="128" text-anchor="middle" class="bal-l">TAVI</text><text x="274" y="100" text-anchor="middle" class="bal-n">' + nT + '</text></g>' +
+    '</g></svg>';
 }
 
 /* ---------- Pictogrammes ---------- */
@@ -389,20 +442,24 @@ function renderProfile(){
     }
   } else {
     var v = st.t;
-    c.appendChild(q({fr:'Âge', ar:'السن'}, null, ageCtl(v, 40, 99)));
+    function grp(id, list){ var r = chips('f9', v, list, true); r.id = 'q-' + id; return r; }
+    c.appendChild(q({fr:'Âge', ar:'السن'}, {fr:'seuil 70 ans', ar:'العتبة 70 سنة'}, ageCtl(v, 18, 99)));
     c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', v, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
-    c.appendChild(q({fr:'Valve aortique', ar:'الصمام الأبهري'}, null, chips('valve', v, [['tri', {fr:'Tricuspide', ar:'ثلاثي الشرف'}], ['bi', {fr:'Bicuspide', ar:'ثنائي الشرف'}]])));
-    c.appendChild(q({fr:'Accès fémoral (scanner)', ar:'المدخل الفخذي (المفراس)'}, null, chips('femoral', v, [['ok', {fr:'Adapté', ar:'ملائم'}], ['no', {fr:'Non adapté', ar:'غير ملائم'}]])));
-    c.appendChild(q({fr:'Essoufflement (NYHA)', ar:'ضيق التنفس (NYHA)'}, null, chips('nyha', v, [['1', 'I'], ['2', 'II'], ['3', 'III'], ['4', 'IV']])));
-    c.appendChild(q({fr:'FEVG', ar:'الكسر القذفي'}, null, chips('lv', v, [['g', '> 50 %'], ['m', '31–50 %'], ['p', '21–30 %'], ['vp', '≤ 20 %']])));
-    c.appendChild(q({fr:'Fonction rénale (clairance)', ar:'وظيفة الكلى (التصفية)'}, 'mL/min', chips('renal', v, [['n', '> 85'], ['m', '50–85'], ['s', '< 50'], ['dial', {fr:'Dialyse', ar:'غسيل الكلى'}]])));
-    c.appendChild(q({fr:'PAPs', ar:'الضغط الرئوي الانقباضي'}, 'mmHg', chips('pa', v, [['n', '< 31'], ['m', '31–54'], ['s', '≥ 55']])));
-    c.appendChild(q({fr:'Antécédents et terrain', ar:'السوابق والحالة العامة'}, {fr:'plusieurs choix', ar:'عدة اختيارات'}, chips('flags', v, [
-      ['frail', {fr:'Fragilité', ar:'هشاشة'}], ['porc', {fr:'Aorte porcelaine', ar:'أبهر خزفي'}], ['chest', {fr:'Thorax hostile', ar:'صدر غير ملائم للجراحة'}],
-      ['redo', {fr:'Chirurgie cardiaque antérieure', ar:'جراحة قلب سابقة'}], ['art', {fr:'Artériopathie', ar:'اعتلال الشرايين'}], ['lung', {fr:'BPCO', ar:'انسداد رئوي مزمن'}],
-      ['ins', {fr:'Diabète insulinotraité', ar:'سكري معالج بالأنسولين'}], ['mob', {fr:'Mobilité réduite', ar:'حركة محدودة'}], ['mi', {fr:'IDM < 90 jours', ar:'احتشاء منذ أقل من 90 يومًا'}]], true)));
-    c.appendChild(q({fr:'Coronaires', ar:'الشرايين التاجية'}, null, chips('cad', v, [['no', {fr:'Pas de lésion complexe', ar:'لا آفة معقّدة'}], ['complex', {fr:'Atteinte complexe (pontage ?)', ar:'إصابة معقّدة (مجازة؟)'}]])));
+    c.appendChild(h('div', {class:'f9h'}, h('span', {class:'f9t savr', text:{fr:'En faveur de la chirurgie (RVA)', ar:'لصالح الجراحة'}}), h('span', {class:'f9t tavi', text:{fr:'En faveur de la TAVI', ar:'لصالح TAVI'}})));
+    c.appendChild(h('div', {class:'f9'}, h('div', {class:'f9c savr'}, h('b', {class:'small', text:{fr:'Anatomie → chirurgie', ar:'التشريح ← الجراحة'}}), grp('f9sa', F9.savrAna)), h('div', {class:'f9c tavi'}, h('b', {class:'small', text:{fr:'Anatomie → TAVI', ar:'التشريح ← TAVI'}}), grp('f9ta', F9.taviAna))));
+    c.appendChild(h('div', {class:'f9'}, h('div', {class:'f9c savr'}, h('b', {class:'small', text:{fr:'Pathologies associées → chirurgie', ar:'أمراض مرافقة ← الجراحة'}}), grp('f9sc', F9.savrCon)), h('div', {class:'f9c tavi'}, h('b', {class:'small', text:{fr:'Pathologies associées → TAVI', ar:'أمراض مرافقة ← TAVI'}}), grp('f9tc', F9.taviCon))));
     c.appendChild(q({fr:'Espérance de vie', ar:'أمد الحياة المتوقَّع'}, null, chips('life', v, [['ok', {fr:'> 1 an', ar:'أكثر من سنة'}], ['short', {fr:'< 1 an / comorbidité sévère', ar:'أقل من سنة / مرض مرافق شديد'}]])));
+    var det = h('details', {class:'esd', id:'esd'}, h('summary', {html:'<b>' + E(T({fr:'Risque opératoire : EuroSCORE II', ar:'الخطر الجراحي: EuroSCORE II'})) + '</b> <span class="badge">' + fmt(taviCalc().es, 1) + ' %</span>'}),
+      h('div', {class:'stack', style:{marginTop:'10px'}},
+        q({fr:'Essoufflement (NYHA)', ar:'ضيق التنفس (NYHA)'}, null, chips('nyha', v, [['1', 'I'], ['2', 'II'], ['3', 'III'], ['4', 'IV']])),
+        q({fr:'FEVG', ar:'الكسر القذفي'}, null, chips('lv', v, [['g', '> 50 %'], ['m', '31–50 %'], ['p', '21–30 %'], ['vp', '≤ 20 %']])),
+        q({fr:'Fonction rénale (clairance)', ar:'وظيفة الكلى (التصفية)'}, 'mL/min', chips('renal', v, [['n', '> 85'], ['m', '50–85'], ['s', '< 50'], ['dial', {fr:'Dialyse', ar:'غسيل الكلى'}]])),
+        q({fr:'PAPs', ar:'الضغط الرئوي الانقباضي'}, 'mmHg', chips('pa', v, [['n', '< 31'], ['m', '31–54'], ['s', '≥ 55']])),
+        q({fr:'Antécédents', ar:'السوابق'}, {fr:'plusieurs choix', ar:'عدة اختيارات'}, chips('flags', v, [
+          ['redo', {fr:'Chirurgie cardiaque antérieure', ar:'جراحة قلب سابقة'}], ['art', {fr:'Artériopathie', ar:'اعتلال الشرايين'}], ['lung', {fr:'BPCO', ar:'انسداد رئوي مزمن'}],
+          ['ins', {fr:'Diabète insulinotraité', ar:'سكري معالج بالأنسولين'}], ['mob', {fr:'Mobilité réduite', ar:'حركة محدودة'}], ['mi', {fr:'IDM < 90 jours', ar:'احتشاء منذ أقل من 90 يومًا'}]], true))));
+    det.open = !!st._esOpen; det.addEventListener('toggle', function(){ st._esOpen = det.open; });
+    c.appendChild(det);
   }
 }
 function renderRes(){
@@ -439,23 +496,40 @@ function renderRes(){
     out.appendChild(h('p', {class:'xs muted', id:'src', text:T({fr:'Sources : ', ar:'المصادر: '}) + 'catégories et objectifs : ESC/EAS 2025 (dyslipidémies, mise à jour) ; Globorisk lab, calibration Tunisie (Ueda, Lancet Diabetes Endocrinol 2017) ; SCORE2/SCORE2-OP (Eur Heart J 2021) ; IRC : KDIGO ; réduction relative ≈ 22 % par mmol/L de LDL (CTT 2010) ; effets indésirables : CTT 2022. Estimations arrondies.'}));
   } else {
     var x = taviCalc(), lvE = LV[x.esCat];
+    var LEAN = {
+      tavi:{c:'tavi', t:{fr:'La balance penche nettement vers la TAVI', ar:'يميل الميزان بوضوح نحو TAVI'}},
+      tavi1:{c:'tavi', t:{fr:'Légèrement en faveur de la TAVI : à discuter en Heart Team', ar:'ميل خفيف نحو TAVI: يُناقَش في فريق القلب'}},
+      savr:{c:'savr', t:{fr:'La balance penche nettement vers la chirurgie (RVA)', ar:'يميل الميزان بوضوح نحو الجراحة'}},
+      savr1:{c:'savr', t:{fr:'Légèrement en faveur de la chirurgie : à discuter en Heart Team', ar:'ميل خفيف نحو الجراحة: يُناقَش في فريق القلب'}},
+      eq:{c:'eq', t:{fr:'Équilibre : décision en réunion Heart Team (cardiologue, chirurgien, anesthésiste)', ar:'توازن: يُتّخذ القرار في اجتماع فريق القلب (طبيب القلب والجرّاح وطبيب التخدير)'}},
+      med:{c:'eq', t:{fr:'Espérance de vie < 1 an ou comorbidité sévère : bénéfice improbable de l’intervention, privilégier le confort', ar:'أمد حياة أقل من سنة أو مرض مرافق شديد: فائدة التدخل غير مرجّحة، والأولوية للراحة'}}
+    };
+    var L = LEAN[x.lean];
     var top2 = h('div', {class:'stack', id:'risk'});
-    top2.appendChild(h('span', {class:'eyebrow', text:T({fr:'Mortalité opératoire prédite · EuroSCORE II', ar:'الوفيات الجراحية المتوقَّعة · EuroSCORE II'})}));
-    top2.appendChild(h('div', {class:'bignum'}, h('b', {class:'lv-' + lvE.c, text:fmt(x.es, 1) + ' %'}), h('span', {class:'cat lv-' + lvE.c, text:T(x.esCat === 'low' ? {fr:'Risque faible', ar:'خطر منخفض'} : x.esCat === 'high' ? {fr:'Risque intermédiaire', ar:'خطر متوسط'} : {fr:'Risque élevé', ar:'خطر مرتفع'})})));
+    top2.appendChild(h('span', {class:'eyebrow', text:T({fr:'TAVI ou chirurgie · figure 9 ESC/EACTS 2025', ar:'TAVI أو الجراحة · الشكل 9 من ESC/EACTS 2025'})}));
+    top2.appendChild(h('div', {class:'verdict v-' + L.c, id:'reco', text:L.t}));
+    top2.appendChild(h('div', {html:balanceSvg(x.forS.length, x.forT.length)}));
+    top2.appendChild(h('div', {class:'f9out'},
+      h('div', {class:'f9c savr'}, h('b', {text:T({fr:'Pour la chirurgie', ar:'لصالح الجراحة'}) + ' (' + x.forS.length + ')'}), x.forS.length ? h('ul', null, x.forS.map(function(z){ return h('li', {text:z}); })) : h('p', {class:'small muted', text:'—'})),
+      h('div', {class:'f9c tavi'}, h('b', {text:T({fr:'Pour la TAVI', ar:'لصالح TAVI'}) + ' (' + x.forT.length + ')'}), x.forT.length ? h('ul', null, x.forT.map(function(z){ return h('li', {text:z}); })) : h('p', {class:'small muted', text:'—'}))));
+    top2.appendChild(h('div', {class:'row', style:{gap:'8px'}}, h('span', {class:'small muted', text:'EuroSCORE II'}), h('b', {class:'lv-' + lvE.c, text:fmt(x.es, 1) + ' %'}), h('span', {class:'small lv-' + lvE.c, text:T(x.esCat === 'low' ? {fr:'faible', ar:'منخفض'} : x.esCat === 'high' ? {fr:'intermédiaire', ar:'متوسط'} : {fr:'élevé', ar:'مرتفع'})})));
     top2.appendChild(gauge(x.es, 16, [[4, 'var(--ok)'], [8, 'var(--warn)'], [16, 'var(--crit)']]));
+    if(x.notes.length) top2.appendChild(h('ul', {class:'why small'}, x.notes.map(function(z){ return h('li', {text:z}); })));
+    // Figure 8 : type de valve selon l'âge
+    var vt = valveType(st.t.age), pos = CS.clamp((st.t.age - 20) / 70, 0, 1) * 100;
+    top2.appendChild(h('div', {class:'fig8', id:'fig8'},
+      h('b', {class:'small', text:{fr:'Type de valve selon l’âge (figure 8)', ar:'نوع الصمام حسب السن (الشكل 8)'}}),
+      h('div', {class:'f8bar', dir:'ltr'}, h('span', {class:'f8-ross', text:'Ross'}), h('span', {class:'f8-mech', text:{fr:'Mécanique', ar:'ميكانيكي'}}), h('span', {class:'f8-grey', text:'60–70'}), h('span', {class:'f8-bio', text:{fr:'Bioprothèse', ar:'بيولوجي'}}), h('i', {class:'f8mk', style:{left:'calc(' + pos + '% - 2px)'}})),
+      h('div', {class:'f8lab', dir:'ltr'}, h('span', {style:{left:(40 / 70 * 100) + '%'}, text:'60'}), h('span', {style:{left:(50 / 70 * 100) + '%'}, text:'70'})),
+      h('p', {class:'small', text:vt.t})));
+    top2.appendChild(h('div', {class:'panel small', id:'lifetime'}, h('b', {text:{fr:'Gestion à vie : anticiper la prochaine intervention', ar:'التدبير مدى الحياة: توقّع التدخل القادم'}}),
+      h('ul', {class:'why', style:{marginTop:'6px'}}, [
+        {fr:'RVA puis réintervention : risque d’une chirurgie redux.', ar:'جراحة ثم إعادة تدخل: خطر جراحة ثانية.'},
+        {fr:'Chirurgie après TAVI : risque accru lié à l’explantation de la valve.', ar:'جراحة بعد TAVI: خطر أكبر بسبب نزع الصمام.'},
+        {fr:'Valve-in-valve (TAVI dans une bioprothèse) : risque d’obstruction coronaire, accès coronaire difficile, mismatch.', ar:'صمام داخل صمام: خطر انسداد الشرايين التاجية وصعوبة الوصول إليها وعدم التلاؤم.'}].map(function(z){ return h('li', {text:z}); }))));
     out.appendChild(top2);
-    mb.appendChild(h('span', {class:'small muted', text:'EuroSCORE II'})); mb.appendChild(h('b', {class:'lv-' + lvE.c, text:fmt(x.es, 1) + ' %'}));
-    var fav = Object.keys(x.O).filter(function(k){ return x.O[k].s === 'fav'; })[0];
-    var NM = {tavi:{fr:'TAVI', ar:'TAVI'}, surg:{fr:'Chirurgie (RVA)', ar:'الجراحة'}, med:{fr:'Traitement médical', ar:'العلاج الدوائي'}};
-    if(fav) mb.appendChild(h('span', {class:'lv-ok', text:'→ ' + T(NM[fav])}));
-    var ST = {fav:{fr:'Option privilégiée', ar:'الخيار المفضَّل'}, pos:{fr:'Option possible', ar:'خيار ممكن'}, no:{fr:'Peu adaptée', ar:'غير ملائم'}};
-    var opts = h('div', {class:'opts', id:'reco'});
-    ['tavi', 'surg', 'med'].forEach(function(k){
-      var o = x.O[k];
-      opts.appendChild(h('div', {class:'opt ' + o.s}, h('span', {class:'badge ' + (o.s === 'fav' ? 'ok' : o.s === 'pos' ? 'warn' : ''), text:ST[o.s]}), h('h4', {text:NM[k]}), h('ul', null, o.r.map(function(z){ return h('li', {text:z}); }))));
-    });
-    out.appendChild(opts);
-    out.appendChild(h('p', {class:'xs muted', text:{fr:'Orientation indicative : la décision revient à la Heart Team, avec le patient.', ar:'توجيه إرشادي: القرار لفريق القلب بالتشاور مع المريض.'}}));
+    mb.appendChild(h('span', {class:'small muted', text:'RVA ' + x.forS.length + ' · TAVI ' + x.forT.length})); mb.appendChild(h('b', {class:'lv-' + (L.c === 'tavi' ? 'ok' : L.c === 'savr' ? 'high' : 'warn'), text:T(x.lean.indexOf('tavi') === 0 ? {fr:'→ TAVI', ar:'← TAVI'} : x.lean.indexOf('savr') === 0 ? {fr:'→ Chirurgie', ar:'← الجراحة'} : {fr:'Heart Team', ar:'فريق القلب'})}));
+    out.appendChild(h('p', {class:'xs muted', text:{fr:'Orientation d’après les facteurs de la figure 9 : la décision revient à la Heart Team, avec le patient.', ar:'توجيه حسب عوامل الشكل 9: القرار لفريق القلب بالتشاور مع المريض.'}}));
     // Pictogrammes seulement quand l'essai correspond au profil : PARTNER 1B = inopérable vrai ; PARTNER 3 = bas risque non fragile
     if(!x.life && x.inop && x.fem){
       var T2 = [{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:30.7}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:10.6}, {k:'harm2', l:{fr:'Complication vasculaire majeure', ar:'مضاعفة وعائية كبرى', tn:'مشكل في الشريان'}, n:16}];
@@ -510,7 +584,9 @@ CS.tour.define([
   {el:'#risk', title:{fr:'Le niveau de risque', ar:'مستوى الخطر'}, body:{fr:'Une des <b>5 catégories</b> de la figure ESC/EAS 2025, de faible à extrême, avec <b>Globorisk</b> calibré pour la Tunisie. La liste explique pourquoi ; en dessous, l’<b>objectif de LDL-C</b> et la classe de recommandation.', ar:'إحدى <b>الفئات الخمس</b> في شكل ESC/EAS 2025، من منخفض إلى أقصى، مع <b>Globorisk</b> المعاير لتونس. تشرح القائمة السبب، وتحتها <b>هدف LDL</b> وفئة التوصية.'}},
   {el:'#arrays', title:{fr:'Expliquer au patient', ar:'الشرح للمريض'}, body:{fr:'100 personnes comme lui, avec et sans traitement. Le texte au-dessus est dans la langue choisie : <b>français, arabe ou tunisien</b>.', ar:'مئة شخص يشبهونه، مع العلاج ودونه. النص أعلاه باللغة المختارة: <b>الفرنسية أو العربية أو التونسية</b>.'}},
   {el:'#pmode', title:{fr:'Mode patient et impression', ar:'وضع المريض والطباعة'}, body:{fr:'Le mode patient cache les réglages et agrandit le texte pour tourner l’écran vers lui. « Imprimer » donne une fiche à lui remettre.', ar:'يخفي وضع المريض الإعدادات ويكبّر النص لتدير الشاشة نحوه. وتعطي «طباعة» ورقة تسلّمها له.'}},
-  {el:'#tab-tavi', before:function(){ st.sc = 'tavi'; save(); render(); }, title:{fr:'Rétrécissement aortique', ar:'تضيّق الصمام الأبهري'}, body:{fr:'Même principe : âge, valve, accès fémoral, terrain… L’outil calcule l’<b>EuroSCORE II</b> et indique, avec les raisons, l’option que privilégient les guidelines ESC/EACTS 2025.', ar:'المبدأ نفسه: السن والصمام والمدخل الفخذي والحالة العامة… تحسب الأداة <b>EuroSCORE II</b> وتبيّن مع الأسباب الخيار الذي تفضّله توصيات ESC/EACTS 2025.'}, after:function(){ st.sc = 'statin'; save(); render(); }}
+  {el:'#tab-tavi', before:function(){ st.sc = 'tavi'; save(); render(); }, title:{fr:'TAVI ou chirurgie : la figure 9, en touches', ar:'TAVI أو الجراحة: الشكل 9 باللمس'}, body:{fr:'Les facteurs de la <b>figure 9 ESC/EACTS 2025</b> : à gauche ce qui favorise la chirurgie, à droite la TAVI. Touchez ceux qui sont présents : la <b>balance</b> penche, avec la liste des raisons.', ar:'عوامل <b>الشكل 9 من ESC/EACTS 2025</b>: يسارًا ما يرجّح الجراحة، ويمينًا TAVI. المس الموجود منها فيميل <b>الميزان</b> مع قائمة الأسباب.'}},
+  {el:'#esd', title:{fr:'Le risque opératoire, sans le STS', ar:'الخطر الجراحي دون STS'}, body:{fr:'L’<b>EuroSCORE II</b> se remplit en quelques touches (NYHA, FEVG, rein, PAPs, antécédents) et compte dans la balance s’il dépasse 4 %.', ar:'يُملأ <b>EuroSCORE II</b> ببضع لمسات (NYHA والكسر القذفي والكلى والضغط الرئوي والسوابق) ويُحتسب في الميزان إذا تجاوز 4%.'}},
+  {el:'#fig8', title:{fr:'Quelle valve, selon l’âge', ar:'أي صمام حسب السن'}, body:{fr:'La <b>figure 8</b> : Ross chez le jeune, mécanique avant 60 ans, bioprothèse (chirurgie ou TAVI) après 70 ans ; entre les deux, on décide avec le patient. En dessous : la gestion à vie de la valve.', ar:'<b>الشكل 8</b>: Ross لدى الشاب، صمام ميكانيكي قبل 60 سنة، وصمام بيولوجي (جراحة أو TAVI) بعد 70 سنة؛ وبينهما يُقرَّر مع المريض. وتحته: تدبير الصمام مدى الحياة.'}, after:function(){ st.sc = 'statin'; save(); render(); }}
 ]);
 })();
 </script>
