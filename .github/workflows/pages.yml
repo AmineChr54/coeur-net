@@ -1,7 +1,8 @@
 name: Déployer sur GitHub Pages
+# Déclenchement manuel seulement : la publication se fait par `sh deploy.sh` (branche gh-pages)
+# tant que GitHub Actions est bloqué sur le compte. Pour revenir à ce workflow : remettre « push » et
+# régler Pages sur « GitHub Actions ».
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
