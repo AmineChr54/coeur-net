@@ -75,6 +75,12 @@
 .f8mk{position:absolute;top:-5px;width:4px;height:44px;border-radius:3px;background:var(--fg);box-shadow:0 0 0 3px var(--surface)}
 .f8lab{position:relative;height:14px;font-size:.7rem;color:var(--muted)}
 .f8lab span{position:absolute;transform:translateX(-50%)}
+/* Diabète : carte à part, sous les facteurs de risque */
+.dmcard{border:2px dashed var(--line-strong);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:12px}
+.dmcard.on{border-style:solid;border-color:#d9822b;background:color-mix(in srgb,#fde3c2 35%,var(--surface))}
+:root[data-theme="dark"] .dmcard.on{background:#2a2014}
+.dmhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.dmeff{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--surface)}
 /* Grille KDIGO */
 .kdigo{display:grid;grid-template-columns:64px repeat(3,minmax(0,1fr));gap:4px;max-width:420px}
 .kh{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);line-height:1.15;text-align:center}
@@ -156,6 +162,8 @@ var st = CS.store.get('decision', null) || {
 };
 st.s = Object.assign({score:'globo', sex:pt.sex || 'm', age:pt.age || 58, rf:['hta'], sbp:150, tc:5.5, hdl:1.15, dm:'0', dmtype:'2', dmdur:'lt10', dmtod:'0', agediab:null, a1c:7.5, egfr:75,
   ascvd:[], other:[], ckdG:null, ckdA:null, region:'high', inten:'high'}, st.s || {});
+st.t = Object.assign({age:pt.age || 76, sex:pt.sex || 'm', renal:'m', nyha:'3', lv:'g', pa:'n', flags:[], life:'ok'}, st.t || {});
+if(!st.sc) st.sc = 'statin'; if(!st.lang) st.lang = CS.lang();
 (function migrateTavi(t){ // ancien profil TAVI → facteurs de la figure 9
   if(t.f9) return;
   var f9 = [], fl = t.flags || [];
@@ -399,19 +407,39 @@ function renderProfile(){
     c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', s, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
     c.appendChild(q({fr:'Âge', ar:'السن'}, s.score === 'globo' ? '40–80' : null, ageCtl(s, 18, 95)));
     c.appendChild(q({fr:'Facteurs de risque', ar:'عوامل الخطر'}, T({fr:'âge > 55 H / > 65 F compté seul · total : ', ar:'السن (> 55 رجل / > 65 امرأة) يُحتسب تلقائيًا · المجموع: '}) + nRF(s), chips('rf', s, RF, true)));
-    c.appendChild(q({fr:'Pression artérielle systolique', ar:'الضغط الانقباضي'}, 'mmHg', h('div', {class:'stack', style:{gap:'8px'}}, chips('sbp', s, [[110, '< 120'], [130, '120–139'], [150, '140–159'], [170, '160–179'], [190, '≥ 180']], false, function(){ s.sbpX = false; save(); render(); }), exact('sbp', s, 'mmHg', function(v){ return v; }, function(v){ return v; }))));
-    var cu = CS.units() === 'si' ? 'mmol/L' : 'mg/dL';
-    c.appendChild(q({fr:'Cholestérol total', ar:'الكوليسترول الكلي'}, cu, h('div', {class:'stack', style:{gap:'8px'}}, chips('tc', s, [[3.5, cholLabel(null, 4)], [4.5, cholLabel(4, 4.9)], [5.5, cholLabel(5, 5.9)], [6.5, cholLabel(6, 6.9)], [7.5, cholLabel(7, 7.9)], [8.5, cholLabel(8, null)]], false, function(){ s.tcX = false; if(+s.tc >= 8){ s.other = s.other || []; if(s.other.indexOf('single') < 0) s.other.push('single'); } save(); render(); }), exact('tc', s, cu, function(v){ return CS.units() === 'si' ? v : v / 38.67; }, function(v){ return CS.units() === 'si' ? v : v * 38.67; }))));
-    if(s.score === 'score2') c.appendChild(q({fr:'HDL-cholestérol', ar:'الكوليسترول الجيد HDL'}, cu, chips('hdl', s, [[0.9, cholLabel(null, 1.0)], [1.15, cholLabel(1.0, 1.29)], [1.45, cholLabel(1.3, 1.59)], [1.8, cholLabel(1.6, null)]])));
-    c.appendChild(q({fr:'Diabète', ar:'السكري'}, null, chips('dm', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])));
-    subHost = h('div'); c.appendChild(subHost);
+    // Diabète : facteur de risque « à part » (Anis) — le risque dépend de son ancienneté et du nombre de facteurs associés
+    var dmCard = h('div', {class:'dmcard' + (s.dm === '1' ? ' on' : ''), id:'q-dmcard'});
+    dmCard.appendChild(h('div', {class:'dmhead'},
+      h('div', null, h('b', {text:{fr:'Diabète', ar:'السكري'}}), h('div', {class:'xs muted', text:{fr:'Facteur à part : le risque dépend de son ancienneté et des facteurs associés', ar:'عامل خاص: يتوقّف الخطر على مدّته وعلى العوامل المرافقة'}})),
+      chips('dm', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])));
+    subHost = h('div'); dmCard.appendChild(subHost);
+    c.appendChild(dmCard);
     renderSub = function(){
       subHost.innerHTML = '';
       if(s.dm !== '1') return;
+      var yNow = new Date().getFullYear();
+      var yr = h('input', {class:'inp', inputmode:'numeric', id:'dmyear', placeholder:{fr:'ex. 2015', ar:'مثال 2015'}, value:s.dmyear || '', style:{width:'110px'}});
+      yr.addEventListener('change', function(){
+        var y = Math.round(CS.num(yr.value));
+        if(isNaN(y) || y < 1930 || y > yNow){ s.dmyear = null; save(); render(); return; }
+        var dur = yNow - y; s.dmyear = y;
+        s.dmdur = dur < 10 ? 'lt10' : dur <= 20 ? '10to20' : 'gt20';
+        s.agediab = Math.max(1, s.age - dur);
+        save(); render();
+      });
+      var dur = s.dmyear ? yNow - s.dmyear : null;
+      // Ce que le diabète entraîne, d'après la figure ESC/EAS 2025
+      var n = nRF(s), t1 = s.dmtype === '1', eff;
+      if(s.dmtod === '1' || n >= 3 || (t1 && s.dmdur === 'gt20')) eff = ['vhigh', {fr:'Atteinte d’organe, ≥ 3 facteurs associés ou DT1 > 20 ans → très élevé', ar:'إصابة عضوية أو 3 عوامل فأكثر أو سكري نوع 1 > 20 سنة ← مرتفع جدًا'}];
+      else if(s.dmdur !== 'lt10' || n >= 1) eff = ['high', {fr:'≥ 10 ans d’évolution ou ≥ 1 facteur associé → élevé', ar:'10 سنوات فأكثر أو عامل مرافق واحد على الأقل ← مرتفع'}];
+      else if((t1 && s.age < 35) || (!t1 && s.age < 50)) eff = ['mod', {fr:'Sujet jeune, < 10 ans, sans autre facteur → modéré', ar:'شاب، أقل من 10 سنوات، دون عامل آخر ← متوسط'}];
+      else eff = [null, {fr:'Sans autre critère : le score décide', ar:'دون معيار آخر: المقياس هو الذي يحدّد'}];
       var box = h('div', {class:'sub'},
         q({fr:'Type', ar:'النوع'}, null, chips('dmtype', s, [['2', {fr:'Type 2', ar:'النوع 2'}], ['1', {fr:'Type 1', ar:'النوع 1'}]])),
-        q({fr:'Ancienneté du diabète', ar:'مدة السكري'}, null, chips('dmdur', s, [['lt10', {fr:'< 10 ans', ar:'< 10 سنوات'}], ['10to20', {fr:'10–20 ans', ar:'10–20 سنة'}], ['gt20', {fr:'> 20 ans', ar:'> 20 سنة'}]])),
-        q({fr:'Atteinte d’organe cible', ar:'إصابة عضو مستهدف'}, {fr:'rein, rétine, nerf, microalbuminurie…', ar:'الكلى، الشبكية، الأعصاب…'}, chips('dmtod', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])));
+        q({fr:'Année du diagnostic', ar:'سنة التشخيص'}, dur != null ? T({fr:'→ ', ar:'← '}) + dur + T({fr:' ans d’évolution', ar:' سنة من المرض'}) : null, h('div', {class:'stack', style:{gap:'8px'}}, yr,
+          chips('dmdur', s, [['lt10', {fr:'< 10 ans', ar:'< 10 سنوات'}], ['10to20', {fr:'10–20 ans', ar:'10–20 سنة'}], ['gt20', {fr:'> 20 ans', ar:'> 20 سنة'}]], false, function(){ s.dmyear = null; save(); render(); }))),
+        q({fr:'Atteinte d’organe cible', ar:'إصابة عضو مستهدف'}, {fr:'rein, rétine, nerf, microalbuminurie…', ar:'الكلى، الشبكية، الأعصاب…'}, chips('dmtod', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])),
+        h('div', {class:'dmeff', id:'dmeff'}, h('span', {class:'small', text:T({fr:'Facteurs associés : ', ar:'العوامل المرافقة: '}) + n}), eff[0] ? h('span', {class:'badge lvb-' + eff[0], text:LV[eff[0]]}) : null, h('span', {class:'small', text:eff[1]})));
       if(s.score === 'score2' && s.age < 70){
         if(!s.agediab) s.agediab = Math.max(18, s.age - 5);
         var ad = h('input', {class:'inp', inputmode:'numeric', id:'agediab', value:s.agediab, style:{width:'90px'}});
@@ -424,6 +452,10 @@ function renderProfile(){
       subHost.appendChild(box);
     };
     renderSub();
+    c.appendChild(q({fr:'Pression artérielle systolique', ar:'الضغط الانقباضي'}, 'mmHg', h('div', {class:'stack', style:{gap:'8px'}}, chips('sbp', s, [[110, '< 120'], [130, '120–139'], [150, '140–159'], [170, '160–179'], [190, '≥ 180']], false, function(){ s.sbpX = false; save(); render(); }), exact('sbp', s, 'mmHg', function(v){ return v; }, function(v){ return v; }))));
+    var cu = CS.units() === 'si' ? 'mmol/L' : 'mg/dL';
+    c.appendChild(q({fr:'Cholestérol total', ar:'الكوليسترول الكلي'}, cu, h('div', {class:'stack', style:{gap:'8px'}}, chips('tc', s, [[3.5, cholLabel(null, 4)], [4.5, cholLabel(4, 4.9)], [5.5, cholLabel(5, 5.9)], [6.5, cholLabel(6, 6.9)], [7.5, cholLabel(7, 7.9)], [8.5, cholLabel(8, null)]], false, function(){ s.tcX = false; if(+s.tc >= 8){ s.other = s.other || []; if(s.other.indexOf('single') < 0) s.other.push('single'); } save(); render(); }), exact('tc', s, cu, function(v){ return CS.units() === 'si' ? v : v / 38.67; }, function(v){ return CS.units() === 'si' ? v : v * 38.67; }))));
+    if(s.score === 'score2') c.appendChild(q({fr:'HDL-cholestérol', ar:'الكوليسترول الجيد HDL'}, cu, chips('hdl', s, [[0.9, cholLabel(null, 1.0)], [1.15, cholLabel(1.0, 1.29)], [1.45, cholLabel(1.3, 1.59)], [1.8, cholLabel(1.6, null)]])));
     c.appendChild(q({fr:'Maladie cardiovasculaire', ar:'مرض قلبي وعائي'}, {fr:'prévention secondaire', ar:'وقاية ثانوية'}, chips('ascvd', s, [['ascvd', {fr:'Maladie CV avérée (IDM, AVC, AOMI, plaque)', ar:'مرض قلبي وعائي مؤكَّد'}], ['recur', {fr:'Récidive sous statine maximale', ar:'انتكاس رغم أقصى ستاتين'}], ['poly', {fr:'Atteinte coronaire + périphérique', ar:'إصابة تاجية وطرفية'}]], true, function(){ var a = s.ascvd || []; if((a.indexOf('recur') >= 0 || a.indexOf('poly') >= 0) && a.indexOf('ascvd') < 0) a.push('ascvd'); save(); render(); })));
     c.appendChild(q({fr:'Autres situations', ar:'حالات أخرى'}, null, chips('other', s, [['fh', {fr:'Hypercholestérolémie familiale', ar:'فرط كوليسترول عائلي'}], ['single', {fr:'CT > 8 · LDL > 4,9 mmol/L · PA ≥ 180/110', ar:'كوليسترول > 8 · LDL > 4,9 · ضغط ≥ 180/110'}]], true)));
     // Grille KDIGO
