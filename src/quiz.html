@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Quiz de cardiologie · Cœur Net</title>
+<!-- @include _base.css -->
+<style>
+:root{--gold:#f0a73c;--gold2:#e0703c;--xp:#7a4bc4}
+.qz{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+@media (max-width:1000px){.qz{grid-template-columns:minmax(0,1fr)}}
+/* HUD */
+.hud{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:16px;background:linear-gradient(135deg,#2a1f4d,#5b2a6e 55%,#a2304a);color:#fff;box-shadow:var(--shadow-md);position:sticky;top:calc(62px + env(safe-area-inset-top,0px));z-index:12}
+.hud .lv{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:grid;place-items:center;font-weight:800;font-size:1.25rem;box-shadow:0 4px 12px rgba(240,167,60,.4);flex:none}
+.hud .mid{flex:1;min-width:160px}
+.hud .mid b{font-size:.95rem}
+.hud .mid small{opacity:.75;font-size:.76rem}
+.hud .bar{height:8px;border-radius:8px;background:rgba(255,255,255,.18);overflow:hidden;margin-top:5px}
+.hud .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#ffd166);border-radius:8px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.hud .pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border-radius:999px;padding:6px 11px;font-weight:700;font-size:.86rem;white-space:nowrap}
+.hud .pill svg{width:16px;height:16px}
+.hud .combo.hot{background:linear-gradient(90deg,#ff7a45,#ff4d6d);animation:pulse 1s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+@media (max-width:620px){.hud{gap:10px;padding:10px 12px}.hud .lv{width:42px;height:42px;font-size:1.1rem}.hud .pill{padding:5px 9px;font-size:.8rem}}
+/* Carte question */
+.qcard{display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
+.qmeta{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stars{color:var(--gold);letter-spacing:1px;font-size:.95rem}
+.stars i{color:var(--line-strong);font-style:normal}
+.qtext{font-family:var(--font-display);font-size:1.18rem;font-weight:600;line-height:1.45}
+.timer{position:relative;height:10px;border-radius:10px;background:var(--surface-3);overflow:hidden}
+.timer .crit{position:absolute;inset-block:0;inset-inline-start:0;background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--gold) 45%,transparent) 0 6px,color-mix(in srgb,var(--gold) 25%,transparent) 6px 12px)}
+.timer .fill{position:absolute;inset-block:0;inset-inline-start:0;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:10px;width:0}
+.timer.over .fill{background:var(--accent)}
+.tlab{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted);margin-top:4px}
+.tlab b{color:var(--gold2)}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:640px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{border:1.5px solid var(--line-strong);background:var(--surface);border-radius:12px;padding:13px 14px;cursor:pointer;text-align:start;font-size:.96rem;display:flex;gap:10px;align-items:flex-start;min-height:56px;transition:transform .1s,border-color .15s,background .15s}
+.opt:hover:not(:disabled){border-color:var(--accent);background:var(--accent-soft)}
+.opt:active:not(:disabled){transform:scale(.98)}
+.opt .k{width:26px;height:26px;border-radius:7px;background:var(--surface-2);display:grid;place-items:center;font-weight:700;font-size:.8rem;flex:none}
+.opt.good{border-color:var(--ok);background:var(--ok-soft)} .opt.good .k{background:var(--ok);color:#fff}
+.opt.bad{border-color:var(--crit);background:var(--crit-soft);animation:shake .35s} .opt.bad .k{background:var(--crit);color:#fff}
+@keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+.opt:disabled{cursor:default}
+.ecgbox{overflow-x:auto;border-radius:var(--r);border:1px solid var(--line);-webkit-overflow-scrolling:touch}
+.ecgbox canvas{display:block}
+.ecghint{font-size:.74rem;color:var(--muted)}
+.vig{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.vig div{display:grid;grid-template-columns:minmax(120px,200px) minmax(0,1fr);gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:.92rem}
+.vig div:last-child{border-bottom:0}
+.vig span{color:var(--muted)}
+.gain{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700}
+.gain .x{font-size:1.4rem;color:var(--xp)}
+.gain .tag{font-size:.74rem;padding:3px 9px;border-radius:999px;background:var(--surface-2)}
+.gain .tag.crit{background:linear-gradient(90deg,var(--gold),var(--gold2));color:#fff}
+.grades{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.grades button{border:1px solid var(--line-strong);background:var(--surface);border-radius:var(--r-sm);padding:9px 6px;cursor:pointer;font-weight:600;font-size:.86rem;display:flex;flex-direction:column;align-items:center;gap:2px}
+.grades button small{font-weight:400;color:var(--muted);font-size:.72rem}
+.grades button:disabled{opacity:.4;cursor:not-allowed}
+/* Effets */
+.fx{position:fixed;inset:0;pointer-events:none;z-index:150;display:grid;place-items:center}
+.burst{font-family:var(--font-display);font-weight:900;font-size:clamp(2.2rem,8vw,4.2rem);background:linear-gradient(90deg,#ffd166,var(--gold2),#ff4d6d);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 18px rgba(224,112,60,.45));animation:burst 1.1s cubic-bezier(.2,.8,.2,1) forwards;text-align:center;line-height:1}
+.burst small{display:block;font-size:.4em;letter-spacing:.1em}
+@keyframes burst{0%{transform:scale(.3) rotate(-8deg);opacity:0}25%{transform:scale(1.15) rotate(2deg);opacity:1}60%{transform:scale(1)}100%{transform:scale(1.05) translateY(-30px);opacity:0}}
+.xpfly{position:fixed;z-index:151;font-weight:800;color:var(--xp);font-size:1.3rem;pointer-events:none;animation:fly 1s ease-out forwards}
+@keyframes fly{to{transform:translateY(-70px);opacity:0}}
+.spark{position:fixed;z-index:149;width:8px;height:8px;border-radius:2px;pointer-events:none;animation:spark 1s ease-out forwards}
+@keyframes spark{to{transform:translate(var(--dx),var(--dy)) rotate(540deg);opacity:0}}
+/* Barre latérale */
+.side h3{margin-bottom:8px}
+.badges{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bdg{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;font-size:.66rem;color:var(--muted);line-height:1.2;cursor:help}
+.bdg .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:1.35rem;background:var(--surface-2);filter:grayscale(1);opacity:.45}
+.bdg.on{color:var(--fg)}
+.bdg.on .ic{filter:none;opacity:1;background:linear-gradient(135deg,#fff3d6,#ffd8b0);box-shadow:0 3px 10px rgba(224,112,60,.25)}
+:root[data-theme="dark"] .bdg.on .ic{background:linear-gradient(135deg,#4a3517,#5a2d1c)}
+.stat{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:.9rem}
+.stat:last-child{border-bottom:0}
+.stat b{font-variant-numeric:tabular-nums}
+.catbar{display:flex;flex-direction:column;gap:8px}
+.catbar div{display:grid;grid-template-columns:90px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:.82rem}
+.catbar i{display:block;height:8px;border-radius:8px;background:var(--surface-3);overflow:hidden}
+.catbar i b{display:block;height:100%;background:var(--ok)}
+/* Fin de session */
+.done{text-align:center;padding:18px 6px;display:flex;flex-direction:column;gap:14px;align-items:center}
+.done .trophy{font-size:3.4rem;animation:burst2 .8s cubic-bezier(.2,.8,.2,1)}
+@keyframes burst2{from{transform:scale(.2) rotate(-20deg)}}
+.done h2{font-size:1.6rem}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:100%}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface-2);border-radius:12px;padding:12px}
+.kpi b{display:block;font-size:1.5rem;font-family:var(--font-display)}
+.kpi span{font-size:.76rem;color:var(--muted)}
+.lvup{text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+.lvup .big{width:96px;height:96px;border-radius:28px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:grid;place-items:center;font-size:2.6rem;font-weight:900;color:#fff;box-shadow:0 10px 30px rgba(224,112,60,.45);animation:burst2 .7s cubic-bezier(.2,.8,.2,1)}
+.modechips{display:flex;gap:8px;flex-wrap:wrap}
+</style>
+<!-- @include _base.js -->
+<!-- @include _tour.js -->
+<!-- @include _ecg.js -->
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap stack">
+  <div class="hud" id="hud"></div>
+  <div class="qz">
+    <section class="card qcard" id="q"></section>
+    <aside class="stack side">
+      <div class="card stack" id="setup"></div>
+      <div class="card" id="badges-card"><h3 id="bt"></h3><div class="badges" id="badges"></div></div>
+      <div class="card" id="stats-card"><h3 id="st-t"></h3><div id="stats"></div></div>
+    </aside>
+  </div>
+</main>
+<footer id="cs-foot"></footer>
+<script>
+(function(){
+'use strict';
+var h = CS.h, fmt = CS.fmt, T = CS.t, E = CS.esc;
+/* ---------- Banque de cas (d = difficulté 1 à 3) ---------- */
+function Ec(id, d, ecg, q, o, a, x){ return {id:id, d:d, cat:'ECG', ecg:ecg, q:q, o:o, a:a, x:x}; }
+function Vc(id, d, vig, q, o, a, x){ return {id:id, d:d, cat:'Écho', vig:vig, q:q, o:o, a:a, x:x}; }
+function Kc(id, d, vig, q, o, a, x){ return {id:id, d:d, cat:'Clinique', vig:vig, q:q, o:o, a:a, x:x}; }
+var CARDS = [
+ Ec('e1',1,'af','Femme de 72 ans, palpitations depuis 2 jours. Diagnostic ?',['Fibrillation atriale','Flutter atrial','Tachycardie sinusale','Extrasystoles atriales'],0,'Rythme irrégulièrement irrégulier, absence d’onde P, trémulations de la ligne de base. Étape suivante : CHA₂DS₂-VA et anticoagulation.'),
+ Ec('e2',2,'flutter','Homme de 65 ans, FC régulière à 150/min. Diagnostic ?',['Tachycardie sinusale','Flutter atrial 2:1','TRIN','Fibrillation atriale'],1,'Une tachycardie régulière à 150/min doit faire chercher un flutter 2:1 : ondes F en dents de scie négatives en D2, D3, aVF, positives en V1. Les manœuvres vagales ou l’adénosine démasquent les ondes F.'),
+ Ec('e16',3,'flutter41','Homme de 70 ans, palpitations, FC 75/min. Traitement définitif au meilleur taux de succès ?',['Amiodarone au long cours','Ablation de l’isthme cavo-tricuspide','Digoxine','Cardioversion seule'],1,'Flutter typique (dents de scie négatives en inférieur, positives en V1, conduction 4:1). L’ablation de l’isthme cavo-tricuspide est curative dans plus de 90 % des cas. Anticoagulation selon le CHA₂DS₂-VA, comme pour la FA.'),
+ Ec('e3',1,'stemi-ant','Douleur thoracique constrictive depuis 1 heure. Artère probablement occluse ?',['Coronaire droite','Circonflexe','Interventriculaire antérieure','Tronc commun'],2,'Sus-décalage de V1 à V4 avec miroir inférieur : STEMI antérieur par occlusion de l’IVA. ICP primaire si délai ≤ 120 min.'),
+ Ec('e4',2,'stemi-inf','Douleur thoracique, PA 92/60. Quelle dérivation enregistrer en priorité ?',['V7–V9','V3R–V4R','aVR','DII long'],1,'STEMI inférieur avec D3 > D2 : coronaire droite probable. V3R–V4R pour rechercher une extension au VD.'),
+ Ec('e22',2,'stemi-inf','Même tableau : sus-décalage de 1,5 mm en V4R. Que faut-il éviter ?',['Remplissage prudent','Dérivés nitrés','Aspirine','Coronarographie en urgence'],1,'Extension au VD : précharge-dépendant. Éviter dérivés nitrés et diurétiques ; remplissage prudent si hypotension ; ICP primaire.'),
+ Ec('e5',2,'pericarditis','Homme de 28 ans, douleur thoracique positionnelle après une virose. Diagnostic ?',['STEMI antérieur','Péricardite aiguë','Repolarisation précoce','Syndrome de Brugada'],1,'Sus-décalage ST diffus concave sans miroir (sauf aVR) et sous-décalage de PR. Aspirine ou AINS + colchicine 3 mois.'),
+ Ec('e6',1,'lbbb','QRS à 150 ms. Quel aspect en V1 ?',['rsR′','QS large','R exclusif','Onde delta'],1,'Bloc de branche gauche complet : QS en V1, R large crocheté en V6.'),
+ Ec('e25',3,'lbbb','Douleur thoracique chez ce patient en BBG. Quel signe ferait retenir un infarctus aigu ?',['QRS > 140 ms','Sus-décalage ST concordant ≥ 1 mm','Ondes T négatives en V5–V6','Axe gauche'],1,'Un sus-décalage ST concordant au QRS ≥ 1 mm (5 points de Sgarbossa) est très spécifique d’un infarctus aigu : stratégie STEMI.'),
+ Ec('e7',1,'rbbb','Patient asymptomatique, découverte fortuite. Diagnostic ?',['Bloc de branche droit complet','Bloc de branche gauche','Pré-excitation','Hémibloc antérieur gauche'],0,'rsR′ en V1, S large en D1 et V6, QRS ≥ 120 ms : BBD complet. Isolé chez l’asymptomatique, pas d’exploration systématique.'),
+ Ec('e8',1,'avb3','Homme de 79 ans, syncopes. Diagnostic ?',['BAV 2 Mobitz I','BAV complet','Bradycardie sinusale','FA lente'],1,'Ondes P régulières dissociées de QRS larges et lents : BAV complet. Stimulation temporaire si mal toléré, puis stimulateur définitif.'),
+ Ec('e9',1,'mobitz1','Jeune sportif asymptomatique, la nuit. Diagnostic ?',['BAV 2 Mobitz I (Wenckebach)','BAV 2 Mobitz II','BAV 1','BAV complet'],0,'Allongement progressif du PR jusqu’à une onde P bloquée : Mobitz I, généralement nodal et bénin (tonus vagal).'),
+ Ec('e15',3,'mobitz2','Malaises à l’effort. Conduite à tenir ?',['Surveillance simple','Stimulateur cardiaque','Bêtabloquant','Holter dans 1 an'],1,'BAV 2 Mobitz II sur bloc de branche droit : bloc infranodal à risque de BAV complet. Indication de stimulation (classe I).'),
+ Ec('e26',3,'mobitz2','Ce patient prend un bêtabloquant. Ce trouble va-t-il régresser à l’arrêt ?',['Oui, toujours','Probablement pas : bloc infranodal','Oui, sous atropine','Seulement après 6 mois'],1,'Mobitz II sur QRS large : atteinte infranodale, peu sensible aux freinateurs du nœud AV. Stimulateur indiqué.'),
+ Ec('e10',2,'wpw','Palpitations récidivantes chez un homme de 24 ans. Anomalie principale ?',['PR court et onde delta','QT long','Bloc de branche droit','Hypertrophie VG'],0,'Pré-excitation (WPW) : PR < 120 ms, onde delta, QRS élargi. Si symptomatique : ablation de la voie accessoire.'),
+ Ec('e19',3,'wpw','Il fait une FA rapide à QRS larges et irréguliers. Médicament à éviter absolument ?',['Flécaïnide','Vérapamil','Cardioversion électrique','Ibutilide'],1,'FA pré-excitée : vérapamil, diltiazem, digoxine, bêtabloquants IV et adénosine peuvent accélérer la conduction par la voie accessoire et provoquer une FV. Choc si instable.'),
+ Ec('e11',2,'longqt','Patiente sous citalopram et hydroxyzine. Anomalie ?',['Hyperkaliémie','QT long','Bloc AV','Ischémie sous-épicardique'],1,'QTc ≈ 560 ms : arrêter les médicaments allongeant le QT, corriger K⁺ et Mg²⁺. Risque de torsades de pointes.'),
+ Ec('e21',2,'longqt','Elle fait des torsades de pointes récidivantes. Premier traitement ?',['Amiodarone IV','Sulfate de magnésium IV','Flécaïnide','Sotalol'],1,'Torsades sur QT long acquis : sulfate de magnésium 2 g IV, kaliémie > 4,5 mmol/L, arrêt des médicaments en cause, accélération de la fréquence si besoin. L’amiodarone allonge le QT.'),
+ Ec('e12',1,'hyperk','Insuffisant rénal sous spironolactone et IEC. Diagnostic évoqué ?',['Hypokaliémie','Hyperkaliémie','Hypercalcémie','Péricardite'],1,'Ondes T amples, pointues, symétriques : hyperkaliémie.'),
+ Ec('e24',2,'hyperk','K⁺ = 7,2 mmol/L avec cet ECG. Quel traitement protège le cœur le plus vite ?',['Résine échangeuse d’ions','Furosémide','Gluconate de calcium IV','Bicarbonate oral'],2,'Le calcium IV stabilise la membrane en 1 à 3 minutes, sans baisser la kaliémie. Puis insuline-glucose et salbutamol, puis élimination (diurétiques, chélateurs, dialyse).'),
+ Ec('e13',2,'vt','Homme de 66 ans, ancien infarctus, palpitations, PA 105/70. Diagnostic ?',['TSV avec aberration','Tachycardie ventriculaire','Flutter 1:1','Tachycardie sinusale'],1,'Tachycardie régulière à QRS larges sur cardiopathie ischémique : TV jusqu’à preuve du contraire.'),
+ Ec('e18',2,'vt','Tachycardie à QRS larges, patient conscient, PA 70/40, marbrures. Geste immédiat ?',['Amiodarone IV sur 20 min','Adénosine IV','Cardioversion électrique synchronisée','Lidocaïne IV'],2,'TV mal tolérée : cardioversion synchronisée sous sédation, sans attendre.'),
+ Ec('e14',2,'lvh','Hypertendu de 60 ans. Signe principal ?',['Sokolow-Lyon > 35 mm avec surcharge','Onde Q de nécrose','Bas voltage','Onde epsilon'],0,'SV1 + RV5 > 35 mm et sous-décalage ST avec T négatives en latéral : HVG avec surcharge.'),
+ Ec('e17',2,'svt','Femme de 32 ans, palpitations à début et fin brutaux, PA 118/76. Manœuvre vagale modifiée inefficace. Ensuite ?',['Amiodarone IV','Adénosine IV en bolus rapide','Choc électrique','Digoxine IV'],1,'TRIN probable : QRS fins réguliers vers 180/min. Adénosine 6 mg puis 12 mg en bolus rapide. Patiente stable : pas de choc.'),
+ Ec('e20',3,'pvc','Holter : ESV monomorphes à 22 % des battements, FEVG 42 %, pas d’autre cause. Diagnostic à évoquer ?',['Cardiomyopathie induite par les ESV','Myocardite certaine','Cardiopathie ischémique certaine','Dysplasie arythmogène certaine'],0,'Charge en ESV > 10–15 % avec baisse de FEVG : cardiomyopathie rythmique possible, réversible après ablation. Toujours éliminer une cardiopathie structurelle (IRM).'),
+ Ec('e23',1,'avb1','Homme de 45 ans asymptomatique, PR à 300 ms isolé. Conduite ?',['Stimulateur cardiaque','Surveillance, pas de traitement','Atropine','Holter implantable'],1,'BAV 1 isolé et asymptomatique : pas d’indication de stimulation. Revoir les médicaments freinateurs.'),
+ Ec('e27',1,'brady','Coureur de fond de 25 ans, FC 46/min, asymptomatique. Conduite ?',['Stimulateur','Arrêt du sport','Rassurer : bradycardie physiologique','Atropine'],2,'Bradycardie sinusale de l’athlète asymptomatique : physiologique (tonus vagal).'),
+ Vc('v1',1,[['Vmax aortique','4,3 m/s'],['Gradient moyen','46 mmHg'],['Surface valvulaire','0,8 cm²'],['FEVG','60 %'],['Symptômes','Dyspnée d’effort']],'Conclusion et conduite ?',['RA modéré, surveillance','RA serré symptomatique : intervention','RA bas débit, écho dobutamine','Insuffisance aortique'],1,'Les 3 critères de sévérité sont réunis ; symptomatique = indication d’intervention. TAVI ou chirurgie selon l’âge et la Heart Team.'),
+ Vc('v2',3,[['Surface valvulaire','0,8 cm²'],['Gradient moyen','28 mmHg'],['Vmax','3,4 m/s'],['FEVG','30 %']],'Examen suivant ?',['Coronarographie seule','Écho de stress à la dobutamine','IRM cardiaque','Surveillance à 1 an'],1,'RA bas débit bas gradient à FEVG basse : la dobutamine distingue un RA vrai d’un pseudo-RA et recherche une réserve contractile.'),
+ Vc('v9',3,[['Surface valvulaire','0,9 cm²'],['Gradient moyen','32 mmHg'],['Vmax','3,7 m/s'],['FEVG','62 %'],['VES indexé','30 mL/m²'],['Score calcique (scanner)','2400 UA, homme']],'Diagnostic ?',['RA modéré','RA serré à bas débit paradoxal','RA serré à haut gradient','Pseudo-RA'],1,'SVA < 1 cm² mais gradient < 40 mmHg, FEVG conservée et VES indexé < 35 mL/m² : bas débit paradoxal. Un score calcique ≥ 2000 UA chez l’homme (≥ 1200 chez la femme) confirme un RA serré.'),
+ Vc('v3',2,[['E/A','1,4'],['E/e′ moyen','16'],['VOGi','40 mL/m²'],['Vmax IT','3,1 m/s'],['FEVG','40 %']],'Fonction diastolique ?',['Normale','Grade I','Grade II','Grade III'],2,'E/A entre 0,8 et 2 avec 3 critères sur 3 positifs (E/e′ > 14, IT > 2,8 m/s, VOGi > 34 mL/m²) : grade II, pressions de remplissage élevées.'),
+ Vc('v11',2,[['E/A','2,6'],['TDE','140 ms'],['E/e′ moyen','18'],['VOGi','48 mL/m²'],['FEVG','35 %']],'Grade de dysfonction diastolique (ASE/EACVI 2016) ?',['Grade I','Grade II','Grade III','Indéterminé'],2,'Avec une FEVG altérée, E/A ≥ 2 signe un profil restrictif : grade III, pressions de remplissage élevées.'),
+ Vc('v4',3,[['Mécanisme','Prolapsus de P2'],['SOR (PISA)','0,45 cm²'],['Volume régurgité','65 mL'],['FEVG','58 %'],['DTSVG','42 mm']],'Conduite chez ce patient asymptomatique ?',['Surveillance annuelle','Chirurgie (plastie mitrale)','TEER d’emblée','Diurétiques'],1,'IM primaire sévère avec FEVG ≤ 60 % et DTSVG ≥ 40 mm : chirurgie même sans symptôme, plastie préférée.'),
+ Vc('v10',3,[['IA','Reflux holodiastolique dans l’aorte descendante'],['Vena contracta','7 mm'],['DTSVG','52 mm'],['FEVG','55 %'],['Symptômes','Aucun']],'Conduite ?',['Surveillance à 1 an','Chirurgie valvulaire aortique','IEC seul','TAVI'],1,'IA sévère asymptomatique avec DTSVG > 50 mm : chirurgie recommandée.'),
+ Vc('v5',2,[['Épanchement','Circonférentiel, 22 mm'],['OD','Collapsus télédiastolique'],['VD','Collapsus diastolique'],['VCI','24 mm, non compliante'],['PA','85/60 mmHg']],'Diagnostic et geste ?',['Péricardite simple, AINS','Tamponnade : péricardiocentèse urgente','Insuffisance cardiaque, diurétiques','EP, thrombolyse'],1,'Collapsus des cavités droites + VCI dilatée + hypotension : tamponnade. Drainage en urgence ; diurétiques contre-indiqués.'),
+ Vc('v6',2,[['SIV','22 mm'],['Paroi postérieure','11 mm'],['SAM mitral','Présent'],['Gradient CCVG','70 mmHg (Valsalva)'],['Âge','34 ans']],'Diagnostic ?',['Cœur d’athlète','CMH obstructive','Amylose cardiaque','RA serré'],1,'Hypertrophie septale asymétrique ≥ 15 mm, SAM et gradient ≥ 30 mmHg : CMH obstructive.'),
+ Vc('v7',3,[['Épaisseur VG','16 mm, concentrique'],['ECG','Microvoltage'],['SLG','−11 % avec épargne apicale'],['Contexte','76 ans, canal carpien bilatéral']],'Diagnostic à évoquer ?',['Cardiopathie hypertensive','Amylose cardiaque','CMH','Maladie de Fabry'],1,'HVG + bas voltage + épargne apicale + canal carpien : amylose (souvent à transthyrétine). Scintigraphie osseuse et recherche de chaînes légères.'),
+ Vc('v8',2,[['VD','Dilaté, VD/VG > 1'],['Signe de McConnell','Présent'],['TAPSE','12 mm'],['PA','100/65 mmHg'],['Troponine','Élevée']],'Catégorie de risque si EP confirmée ?',['Faible','Intermédiaire-bas','Intermédiaire-haut','Haut risque'],2,'Sans choc mais avec VD dysfonctionnel ET troponine élevée : risque intermédiaire-haut.'),
+ Vc('v12',3,[['TAPSE','14 mm'],['VD/VG','1,2'],['PAPS','65 mmHg'],['Temps d’accélération pulmonaire','70 ms, encoche mésosystolique'],['Évolution','Dyspnée progressive depuis 1 an']],'Diagnostic le plus probable ?',['Cœur pulmonaire aigu sur EP','Hypertension pulmonaire précapillaire chronique','Infarctus du VD','Péricardite constrictive'],1,'Dysfonction VD + PAPS élevée + temps d’accélération court avec encoche, évolution chronique : HTP précapillaire. Un VD non adapté (EP aiguë) génère rarement une PAPS > 60 mmHg.'),
+ Kc('c1',1,[['Patient','Homme de 68 ans'],['Antécédents','HTA traitée'],['ECG','FA paroxystique au Holter']],'Score CHA₂DS₂-VA et conduite ?',['1 : pas d’anticoagulant','2 : anticoagulation recommandée','2 : aspirine','3 : AVK'],1,'Âge 65–74 ans (1) + HTA (1) = 2 : anticoagulation recommandée, AOD de préférence.'),
+ Kc('c2',3,[['Patiente','82 ans, 58 kg'],['Créatinine','1,1 mg/dL'],['Indication','FA non valvulaire']],'Dose d’apixaban ?',['5 mg × 2/j','2,5 mg × 2/j','10 mg × 2/j','Contre-indiqué'],1,'2 critères sur 3 (âge ≥ 80 ans, poids ≤ 60 kg) : 2,5 mg × 2/j. La créatinine < 1,5 mg/dL ne compte pas.'),
+ Kc('c3',2,[['Patient','NSTEMI, troponine positive'],['GRACE','160'],['Hémodynamique','Stable, sans douleur']],'Délai de la coronarographie ?',['Immédiate (< 2 h)','Précoce (< 24 h)','Avant la sortie, sans délai','Pas de coronarographie'],1,'Haut risque (NSTEMI confirmé, GRACE > 140) sans critère de très haut risque : stratégie invasive précoce < 24 h.'),
+ Kc('c11',2,[['Patient','62 ans, STEMI antérieur'],['Douleur','Depuis 2 h'],['Salle de cathétérisme','Délai prévu de 180 min']],'Reperfusion ?',['Attendre l’angioplastie','Fibrinolyse dans les 10 min puis transfert','Pas de reperfusion','Fibrinolyse seulement en cas de choc'],1,'ICP primaire impossible dans les 120 min : fibrinolyse dans les 10 min du diagnostic, puis transfert pour coronarographie dans les 2 à 24 h.'),
+ Kc('c4',2,[['Patient','ICFEr, FEVG 30 %, NYHA II'],['Traitement','Ramipril 10 mg, bisoprolol 10 mg'],['Biologie','K⁺ 4,4 mmol/L, DFG 65']],'Que manque-t-il ?',['Digoxine','ARM et iSGLT2','Ivabradine','Amiodarone'],1,'Les 4 piliers : IEC/ARNI, bêtabloquant, ARM, iSGLT2. Ajouter spironolactone et dapagliflozine ou empagliflozine.'),
+ Kc('c12',2,[['Patient','ICFEr, FEVG 25 %, NYHA II'],['ECG','BBG, QRS 160 ms, rythme sinusal'],['Traitement','Optimal depuis 3 mois']],'Dispositif indiqué ?',['Aucun','Resynchronisation (CRT)','Pacemaker double chambre','Holter implantable'],1,'BBG avec QRS ≥ 150 ms et FEVG ≤ 35 % malgré un traitement optimal : resynchronisation (classe I).'),
+ Kc('c5',2,[['Patient','3 mois après un SCA'],['Traitement','Atorvastatine 80 mg'],['LDL','0,85 g/L']],'Cible de LDL et étape suivante ?',['< 1,0 g/L, rien à changer','< 0,55 g/L, ajouter ézétimibe','< 0,70 g/L, doubler la statine','< 1,15 g/L, arrêter la statine'],1,'Très haut risque : LDL < 0,55 g/L (1,4 mmol/L) et baisse ≥ 50 %. Statine maximale : ajouter l’ézétimibe, puis iPCSK9 si besoin.'),
+ Kc('c6',2,[['Patient','Homme de 19 ans, footballeur'],['Symptôme','Syncope à l’effort'],['Auscultation','Souffle systolique majoré par le Valsalva']],'Diagnostic le plus probable ?',['RA bicuspide','CMH obstructive','CIV','Insuffisance mitrale'],1,'Souffle majoré par le Valsalva (baisse de précharge) + syncope d’effort chez un jeune : CMH obstructive.'),
+ Kc('c15',3,[['Patient','16 ans, syncope brutale à l’effort'],['ECG et écho','Normaux'],['Famille','Mort subite d’un cousin à 20 ans']],'Examen le plus utile ensuite ?',['Tilt test','Épreuve d’effort','EEG','Holter de 24 h seul'],1,'Syncope d’effort, cœur structurellement normal, mort subite familiale : rechercher une TV catécholergique (ESV polymorphes, TV bidirectionnelle à l’effort).'),
+ Kc('c7',3,[['Patiente','45 ans, antécédent de RAA'],['Écho','RM serré, surface 1,1 cm²'],['ECG','FA']],'Anticoagulant ?',['Apixaban','Rivaroxaban','AVK','Aspirine'],2,'RM modéré à sévère + FA : AVK obligatoire, AOD contre-indiqués (INVICTUS). Discuter une commissurotomie percutanée.'),
+ Kc('c8',2,[['Patient','EP confirmée'],['sPESI','0'],['VD','Normal, troponine négative']],'Prise en charge ?',['Thrombolyse','USIC 72 h','AOD et sortie précoce','Filtre cave'],2,'EP à faible risque : AOD, traitement ambulatoire ou sortie précoce si le contexte le permet.'),
+ Kc('c9',2,[['Patient','54 ans'],['PA','152/96 mmHg confirmée par MAPA'],['Risque','SCORE2 8 %']],'Traitement initial ?',['Monothérapie, réévaluer à 6 mois','Bithérapie fixée IEC/ARA2 + inhibiteur calcique ou thiazidique','Bêtabloquant seul','Mesures hygiéno-diététiques seules'],1,'HTA confirmée : bithérapie fixée en un comprimé en première intention, cible PAS 120–129 mmHg.'),
+ Kc('c13',2,[['Patiente','29 ans, 36 SA'],['Signes','Dyspnée, œdèmes, FEVG 35 %'],['Antécédents','Aucun']],'Diagnostic à évoquer ?',['Cardiomyopathie du péripartum','Valvulopathie rhumatismale','Embolie amniotique','Myocardite virale certaine'],0,'IC en fin de grossesse ou dans les mois suivant l’accouchement avec FEVG < 45 % sans autre cause : cardiomyopathie du péripartum. Pas d’IEC/ARA2 avant l’accouchement ; bromocriptine à discuter.'),
+ Kc('c14',3,[['Patient','Endocardite à staphylocoque doré, valve mitrale'],['Écho','Végétation mobile de 14 mm'],['Événement','AVC ischémique mineur sous antibiotiques adaptés']],'Conduite ?',['Antibiotiques seuls 6 semaines','Chirurgie urgente (dans les jours)','Anticoagulation curative','Chirurgie après 6 semaines'],1,'Végétation ≥ 10 mm avec embolie sous antibiotiques : chirurgie urgente pour prévenir une récidive embolique.'),
+ Kc('c10',2,[['Patiente','FA, CHA₂DS₂-VA 4'],['Événement','Saignement digestif grave sous AOD, traité par endoscopie'],['État','Stable']],'Après contrôle du saignement ?',['Arrêt définitif des anticoagulants','Reprise de l’anticoagulation après traitement de la cause, en général','Aspirine à la place','Fermeture de l’auricule chez tous'],1,'Le risque thromboembolique reste élevé : l’anticoagulation est en général reprise une fois la cause traitée. Fermeture de l’auricule si contre-indication durable.')
+];
+var CAT = {'ECG':{fr:'ECG', ar:'تخطيط القلب'}, 'Écho':{fr:'Écho', ar:'الصدى'}, 'Clinique':{fr:'Clinique', ar:'سريري'}};
+var BASE = {1:10, 2:20, 3:35};
+function critWindow(c){ return ({1:10, 2:15, 3:22})[c.d] + (c.ecg ? 6 : 0); }  // secondes
+/* ---------- Badges ---------- */
+var BADGES = [
+  ['first', '🩺', {fr:'Première réponse', ar:'أول إجابة'}, {fr:'Répondre à une première question', ar:'الإجابة عن أول سؤال'}],
+  ['crit1', '⚡', {fr:'Coup critique', ar:'ضربة حاسمة'}, {fr:'Réussir dans la zone dorée du chrono', ar:'الإجابة الصحيحة داخل المنطقة الذهبية'}],
+  ['crit10', '🔥', {fr:'Réflexes de garde', ar:'ردود فعل المناوبة'}, {fr:'10 coups critiques', ar:'10 ضربات حاسمة'}],
+  ['speed', '🏎️', {fr:'Éclair', ar:'برق'}, {fr:'Bonne réponse en moins de 4 secondes', ar:'إجابة صحيحة في أقل من 4 ثوانٍ'}],
+  ['combo5', '🎯', {fr:'Série de 5', ar:'سلسلة من 5'}, {fr:'5 bonnes réponses d’affilée', ar:'5 إجابات صحيحة متتالية'}],
+  ['combo10', '🏹', {fr:'Série de 10', ar:'سلسلة من 10'}, {fr:'10 bonnes réponses d’affilée', ar:'10 إجابات صحيحة متتالية'}],
+  ['ecg10', '📈', {fr:'Lecteur d’ECG', ar:'قارئ التخطيط'}, {fr:'10 ECG réussis', ar:'10 تخطيطات صحيحة'}],
+  ['echo10', '🫀', {fr:'Échographiste', ar:'خبير الصدى'}, {fr:'10 cas d’écho réussis', ar:'10 حالات صدى صحيحة'}],
+  ['clin10', '🧠', {fr:'Clinicien', ar:'طبيب سريري'}, {fr:'10 cas cliniques réussis', ar:'10 حالات سريرية صحيحة'}],
+  ['hard5', '💎', {fr:'Expert', ar:'خبير'}, {fr:'5 questions ★★★ réussies', ar:'5 أسئلة ★★★ صحيحة'}],
+  ['perfect', '👑', {fr:'Sans faute', ar:'دون أخطاء'}, {fr:'Une session de 10 questions à 10/10', ar:'جلسة من 10 أسئلة بعلامة 10/10'}],
+  ['day3', '📅', {fr:'Régulier', ar:'منتظم'}, {fr:'Jouer 3 jours de suite', ar:'اللعب 3 أيام متتالية'}],
+  ['day7', '🗓️', {fr:'Assidu', ar:'مواظب'}, {fr:'Jouer 7 jours de suite', ar:'اللعب 7 أيام متتالية'}],
+  ['night', '🌙', {fr:'Garde de nuit', ar:'مناوبة ليلية'}, {fr:'Répondre entre minuit et 5 h', ar:'الإجابة بين منتصف الليل والخامسة'}],
+  ['lvl5', '🎓', {fr:'Niveau 5', ar:'المستوى 5'}, {fr:'Atteindre le niveau 5', ar:'بلوغ المستوى 5'}],
+  ['all', '🏆', {fr:'Encyclopédie', ar:'موسوعة'}, {fr:'Réussir toutes les cartes au moins une fois', ar:'الإجابة الصحيحة عن كل البطاقات مرة على الأقل'}]
+];
+/* ---------- État ---------- */
+var today = Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
+var st = CS.store.get('quiz', null) || {};
+st = Object.assign({xp:0, crits:0, combo:0, bestCombo:0, n:0, ok:0, byCat:{}, hardOk:0, solved:{}, badges:{}, cards:{}, lastDay:null, streak:0, mode:'challenge', cat:'all', diff:'all'}, st);
+function save(){ CS.store.set('quiz', st); }
+var cur = null, answered = false, t0 = 0, raf = 0, session = null, againQ = [], redraw = null;
+
+/* ---------- HUD ---------- */
+function hud(){
+  var lv = CS.level(st.xp);
+  var el = CS.$('#hud'); el.innerHTML = '';
+  el.appendChild(h('div', {class:'lv', id:'hud-lv', text:String(lv.lvl)}));
+  el.appendChild(h('div', {class:'mid'}, h('b', {text:T(lv.title)}), h('small', {text:' · ' + lv.xp + ' XP'}), h('div', {class:'bar'}, h('i', {style:{width:Math.round(lv.pct * 100) + '%'}})), h('small', {text:(lv.next - lv.xp) + T({fr:' XP avant le niveau ', ar:' نقطة قبل المستوى '}) + (lv.lvl + 1)})));
+  el.appendChild(h('div', {class:'pill combo' + (st.combo >= 3 ? ' hot' : ''), id:'hud-combo', html:CS.I.bolt + '<span>' + E(T({fr:'Combo ×', ar:'تتابع ×'})) + st.combo + '</span>'}));
+  el.appendChild(h('div', {class:'pill', title:T({fr:'Jours d’affilée', ar:'أيام متتالية'}), html:'🔥 <span>' + st.streak + T({fr:' j', ar:' ي'}) + '</span>'}));
+  el.appendChild(h('div', {class:'pill', title:T({fr:'Coups critiques', ar:'الضربات الحاسمة'}), html:'⚡ <span>' + st.crits + '</span>'}));
+}
+/* ---------- Réglages ---------- */
+function setup(){
+  var el = CS.$('#setup'); el.innerHTML = '';
+  el.appendChild(h('h3', {text:{fr:'Mode de jeu', ar:'نمط اللعب'}}));
+  el.appendChild(CS.segEl([['challenge', {fr:'Défi chrono', ar:'تحدٍّ بالوقت'}], ['srs', {fr:'Révision', ar:'مراجعة'}], ['free', {fr:'Libre', ar:'حر'}]], st.mode, function(v){ st.mode = v; save(); session = null; setup(); next(); }, 'full'));
+  el.appendChild(h('p', {class:'xs muted', text:st.mode === 'challenge' ? {fr:'10 questions. Répondez juste dans la zone dorée du chrono : coup critique, XP × 2.', ar:'10 أسئلة. أجب إجابة صحيحة داخل المنطقة الذهبية: ضربة حاسمة ونقاط × 2.'} : st.mode === 'srs' ? {fr:'Répétition espacée : une carte réussie revient de plus en plus tard, une erreur la fait revenir demain.', ar:'تكرار متباعد: البطاقة الصحيحة تعود بعد مدة أطول، والخطأ يعيدها غدًا.'} : {fr:'Questions au hasard, sans fin.', ar:'أسئلة عشوائية دون نهاية.'}}));
+  var cat = h('select', {class:'inp', id:'cat'}, [['all', {fr:'Tous les thèmes', ar:'كل المواضيع'}], ['ECG', CAT.ECG], ['Écho', {fr:'Échographie', ar:'الصدى'}], ['Clinique', {fr:'Cas cliniques', ar:'حالات سريرية'}]].map(function(o){ return h('option', {value:o[0], text:o[1], selected:st.cat === o[0]}); }));
+  cat.addEventListener('change', function(){ st.cat = cat.value; save(); session = null; againQ = []; next(); });
+  var dif = h('select', {class:'inp', id:'diff'}, [['all', {fr:'Toutes difficultés', ar:'كل المستويات'}], ['1', '★'], ['2', '★★'], ['3', '★★★']].map(function(o){ return h('option', {value:o[0], text:o[1], selected:st.diff === o[0]}); }));
+  dif.addEventListener('change', function(){ st.diff = dif.value; save(); session = null; againQ = []; next(); });
+  el.appendChild(h('div', {class:'grid g2'}, cat, dif));
+}
+function pool(){ return CARDS.filter(function(c){ return (st.cat === 'all' || c.cat === st.cat) && (st.diff === 'all' || String(c.d) === st.diff); }); }
+function shuffle(a){ a = a.slice(); for(var i = a.length - 1; i > 0; i--){ var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+
+/* ---------- Choix de la carte ---------- */
+function pick(){
+  var p = pool(); if(!p.length) return null;
+  if(st.mode === 'challenge'){
+    if(!session){
+      var unsolved = shuffle(p.filter(function(c){ return !st.solved[c.id]; })), solved = shuffle(p.filter(function(c){ return st.solved[c.id]; }));
+      session = {list:unsolved.concat(solved).slice(0, Math.min(10, p.length)), i:0, ok:0, xp:0, crits:0, best:0, combo:0, newBadges:[]};
+    }
+    return session.i < session.list.length ? session.list[session.i] : null;
+  }
+  if(st.mode === 'free') return p[Math.floor(Math.random() * p.length)];
+  var due = p.filter(function(c){ var s = st.cards[c.id]; return s && s.due != null && s.due <= today; });
+  if(due.length) return due.sort(function(a, b){ return st.cards[a.id].due - st.cards[b.id].due; })[0];
+  if(againQ.length) return againQ.shift();
+  var fresh = p.filter(function(c){ return !st.cards[c.id] || st.cards[c.id].due == null; });
+  return fresh.length ? fresh[0] : null;
+}
+function next(){
+  cancelAnimationFrame(raf); answered = false; redraw = null;
+  var box = CS.$('#q'); box.innerHTML = '';
+  cur = pick();
+  if(!cur){ return st.mode === 'challenge' && session ? endSession() : nothing(); }
+  var c = cur;
+  var stars = h('span', {class:'stars', html:'★'.repeat(c.d) + '<i>' + '★'.repeat(3 - c.d) + '</i>'});
+  box.appendChild(h('div', {class:'qmeta'},
+    h('div', {class:'row'}, h('span', {class:'badge ' + (c.cat === 'ECG' ? 'acc' : c.cat === 'Écho' ? 'info' : 'warn'), text:CAT[c.cat]}), stars, st.solved[c.id] ? null : h('span', {class:'badge ok', text:{fr:'Nouvelle', ar:'جديدة'}})),
+    st.mode === 'challenge' ? h('span', {class:'small muted', text:(session.i + 1) + ' / ' + session.list.length}) : h('span', {class:'xs muted', text:c.id.toUpperCase()})));
+  // Chrono
+  var win = critWindow(c), maxT = win * 2.2;
+  var tm = h('div', {class:'timer', id:'timer'}, h('div', {class:'crit', style:{width:(win / maxT * 100) + '%'}}), h('div', {class:'fill'}));
+  var tl = h('div', {class:'tlab'}, h('span', {html:'⚡ ' + E(T({fr:'Zone critique : ', ar:'المنطقة الحاسمة: '})) + '<b>' + win + ' s</b>'}), h('span', {id:'tsec', text:'0 s'}));
+  box.appendChild(h('div', null, tm, tl));
+  box.appendChild(h('p', {class:'qtext', dir:'ltr', lang:'fr', text:c.q}));
+  if(c.ecg){
+    var cv = h('canvas'); var eb = h('div', {class:'ecgbox', dir:'ltr'}, cv); box.appendChild(eb);
+    box.appendChild(h('p', {class:'ecghint', text:{fr:'ECG 12 dérivations · 25 mm/s · 10 mm/mV — faites défiler horizontalement sur téléphone.', ar:'تخطيط 12 اشتقاقًا · 25 مم/ث · 10 مم/مللي فولت — مرِّر أفقيًا على الهاتف.'}}));
+    var e = ECG.generate(c.ecg, {seed:c.id.length * 97 + c.id.charCodeAt(1)}); redraw = function(){ ECG.draw12(cv, e, Math.max(760, eb.clientWidth - 2)); }; setTimeout(redraw, 0);
+  }
+  if(c.vig) box.appendChild(h('div', {class:'vig', dir:'ltr', lang:'fr'}, c.vig.map(function(r){ return h('div', null, h('span', {text:r[0]}), h('b', {text:r[1]})); })));
+  var opts = h('div', {class:'opts', id:'opts', dir:'ltr', lang:'fr'});
+  var order = shuffle([0, 1, 2, 3]);
+  order.forEach(function(i, k){ opts.appendChild(h('button', {class:'opt', type:'button', 'data-i':i, onclick:function(e){ answer(i, e); }}, h('span', {class:'k', text:'ABCD'[k]}), h('span', {text:c.o[i]}))); });
+  box.appendChild(opts);
+  box.appendChild(h('div', {id:'after'}));
+  t0 = performance.now();
+  var fill = tm.querySelector('.fill'), ts = tl.querySelector('#tsec');
+  (function tick(){
+    var s = (performance.now() - t0) / 1000;
+    fill.style.width = Math.min(100, s / maxT * 100) + '%';
+    tm.classList.toggle('over', s > win);
+    ts.textContent = Math.floor(s) + ' s';
+    if(!answered && s < maxT) raf = requestAnimationFrame(tick);
+  })();
+}
+function nothing(){
+  var box = CS.$('#q');
+  box.appendChild(h('div', {class:'done'}, h('div', {class:'trophy', text:'✅'}), h('h2', {text:st.mode === 'srs' ? {fr:'Révision du jour terminée', ar:'انتهت مراجعة اليوم'} : {fr:'Aucune carte pour ce filtre', ar:'لا توجد بطاقة لهذا الاختيار'}}),
+    h('p', {class:'muted', text:{fr:'Revenez demain, ou lancez un défi chrono.', ar:'عد غدًا أو ابدأ تحدّيًا بالوقت.'}}),
+    h('button', {class:'btn primary', type:'button', text:{fr:'Lancer un défi chrono', ar:'ابدأ تحدّيًا بالوقت'}, onclick:function(){ st.mode = 'challenge'; save(); session = null; setup(); next(); }})));
+}
+
+/* ---------- Réponse, XP, badges ---------- */
+function answer(i, ev){
+  if(answered) return; answered = true; cancelAnimationFrame(raf);
+  var c = cur, secs = (performance.now() - t0) / 1000, ok = i === c.a, crit = ok && secs <= critWindow(c);
+  CS.$$('#opts .opt').forEach(function(b){ var j = +b.dataset.i; b.disabled = true; if(j === c.a) b.classList.add('good'); else if(j === i) b.classList.add('bad'); });
+  var gained = 0, lvBefore = CS.level(st.xp).lvl, nb = [];
+  st.n++;
+  if(ok){
+    st.ok++; st.combo++; st.bestCombo = Math.max(st.bestCombo, st.combo);
+    gained = Math.round(BASE[c.d] * (crit ? 2 : 1) * (1 + Math.min(st.combo - 1, 5) * 0.1));
+    st.xp += gained; if(crit) st.crits++;
+    st.byCat[c.cat] = st.byCat[c.cat] || [0, 0]; st.byCat[c.cat][0]++;
+    if(c.d === 3) st.hardOk++;
+    st.solved[c.id] = (st.solved[c.id] || 0) + 1;
+  } else { st.combo = 0; }
+  st.byCat[c.cat] = st.byCat[c.cat] || [0, 0]; st.byCat[c.cat][1]++;
+  // jours d'affilée
+  if(st.lastDay !== today){ st.streak = st.lastDay === today - 1 ? st.streak + 1 : 1; st.lastDay = today; }
+  if(session){ session.i++; if(ok){ session.ok++; session.xp += gained; session.combo++; session.best = Math.max(session.best, session.combo); if(crit) session.crits++; } else session.combo = 0; }
+  // badges
+  var hr = new Date().getHours(), byOk = function(k){ return (st.byCat[k] || [0])[0]; };
+  var cond = {first:st.n >= 1, crit1:st.crits >= 1, crit10:st.crits >= 10, speed:ok && secs < 4, combo5:st.combo >= 5, combo10:st.combo >= 10,
+    ecg10:byOk('ECG') >= 10, echo10:byOk('Écho') >= 10, clin10:byOk('Clinique') >= 10, hard5:st.hardOk >= 5, day3:st.streak >= 3, day7:st.streak >= 7,
+    night:hr < 5, lvl5:CS.level(st.xp).lvl >= 5, all:CARDS.every(function(x){ return st.solved[x.id]; })};
+  BADGES.forEach(function(b){ if(cond[b[0]] && !st.badges[b[0]]){ st.badges[b[0]] = Date.now(); nb.push(b); } });
+  save(); hud(); badges(); stats();
+  // effets
+  if(crit) burst(T({fr:'CRITIQUE !', ar:'ضربة حاسمة!'}), '× 2 XP');
+  if(gained) fly('+' + gained + ' XP', ev);
+  if(ok) sparks(ev, crit ? 26 : 12);
+  nb.forEach(function(b, k){ setTimeout(function(){ CS.toast(b[1] + ' ' + T({fr:'Badge débloqué : ', ar:'شارة جديدة: '}) + T(b[2])); }, 900 + k * 1400); if(session) session.newBadges.push(b); });
+  var lvAfter = CS.level(st.xp).lvl;
+  if(lvAfter > lvBefore) setTimeout(function(){ levelUp(lvAfter); }, crit ? 1100 : 500);
+  // explication
+  var af = CS.$('#after');
+  af.appendChild(h('div', {class:'result ' + (ok ? 'ok' : 'crit'), dir:'ltr', lang:'fr'},
+    h('div', {class:'gain'}, h('span', {text:ok ? (CS.isAr() ? 'إجابة صحيحة' : 'Bonne réponse') : (CS.isAr() ? 'الإجابة: ' : 'Réponse : ') + c.o[c.a]}),
+      ok ? h('span', {class:'x', text:'+' + gained + ' XP'}) : null, crit ? h('span', {class:'tag crit', text:'⚡ ×2'}) : null,
+      ok && st.combo > 1 ? h('span', {class:'tag', text:'Combo ×' + st.combo}) : null, h('span', {class:'tag', text:fmt(secs, 1) + ' s'})),
+    h('p', {style:{marginTop:'8px'}, text:c.x})));
+  if(st.mode === 'srs'){
+    var g = h('div', {class:'grades', style:{marginTop:'12px'}});
+    var s0 = cs(c.id);
+    [[{fr:'À revoir', ar:'للمراجعة'}, 1], [{fr:'Difficile', ar:'صعب'}, 3], [{fr:'Bien', ar:'جيد'}, 4], [{fr:'Facile', ar:'سهل'}, 5]].forEach(function(x){
+      var iv = sm2(s0, x[1]).iv;
+      g.appendChild(h('button', {type:'button', disabled:!ok && x[1] >= 3, onclick:function(){ grade(x[1]); }}, T(x[0]), h('small', {text:x[1] < 3 ? T({fr:'demain', ar:'غدًا'}) : iv + T({fr:' j', ar:' يوم'})})));
+    });
+    af.appendChild(g);
+  } else {
+    af.appendChild(h('div', {class:'row end', style:{marginTop:'12px'}}, h('button', {class:'btn primary', id:'nextq', type:'button', text:st.mode === 'challenge' && session && session.i >= session.list.length ? {fr:'Voir le résultat', ar:'عرض النتيجة'} : {fr:'Question suivante →', ar:'السؤال التالي ←'}, onclick:next})));
+    setTimeout(function(){ var b = CS.$('#nextq'); if(b) b.focus({preventScroll:true}); }, 50);
+  }
+  CS.$('#after').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+function cs(id){ return st.cards[id] || (st.cards[id] = {ef:2.5, n:0, iv:0, due:null}); }
+function sm2(s, q){
+  var n = s.n, iv = s.iv, ef = s.ef;
+  if(q < 3){ n = 0; iv = 1; } else { iv = n === 0 ? 1 : n === 1 ? 6 : Math.round(iv * ef); n++; }
+  ef = Math.max(1.3, ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
+  return {n:n, iv:iv, ef:ef};
+}
+function grade(q){ var s = cs(cur.id), r = sm2(s, q); s.n = r.n; s.iv = r.iv; s.ef = r.ef; s.due = today + r.iv; if(q < 3) againQ.push(cur); save(); next(); }
+function endSession(){
+  var s = session, box = CS.$('#q'); box.innerHTML = '';
+  if(s.ok === s.list.length && s.list.length >= 10 && !st.badges.perfect){ st.badges.perfect = Date.now(); s.newBadges.push(BADGES.filter(function(b){ return b[0] === 'perfect'; })[0]); save(); badges(); }
+  var pct = s.ok / s.list.length;
+  box.appendChild(h('div', {class:'done'},
+    h('div', {class:'trophy', text:pct === 1 ? '👑' : pct >= .7 ? '🏆' : pct >= .4 ? '🎖️' : '💪'}),
+    h('h2', {text:pct === 1 ? {fr:'Sans faute !', ar:'دون أي خطأ!'} : pct >= .7 ? {fr:'Excellent', ar:'ممتاز'} : pct >= .4 ? {fr:'Bien joué', ar:'أحسنت'} : {fr:'On continue !', ar:'لنواصل!'}}),
+    h('div', {class:'kpis'},
+      h('div', {class:'kpi'}, h('b', {text:s.ok + ' / ' + s.list.length}), h('span', {text:{fr:'bonnes réponses', ar:'إجابات صحيحة'}})),
+      h('div', {class:'kpi'}, h('b', {text:'+' + s.xp}), h('span', {text:'XP'})),
+      h('div', {class:'kpi'}, h('b', {text:'⚡ ' + s.crits}), h('span', {text:{fr:'coups critiques', ar:'ضربات حاسمة'}})),
+      h('div', {class:'kpi'}, h('b', {text:'×' + s.best}), h('span', {text:{fr:'meilleur combo', ar:'أفضل تتابع'}}))),
+    s.newBadges.length ? h('p', {text:T({fr:'Nouveaux badges : ', ar:'شارات جديدة: '}) + s.newBadges.map(function(b){ return b[1] + ' ' + T(b[2]); }).join(' · ')}) : null,
+    h('div', {class:'row'}, h('button', {class:'btn primary', type:'button', text:{fr:'Nouveau défi', ar:'تحدٍّ جديد'}, onclick:function(){ session = null; next(); }}))));
+  if(pct >= .7) sparks(null, 40);
+}
+/* ---------- Effets visuels ---------- */
+function burst(txt, sub){ var fx = h('div', {class:'fx'}, h('div', {class:'burst', html:E(txt) + '<small>' + E(sub) + '</small>'})); document.body.appendChild(fx); setTimeout(function(){ fx.remove(); }, 1200); }
+function fly(txt, ev){ var x = ev && ev.clientX ? ev.clientX : innerWidth / 2, y = ev && ev.clientY ? ev.clientY : innerHeight / 2; var el = h('div', {class:'xpfly', text:txt, style:{left:(x - 30) + 'px', top:(y - 20) + 'px'}}); document.body.appendChild(el); setTimeout(function(){ el.remove(); }, 1000); }
+function sparks(ev, n){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var x = ev && ev.clientX ? ev.clientX : innerWidth / 2, y = ev && ev.clientY ? ev.clientY : innerHeight / 3;
+  var cols = ['#ffd166', '#f0a73c', '#e0703c', '#7a4bc4', '#4fc68b', '#ff4d6d'];
+  for(var i = 0; i < n; i++){ var a = Math.random() * 6.28, d = 60 + Math.random() * 120; var s = h('i', {class:'spark', style:{left:x + 'px', top:y + 'px', background:cols[i % cols.length], '--dx':Math.cos(a) * d + 'px', '--dy':(Math.sin(a) * d - 40) + 'px'}}); s.style.setProperty('--dx', Math.cos(a) * d + 'px'); s.style.setProperty('--dy', (Math.sin(a) * d - 40) + 'px'); document.body.appendChild(s); (function(el){ setTimeout(function(){ el.remove(); }, 1000); })(s); }
+}
+function levelUp(l){
+  var lv = CS.level(st.xp), m;
+  sparks(null, 50);
+  m = CS.modal(h('div', {class:'lvup'}, h('span', {class:'eyebrow', text:{fr:'Niveau supérieur !', ar:'مستوى جديد!'}}), h('div', {class:'big', text:String(l)}), h('h2', {text:lv.title}),
+    h('p', {class:'muted', text:{fr:'Continuez : les questions ★★★ rapportent le plus d’XP.', ar:'واصل: أسئلة ★★★ تمنح أكبر عدد من النقاط.'}}),
+    h('button', {class:'btn primary', type:'button', text:{fr:'Continuer', ar:'متابعة'}, onclick:function(){ m.close(); }})));
+}
+/* ---------- Barre latérale ---------- */
+function badges(){
+  CS.$('#bt').textContent = T({fr:'Badges', ar:'الشارات'}) + ' · ' + Object.keys(st.badges).length + ' / ' + BADGES.length;
+  var el = CS.$('#badges'); el.innerHTML = '';
+  BADGES.forEach(function(b){ var on = !!st.badges[b[0]]; el.appendChild(h('div', {class:'bdg' + (on ? ' on' : ''), title:T(b[3])}, h('span', {class:'ic', text:b[1]}), h('span', {text:b[2]}))); });
+}
+function stats(){
+  CS.$('#st-t').textContent = T({fr:'Progression', ar:'التقدّم'});
+  var solved = Object.keys(st.solved).length;
+  var el = CS.$('#stats'); el.innerHTML = '';
+  [[{fr:'Cartes réussies', ar:'بطاقات صحيحة'}, solved + ' / ' + CARDS.length], [{fr:'Taux de réussite', ar:'نسبة النجاح'}, st.n ? Math.round(st.ok / st.n * 100) + ' %' : '–'], [{fr:'Meilleur combo', ar:'أفضل تتابع'}, '×' + st.bestCombo], [{fr:'Questions ★★★ réussies', ar:'أسئلة ★★★ صحيحة'}, st.hardOk]].forEach(function(r){ el.appendChild(h('div', {class:'stat'}, h('span', {text:r[0]}), h('b', {text:String(r[1])}))); });
+  var cb = h('div', {class:'catbar', style:{marginTop:'10px'}});
+  ['ECG', 'Écho', 'Clinique'].forEach(function(k){ var v = st.byCat[k] || [0, 0], p = v[1] ? v[0] / v[1] : 0; cb.appendChild(h('div', null, h('span', {text:CAT[k]}), h('i', null, h('b', {style:{width:Math.round(p * 100) + '%'}})), h('span', {class:'small', text:v[1] ? Math.round(p * 100) + ' %' : '–'}))); });
+  el.appendChild(cb);
+  el.appendChild(h('div', {class:'row', style:{marginTop:'12px'}}, h('button', {class:'btn sm danger', type:'button', text:{fr:'Remettre à zéro', ar:'إعادة الضبط'}, onclick:function(){
+    CS.ask({fr:'Effacer toute la progression (XP, niveaux, badges) ?', ar:'مسح كل التقدّم (النقاط والمستويات والشارات)؟'}, {fr:'Remettre à zéro', ar:'إعادة الضبط'}).then(function(ok){ if(ok){ var m = st.mode, c = st.cat, d = st.diff; st = {xp:0, crits:0, combo:0, bestCombo:0, n:0, ok:0, byCat:{}, hardOk:0, solved:{}, badges:{}, cards:{}, lastDay:null, streak:0, mode:m, cat:c, diff:d}; session = null; save(); hud(); badges(); stats(); next(); } });
+  }})));
+}
+document.addEventListener('keydown', function(e){
+  if(CS.$('.modal-bg') || (CS.tour && CS.tour.active)) return;
+  if(!answered && /^[1-4a-dA-D]$/.test(e.key)){ var k = /\d/.test(e.key) ? +e.key - 1 : 'abcd'.indexOf(e.key.toLowerCase()); var b = CS.$$('#opts .opt')[k]; if(b) b.click(); }
+  else if(answered && e.key === 'Enter' && CS.$('#nextq')){ e.preventDefault(); next(); }
+});
+CS.init({refs:['Cas rédigés d’après les recommandations ESC 2019–2025', 'Algorithme SM-2 (Wozniak, 1990)', 'ECG synthétiques']});
+window.addEventListener('cs-theme', function(){ if(redraw) redraw(); });
+window.addEventListener('resize', function(){ if(redraw) redraw(); });
+hud(); setup(); badges(); stats(); next();
+
+CS.tour.define([
+  {title:{fr:'Le quiz qui se joue', ar:'اختبار يُلعب'}, body:{fr:'<p><b>' + CARDS.length + ' cas</b> d’ECG, d’écho et de clinique, de ★ à ★★★. Chaque bonne réponse rapporte de l’<b>XP</b> ; montez de niveau, d’Externe à <b>Légende du cœur</b>.</p>', ar:'<p><b>' + CARDS.length + ' حالة</b> في تخطيط القلب والصدى والسريريات، من ★ إلى ★★★. كل إجابة صحيحة تمنحك <b>نقاط خبرة</b>؛ ارتقِ من طالب خارجي إلى <b>أسطورة القلب</b>.</p>'}},
+  {el:'#hud', title:{fr:'Votre tableau de bord', ar:'لوحة القيادة'}, body:{fr:'Niveau et XP, <b>combo</b> (bonnes réponses d’affilée : jusqu’à +50 % d’XP), jours d’affilée 🔥 et coups critiques ⚡.', ar:'المستوى والنقاط، و<b>التتابع</b> (إجابات صحيحة متتالية: حتى +50% من النقاط)، والأيام المتتالية 🔥 والضربات الحاسمة ⚡.'}},
+  {el:'#timer', title:{fr:'Le coup critique', ar:'الضربة الحاسمة'}, body:{fr:'Répondez juste <b>dans la zone dorée</b> du chrono : XP × 2. Elle est plus longue pour les questions difficiles et les ECG.', ar:'أجب إجابة صحيحة <b>داخل المنطقة الذهبية</b>: نقاط × 2. وهي أطول للأسئلة الصعبة ولتخطيطات القلب.'}},
+  {el:'#opts', title:{fr:'Répondre', ar:'الإجابة'}, body:{fr:'Touchez une réponse (ou les touches 1 à 4). L’explication s’affiche ensuite, avec la conduite à tenir.', ar:'المس إجابة (أو المفاتيح من 1 إلى 4). يظهر الشرح بعد ذلك مع ما يجب فعله.'}},
+  {el:'#setup', title:{fr:'Trois façons de jouer', ar:'ثلاث طرق للعب'}, body:{fr:'<b>Défi chrono</b> : sessions de 10. <b>Révision</b> : répétition espacée, pour retenir. <b>Libre</b> : sans fin. Filtrez par thème et par difficulté.', ar:'<b>تحدٍّ بالوقت</b>: جلسات من 10. <b>مراجعة</b>: تكرار متباعد للحفظ. <b>حر</b>: دون نهاية. صفِّ حسب الموضوع والصعوبة.'}},
+  {el:'#badges-card', title:{fr:'Les badges', ar:'الشارات'}, body:{fr:'Seize badges à débloquer : série de 10, sans faute, garde de nuit, encyclopédie… Survolez-en un pour voir comment l’obtenir.', ar:'ست عشرة شارة لفتحها: سلسلة من 10، دون أخطاء، مناوبة ليلية، موسوعة… مرِّر فوق شارة لمعرفة طريقة الحصول عليها.'}}
+]);
+})();
+</script>
+</body>
+</html>

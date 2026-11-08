@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Scores de risque</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!-- @include _base.css -->
+<style>
+.sc-layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;align-items:start}
+.sc-side{position:sticky;top:calc(70px + env(safe-area-inset-top,0px));max-height:calc(100vh - 90px);overflow:auto;padding-right:4px}
+.sc-search{margin-bottom:6px}
+.sc-main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
+.sc-res{position:sticky;top:calc(70px + env(safe-area-inset-top,0px))}
+.sc-head{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.sc-head p{color:var(--muted);max-width:68ch;font-size:.92rem}
+.sc-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sc-inputs .wide{grid-column:1/-1}
+.sc-sel{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.sc-sel .lbl{display:flex;justify-content:space-between;gap:8px}
+.sc-sel .seg{width:100%}
+.sc-sel .seg button{flex:1 1 auto}
+.sc-meter{height:8px;border-radius:999px;background:var(--surface-3);overflow:hidden;margin:12px 0 4px;position:relative}
+.sc-meter i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:currentColor;transition:width .25s}
+.sc-rows{display:flex;flex-direction:column;gap:6px;margin-top:12px;font-size:.86rem}
+.sc-rows div{display:flex;justify-content:space-between;gap:10px;border-top:1px dashed var(--line);padding-top:6px}
+.sc-rows b{font-variant-numeric:tabular-nums;text-align:right}
+.sc-rec{margin-top:12px;font-size:.9rem;line-height:1.45}
+.sc-rec .cls{margin-right:6px}
+.sc-ref{margin-top:12px;font-size:.74rem;color:var(--muted)}
+.sc-mobile-nav{display:none}
+@media (max-width:1100px){.sc-main{grid-template-columns:minmax(0,1fr)}.sc-res{position:static}}
+@media (max-width:860px){.sc-layout{grid-template-columns:minmax(0,1fr)}.sc-side{display:none}.sc-mobile-nav{display:block;margin-bottom:12px}}
+@media (max-width:560px){.sc-inputs{grid-template-columns:minmax(0,1fr)}}
+</style>
+<!-- @include _base.js -->
+<!-- @include _tour.js -->
+<!-- @include _risk.js -->
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap">
+  <div class="sc-layout">
+    <aside class="sc-side" aria-label="Liste des scores">
+      <input class="inp sc-search" id="sc-q" type="search" placeholder="Rechercher un score…" aria-label="Rechercher un score">
+      <nav class="navlist" id="sc-nav"></nav>
+    </aside>
+    <section>
+      <div class="sc-mobile-nav"><label class="lbl" for="sc-pick">Score</label><select class="inp" id="sc-pick"></select></div>
+      <div class="sc-main">
+        <div class="card">
+          <div class="sc-head">
+            <span class="eyebrow" id="sc-grp"></span>
+            <div class="row between"><h2 id="sc-title"></h2>
+              <div class="row"><button class="btn sm" id="sc-ex" type="button">Exemple</button><button class="btn sm" id="sc-clear" type="button">Effacer</button></div></div>
+            <p id="sc-desc"></p>
+          </div>
+          <div class="sc-inputs" id="sc-inputs"></div>
+        </div>
+        <aside class="sc-res"><div class="result" id="sc-result" aria-live="polite"></div></aside>
+      </div>
+    </section>
+  </div>
+</main>
+<footer id="cs-foot"></footer>
+<script>
+(function(){
+'use strict';
+var h = CS.h, fmt = CS.fmt;
+
+/* ---------- Outils de calcul ---------- */
+function interp(table, x){ // table : [[x,y],...] croissant
+  if(x <= table[0][0]) return table[0][1];
+  for(var i = 1; i < table.length; i++){ if(x <= table[i][0]){ var a = table[i-1], b = table[i]; return a[1] + (b[1]-a[1]) * (x-a[0]) / (b[0]-a[0]); } }
+  return table[table.length-1][1];
+}
+var cockcroft = RISK.cockcroft, score2 = RISK.score2, score2op = RISK.score2op, score2dm = RISK.score2dm, pce = RISK.pce;
+
+/* ---------- Constructeurs d'entrées ---------- */
+function B(id, label, pts, sub, def){ return {id:id, type:'bool', label:label, pts:pts == null ? 1 : pts, sub:sub, def:!!def}; }
+function S(id, label, options, def, wide){ return {id:id, type:'sel', label:label, options:options, def:def == null ? options[0].v : def, wide:wide}; }
+function N(id, label, unit, def, o){ o = o || {}; return {id:id, type:'num', label:label, unit:unit, def:def, kind:o.kind, min:o.min, max:o.max, step:o.step || 'any', hint:o.hint}; }
+var SEX = S('sex', 'Sexe', [{v:'M', label:'Homme'}, {v:'F', label:'Femme'}]);
+var REGION = S('region', 'Région de risque ESC', [{v:'low', label:'Faible'}, {v:'moderate', label:'Modéré'}, {v:'high', label:'Élevé'}, {v:'veryhigh', label:'Très élevé'}], 'high', true);
+function sumBools(def, v){ var s = 0; def.inputs.forEach(function(i){ if(i.type === 'bool' && v[i.id]) s += i.pts; if(i.type === 'sel'){ var o = i.options.filter(function(x){ return x.v === v[i.id]; })[0]; if(o && o.pts) s += o.pts; } }); return s; }
+function R(level, big, unit, title, rec, rows, extra){ return {level:level, big:big, unit:unit, title:title, rec:rec, rows:rows || [], meter:extra && extra.meter, note:extra && extra.note}; }
+function cls(c){ return '<span class="cls ' + c + '">' + c + '</span>'; }
+
+/* ---------- Définition des scores ---------- */
+var SCORES = [
+/* ===== Fibrillation atriale ===== */
+{id:'cha2ds2va', grp:'Fibrillation atriale', name:'CHA₂DS₂-VA', kw:'fa avc anticoagulation esc 2024',
+ desc:'Risque thromboembolique dans la FA, version ESC 2024 sans critère de sexe.',
+ inputs:[B('c','Insuffisance cardiaque', 1, 'Symptômes d’IC ou FEVG ≤ 40 %'), B('h','Hypertension artérielle', 1, 'Traitée ou PA ≥ 140/90 mmHg'),
+   S('age','Âge',[{v:'<65',label:'< 65 ans',pts:0},{v:'65-74',label:'65–74 ans',pts:1},{v:'≥75',label:'≥ 75 ans',pts:2}]),
+   B('d','Diabète', 1), B('s','AVC, AIT ou embolie artérielle', 2), B('v','Maladie vasculaire', 1, 'IDM, AOMI, plaque aortique, coronaropathie')],
+ ex:{h:true, age:'≥75', d:true},
+ calc:function(v){ var s = sumBools(this, v);
+   if(s >= 2) return R('crit', s, '/ 8', 'Anticoagulation recommandée', cls('I') + 'Anticoagulant oral recommandé ; AOD préféré aux AVK (sauf valve mécanique ou RM modérée à sévère).', [], {meter:s/8});
+   if(s === 1) return R('warn', s, '/ 8', 'Anticoagulation à envisager', cls('IIa') + 'Anticoagulant oral à envisager, décision partagée selon le risque hémorragique et les préférences.', [], {meter:s/8});
+   return R('ok', s, '/ 8', 'Risque faible', 'Pas d’anticoagulation pour prévenir l’AVC. Réévaluer le risque régulièrement.', [], {meter:0}); },
+ ref:'ESC 2024 – Fibrillation atriale (Van Gelder et al., Eur Heart J 2024)'},
+{id:'cha2ds2vasc', grp:'Fibrillation atriale', name:'CHA₂DS₂-VASc', kw:'fa avc anticoagulation',
+ desc:'Score historique (ESC 2020), avec le sexe féminin comme modificateur de risque.',
+ inputs:[B('c','Insuffisance cardiaque', 1, 'IC ou FEVG ≤ 40 %'), B('h','Hypertension artérielle', 1),
+   S('age','Âge',[{v:'<65',label:'< 65 ans',pts:0},{v:'65-74',label:'65–74 ans',pts:1},{v:'≥75',label:'≥ 75 ans',pts:2}]),
+   B('d','Diabète', 1), B('s','AVC, AIT ou embolie', 2), B('v','Maladie vasculaire', 1), B('f','Sexe féminin', 1)],
+ ex:{h:true, age:'≥75', d:true, f:true},
+ calc:function(v){ var s = sumBools(this, v); var rate = [0,1.3,2.2,3.2,4.0,6.7,9.8,9.6,6.7,15.2][s];
+   var male = s - (v.f ? 1 : 0);
+   var rows = [['Taux annuel d’AVC (Lip 2010)', fmt(rate,1) + ' %/an']];
+   if(male >= 2) return R('crit', s, '/ 9', 'Anticoagulation recommandée', cls('I') + 'Anticoagulant oral recommandé (homme ≥ 2, femme ≥ 3).', rows, {meter:s/9});
+   if(male === 1) return R('warn', s, '/ 9', 'Anticoagulation à envisager', cls('IIa') + 'À envisager (homme = 1, femme = 2).', rows, {meter:s/9});
+   return R('ok', s, '/ 9', 'Risque faible', 'Pas d’anticoagulation (homme = 0, femme = 1).', rows, {meter:s/9}); },
+ ref:'ESC 2020 – FA ; Lip GYH, Chest 2010'},
+{id:'hasbled', grp:'Fibrillation atriale', name:'HAS-BLED', kw:'saignement hemorragique anticoagulation',
+ desc:'Risque hémorragique sous anticoagulant. Sert à corriger les facteurs modifiables, pas à refuser l’anticoagulation.',
+ inputs:[B('h','HTA non contrôlée', 1, 'PAS > 160 mmHg'), B('r','Insuffisance rénale', 1, 'Dialyse, greffe, créat > 2,26 mg/dL (200 µmol/L)'), B('l','Insuffisance hépatique', 1, 'Cirrhose, bilirubine > 2× N, ASAT/ALAT > 3× N'),
+   B('s','Antécédent d’AVC', 1), B('b','Saignement ou prédisposition', 1, 'Antécédent hémorragique, anémie'), B('i','INR instable', 1, 'TTR < 60 % (sous AVK)'),
+   B('e','Âge > 65 ans', 1), B('d','Médicaments favorisants', 1, 'Antiplaquettaire, AINS'), B('a','Alcool', 1, '≥ 8 verres par semaine')],
+ ex:{h:true, e:true, d:true},
+ calc:function(v){ var s = sumBools(this, v); var rate = [1.13,1.02,1.88,3.74,8.70,12.5,12.5,12.5,12.5,12.5][s];
+   var rows = [['Saignements majeurs (Pisters 2010)', fmt(rate,2) + ' /100 patients-années']];
+   if(s >= 3) return R('crit', s, '/ 9', 'Risque hémorragique élevé', 'Corriger les facteurs modifiables (PA, AINS, alcool, INR) et suivre de plus près. Un score élevé ne contre-indique pas l’anticoagulation à lui seul.', rows, {meter:s/9});
+   return R(s === 2 ? 'warn' : 'ok', s, '/ 9', s === 2 ? 'Risque intermédiaire' : 'Risque faible', 'Rechercher et corriger les facteurs modifiables.', rows, {meter:s/9}); },
+ ref:'Pisters R, Chest 2010 ; ESC 2024 – FA'},
+
+/* ===== SCA ===== */
+{id:'grace', grp:'Syndrome coronarien aigu', name:'GRACE (hospitalier)', kw:'sca nstemi mortalite strategie invasive', units:true,
+ desc:'Score de risque GRACE (mortalité hospitalière). Un score > 140 est un critère de haut risque des NSTE-SCA.',
+ inputs:[N('age','Âge','ans',68,{min:18,max:110}), N('hr','Fréquence cardiaque','bpm',92,{min:20,max:250}), N('sbp','PA systolique','mmHg',118,{min:40,max:280}),
+   N('cr','Créatinine',null,1.4,{kind:'creat',min:0.2,max:15}),
+   S('killip','Classe Killip',[{v:'1',label:'I'},{v:'2',label:'II'},{v:'3',label:'III'},{v:'4',label:'IV'}]),
+   B('arrest','Arrêt cardiaque à l’admission', 0), B('st','Sous-décalage ou déviation du ST', 0), B('enz','Troponine élevée', 0)],
+ ex:{killip:'2', st:true, enz:true},
+ calc:function(v){
+   var a = v.age, p = 0;
+   p += a < 30 ? 0 : a < 40 ? 8 : a < 50 ? 25 : a < 60 ? 41 : a < 70 ? 58 : a < 80 ? 75 : a < 90 ? 91 : 100;
+   var hr = v.hr; p += hr < 50 ? 0 : hr < 70 ? 3 : hr < 90 ? 9 : hr < 110 ? 15 : hr < 150 ? 24 : hr < 200 ? 38 : 46;
+   var s = v.sbp; p += s < 80 ? 58 : s < 100 ? 53 : s < 120 ? 43 : s < 140 ? 34 : s < 160 ? 24 : s < 200 ? 10 : 0;
+   var c = v.cr; p += c < 0.4 ? 1 : c < 0.8 ? 4 : c < 1.2 ? 7 : c < 1.6 ? 10 : c < 2 ? 13 : c < 4 ? 21 : 28;
+   p += {1:0, 2:20, 3:39, 4:59}[v.killip]; if(v.arrest) p += 39; if(v.st) p += 28; if(v.enz) p += 14;
+   if([a,hr,s,c].some(isNaN)) return null;
+   var mort = interp([[0,0.1],[60,0.2],[70,0.3],[80,0.4],[90,0.6],[100,0.8],[110,1.1],[120,1.6],[130,2.1],[140,2.9],[150,3.9],[160,5.4],[170,7.3],[180,9.8],[190,13],[200,18],[210,23],[220,29],[230,36],[240,44],[250,52]], p);
+   var rows = [['Mortalité hospitalière estimée', (p >= 250 ? '≥ ' : '') + fmt(mort, 1) + ' %']];
+   if(p > 140) return R('crit', p, 'points', 'Haut risque', cls('IIa') + 'Stratégie invasive précoce (< 24 h) à envisager. Si critère de très haut risque (instabilité, douleur réfractaire, arythmie, ICA) : coronarographie immédiate (< 2 h).', rows, {meter:p/300});
+   if(p > 108) return R('warn', p, 'points', 'Risque intermédiaire', 'Stratégie invasive pendant l’hospitalisation ; réévaluer selon l’ECG, la troponine et les symptômes.', rows, {meter:p/300});
+   return R('ok', p, 'points', 'Risque faible', 'Stratégie invasive sélective selon les tests non invasifs et l’évolution clinique.', rows, {meter:p/300}); },
+ ref:'Granger CB, Arch Intern Med 2003 ; ESC 2023 – SCA'},
+{id:'timinste', grp:'Syndrome coronarien aigu', name:'TIMI NSTE-SCA', kw:'sca nstemi angor instable',
+ desc:'Risque de décès, d’IDM ou de revascularisation urgente à 14 jours.',
+ inputs:[B('a','Âge ≥ 65 ans'), B('rf','≥ 3 facteurs de risque CV', 1, 'HTA, dyslipidémie, diabète, tabac, hérédité'), B('cad','Coronaropathie connue', 1, 'Sténose ≥ 50 %'),
+   B('asa','Aspirine dans les 7 derniers jours'), B('ang','≥ 2 épisodes angineux en 24 h'), B('st','Déviation du ST ≥ 0,5 mm'), B('mk','Marqueurs cardiaques élevés')],
+ ex:{a:true, rf:true, ang:true, mk:true},
+ calc:function(v){ var s = sumBools(this, v); var r = [4.7,4.7,8.3,13.2,19.9,26.2,40.9,40.9][s];
+   var rows = [['Événement à 14 jours', fmt(r,1) + ' %']];
+   return R(s >= 5 ? 'crit' : s >= 3 ? 'warn' : 'ok', s, '/ 7', s >= 5 ? 'Risque élevé' : s >= 3 ? 'Risque intermédiaire' : 'Risque faible', s >= 3 ? 'Bénéfice d’une stratégie invasive précoce démontré à partir d’un score ≥ 3.' : 'Stratégie guidée par les tests non invasifs.', rows, {meter:s/7}); },
+ ref:'Antman EM, JAMA 2000'},
+{id:'timistemi', grp:'Syndrome coronarien aigu', name:'TIMI STEMI', kw:'sca stemi mortalite',
+ desc:'Mortalité à 30 jours des STEMI éligibles à une reperfusion.',
+ inputs:[S('age','Âge',[{v:'<65',label:'< 65',pts:0},{v:'65-74',label:'65–74',pts:2},{v:'≥75',label:'≥ 75',pts:3}]),
+   B('hx','Diabète, HTA ou angor', 1), B('sbp','PAS < 100 mmHg', 3), B('hr','FC > 100 bpm', 2), B('k','Killip II à IV', 2), B('w','Poids < 67 kg', 1),
+   B('ant','Sus-décalage antérieur ou BBG', 1), B('t','Délai de traitement > 4 h', 1)],
+ ex:{age:'65-74', hx:true, ant:true},
+ calc:function(v){ var s = sumBools(this, v); var r = [0.8,1.6,2.2,4.4,7.3,12.4,16.1,23.4,26.8,35.9][Math.min(9, s)];
+   return R(s >= 5 ? 'crit' : s >= 3 ? 'warn' : 'ok', s, '/ 14', s >= 5 ? 'Risque élevé' : s >= 3 ? 'Risque intermédiaire' : 'Risque faible', 'Reperfusion sans délai quel que soit le score ; il aide à l’orientation (USIC, transfert) et à l’information du patient.', [['Mortalité à 30 jours', (s > 8 ? '' : '') + fmt(r,1) + ' %']], {meter:s/14}); },
+ ref:'Morrow DA, Circulation 2000'},
+{id:'heart', grp:'Syndrome coronarien aigu', name:'HEART', kw:'douleur thoracique urgences mace',
+ desc:'Douleur thoracique aux urgences : risque d’événement cardiaque majeur (MACE) à 6 semaines.',
+ inputs:[S('h','Histoire',[{v:'0',label:'Peu suspecte',pts:0},{v:'1',label:'Modérément',pts:1},{v:'2',label:'Très suspecte',pts:2}],null,true),
+   S('e','ECG',[{v:'0',label:'Normal',pts:0},{v:'1',label:'Repol. non spécifique',pts:1},{v:'2',label:'Sous-décalage ST',pts:2}],null,true),
+   S('a','Âge',[{v:'0',label:'< 45',pts:0},{v:'1',label:'45–64',pts:1},{v:'2',label:'≥ 65',pts:2}]),
+   S('r','Facteurs de risque',[{v:'0',label:'Aucun',pts:0},{v:'1',label:'1–2',pts:1},{v:'2',label:'≥ 3 ou athérome',pts:2}]),
+   S('t','Troponine',[{v:'0',label:'≤ N',pts:0},{v:'1',label:'1–3 × N',pts:1},{v:'2',label:'> 3 × N',pts:2}],null,true)],
+ ex:{h:'1', e:'1', a:'1', r:'1', t:'0'},
+ calc:function(v){ var s = sumBools(this, v);
+   if(s <= 3) return R('ok', s, '/ 10', 'Risque faible', 'MACE 0,9–1,7 %. Sortie précoce envisageable avec suivi ambulatoire.', [['MACE à 6 semaines', '≈ 1,7 %']], {meter:s/10});
+   if(s <= 6) return R('warn', s, '/ 10', 'Risque modéré', 'MACE 12–16,6 %. Observation, troponines répétées, test d’ischémie ou coroscanner.', [['MACE à 6 semaines', '≈ 16,6 %']], {meter:s/10});
+   return R('crit', s, '/ 10', 'Risque élevé', 'MACE 50–65 %. Prise en charge invasive précoce.', [['MACE à 6 semaines', '≈ 50–65 %']], {meter:s/10}); },
+ ref:'Six AJ, Neth Heart J 2008 ; Backus BE, Int J Cardiol 2013'},
+{id:'killip', grp:'Syndrome coronarien aigu', name:'Classification Killip', kw:'stemi insuffisance cardiaque choc',
+ desc:'Gravité clinique de l’insuffisance cardiaque à la phase aiguë de l’infarctus.',
+ inputs:[S('k','Classe',[{v:'1',label:'I – pas de signe d’IC'},{v:'2',label:'II – crépitants, B3, turgescence jugulaire'},{v:'3',label:'III – œdème aigu du poumon'},{v:'4',label:'IV – choc cardiogénique'}],'1',true)],
+ ex:{k:'2'},
+ calc:function(v){ var k = +v.k; var m = [6,17,38,81][k-1], mm = ['2–3','5–9','15–20','40–50'][k-1];
+   return R(k >= 3 ? 'crit' : k === 2 ? 'warn' : 'ok', ['I','II','III','IV'][k-1], 'classe', ['Pas d’insuffisance cardiaque','IC modérée','Œdème aigu du poumon','Choc cardiogénique'][k-1],
+     k === 4 ? 'Revascularisation immédiate de l’artère coupable, soutien inotrope ; discuter une assistance circulatoire en centre expert.' : k === 3 ? 'Oxygène, diurétiques IV, vasodilatateurs si PA le permet ; écho en urgence.' : 'Reperfusion selon la stratégie habituelle.',
+     [['Mortalité historique (Killip 1967)', m + ' %'], ['Mortalité à l’ère de l’ICP (approx.)', mm + ' %']], {meter:k/4}); },
+ ref:'Killip T, Am J Cardiol 1967'},
+{id:'crusade', grp:'Syndrome coronarien aigu', name:'CRUSADE', kw:'saignement nstemi hemorragie', units:true,
+ desc:'Risque de saignement majeur hospitalier dans les NSTE-SCA.',
+ inputs:[N('hct','Hématocrite','%',36,{min:10,max:70}), N('age','Âge','ans',72,{min:18,max:110}), N('wt','Poids','kg',64,{min:30,max:250}), N('cr','Créatinine',null,1.3,{kind:'creat',min:0.2,max:15}),
+   N('hr','Fréquence cardiaque','bpm',96,{min:20,max:250}), N('sbp','PA systolique','mmHg',112,{min:40,max:280}),
+   SEX, B('chf','Signes d’IC à l’admission', 0), B('vasc','Maladie vasculaire antérieure', 0, 'AOMI ou AVC'), B('dm','Diabète', 0)],
+ ex:{sex:'F', dm:true},
+ calc:function(v){
+   var cc = cockcroft(v.age, v.wt, v.cr, v.sex === 'F'); if([v.hct, cc, v.hr, v.sbp].some(isNaN)) return null;
+   var p = 0, x = v.hct; p += x < 31 ? 9 : x < 34 ? 7 : x < 37 ? 3 : x < 40 ? 2 : 0;
+   p += cc <= 15 ? 39 : cc <= 30 ? 35 : cc <= 60 ? 28 : cc <= 90 ? 17 : cc <= 120 ? 7 : 0;
+   x = v.hr; p += x <= 70 ? 0 : x <= 80 ? 1 : x <= 90 ? 3 : x <= 100 ? 6 : x <= 110 ? 8 : x <= 120 ? 10 : 11;
+   if(v.sex === 'F') p += 8; if(v.chf) p += 7; if(v.vasc) p += 6; if(v.dm) p += 6;
+   x = v.sbp; p += x <= 90 ? 10 : x <= 100 ? 8 : x <= 120 ? 5 : x <= 180 ? 1 : x <= 200 ? 3 : 5;
+   var cat = p <= 20 ? ['Très faible', 3.1, 'ok'] : p <= 30 ? ['Faible', 5.5, 'ok'] : p <= 40 ? ['Modéré', 8.6, 'warn'] : p <= 50 ? ['Élevé', 11.9, 'crit'] : ['Très élevé', 19.5, 'crit'];
+   return R(cat[2], p, 'points', 'Risque hémorragique ' + cat[0].toLowerCase(), 'Privilégier l’abord radial, ajuster les doses d’anticoagulant à la fonction rénale, IPP sous double antiagrégation.', [['Saignement majeur hospitalier', fmt(cat[1],1) + ' %'], ['Clairance (Cockcroft-Gault)', fmt(cc) + ' mL/min']], {meter:p/100}); },
+ ref:'Subherwal S, Circulation 2009'},
+{id:'archbr', grp:'Syndrome coronarien aigu', name:'ARC-HBR', kw:'saignement dapt double antiagregation angioplastie',
+ desc:'Haut risque hémorragique après angioplastie : ≥ 1 critère majeur ou ≥ 2 critères mineurs. Guide la durée de la double antiagrégation.',
+ inputs:[
+   B('M1','Anticoagulation orale au long cours', 0, 'Majeur'), B('M2','IRC sévère ou terminale', 0, 'Majeur · DFG < 30'), B('M3','Hémoglobine < 11 g/dL', 0, 'Majeur'),
+   B('M4','Saignement spontané récent', 0, 'Majeur · hospitalisation ou transfusion < 6 mois, ou récidivant'), B('M5','Thrombopénie < 100 G/L', 0, 'Majeur'), B('M6','Diathèse hémorragique chronique', 0, 'Majeur'),
+   B('M7','Cirrhose avec hypertension portale', 0, 'Majeur'), B('M8','Cancer actif (< 12 mois)', 0, 'Majeur'), B('M9','AVC hémorragique ou MAV cérébrale', 0, 'Majeur'),
+   B('M10','AVC ischémique modéré à sévère < 6 mois', 0, 'Majeur'), B('M11','Chirurgie majeure non différable', 0, 'Majeur · sous double antiagrégation'),
+   B('m1','Âge ≥ 75 ans', 0, 'Mineur'), B('m2','IRC modérée', 0, 'Mineur · DFG 30–59'), B('m3','Hb 11–12,9 g/dL (H) ou 11–11,9 (F)', 0, 'Mineur'),
+   B('m4','Saignement < 12 mois non majeur', 0, 'Mineur'), B('m5','AINS ou corticoïdes au long cours', 0, 'Mineur'), B('m6','AVC ischémique ancien', 0, 'Mineur')],
+ ex:{m1:true, m2:true},
+ calc:function(v){ var M = 0, m = 0; for(var k in v){ if(v[k] === true){ if(/^M/.test(k)) M++; else if(/^m/.test(k)) m++; } }
+   var hbr = M >= 1 || m >= 2;
+   return R(hbr ? 'crit' : 'ok', hbr ? 'HBR' : 'Non', '', hbr ? 'Haut risque hémorragique' : 'Pas de haut risque hémorragique',
+     hbr ? cls('IIa') + 'Double antiagrégation courte : 1 mois (SCC) à 3 mois (SCA), puis monothérapie. Abord radial, IPP.' : 'Double antiagrégation standard (12 mois après SCA, 6 mois après SCC).',
+     [['Critères majeurs', M], ['Critères mineurs', m]]); },
+ ref:'Urban P, Circulation 2019 ; ESC 2023 – SCA'},
+
+/* ===== Prévention ===== */
+{id:'score2', grp:'Prévention', name:'SCORE2 / SCORE2-OP', kw:'prevention primaire risque cardiovasculaire statine', units:true,
+ desc:'Risque d’événement CV fatal ou non fatal à 10 ans, sans maladie CV ni diabète. Au-delà de 70 ans, SCORE2-OP est utilisé automatiquement.',
+ inputs:[SEX, N('age','Âge','ans',58,{min:40,max:89}), B('smoker','Tabagisme actif', 0), N('sbp','PA systolique','mmHg',148,{min:80,max:240}),
+   N('tc','Cholestérol total',null,230,{kind:'chol',min:60,max:500}), N('hdl','HDL-cholestérol',null,42,{kind:'chol',min:15,max:150}),
+   B('diabetes','Diabète (SCORE2-OP seulement)', 0, 'Pour les moins de 70 ans, utiliser SCORE2-Diabetes'), REGION],
+ ex:{sex:'M', smoker:true},
+ calc:function(v){
+   if([v.age, v.sbp, v.tc, v.hdl].some(isNaN)) return null;
+   var o = {female:v.sex === 'F', age:v.age, smoker:v.smoker, sbp:v.sbp, tc:v.tc/38.67, hdl:v.hdl/38.67, region:v.region, diabetes:v.diabetes};
+   var op = v.age >= 70, r = (op ? score2op(o) : score2(o)) * 100;
+   var t = v.age < 50 ? [2.5, 7.5] : v.age < 70 ? [5, 10] : [7.5, 15];
+   var lvl = r >= t[1] ? 'crit' : r >= t[0] ? 'warn' : 'ok';
+   var title = r >= t[1] ? 'Risque très élevé' : r >= t[0] ? 'Risque élevé' : 'Risque faible à modéré';
+   var rec = r >= t[1] ? cls('I') + 'Traitement des facteurs de risque recommandé. Objectif LDL < 1,8 mmol/L (70 mg/dL) au minimum, < 1,4 mmol/L (55 mg/dL) à envisager.' :
+     r >= t[0] ? cls('IIa') + 'Traitement des facteurs de risque à envisager selon les modificateurs de risque, la fragilité et les préférences du patient.' : 'Le traitement des facteurs de risque n’est généralement pas recommandé, sauf modificateurs de risque.';
+   var rows = [['Modèle', op ? 'SCORE2-OP (≥ 70 ans)' : 'SCORE2 (40–69 ans)'], ['Seuils pour cet âge', '< ' + fmt(t[0],1) + ' % · ' + fmt(t[0],1) + '–' + fmt(t[1],1) + ' % · ≥ ' + fmt(t[1],1) + ' %'], ['Non-HDL', fmt(CS.fromMgdl('chol', v.tc - v.hdl), CS.units() === 'si' ? 1 : 0) + ' ' + CS.unitLabel('chol')]];
+   if(v.diabetes && !op) rows.push(['Attention', 'Diabète : utiliser SCORE2-Diabetes']);
+   return R(lvl, fmt(r, 1), '%', title, rec, rows, {meter:Math.min(1, r/(t[1]*1.6)), note:'Région « élevé » par défaut pour la Tunisie, à adapter.'}); },
+ ref:'SCORE2 Working Group, Eur Heart J 2021 ; SCORE2-OP, Eur Heart J 2021 ; ESC 2021 – Prévention'},
+{id:'score2dm', grp:'Prévention', name:'SCORE2-Diabetes', kw:'diabete prevention risque cardiovasculaire', units:true,
+ desc:'Risque CV à 10 ans chez le diabétique de type 2 de 40 à 69 ans, sans maladie CV ni atteinte d’organe sévère.',
+ inputs:[SEX, N('age','Âge','ans',56,{min:40,max:69}), B('smoker','Tabagisme actif', 0), N('sbp','PA systolique','mmHg',138,{min:80,max:240}),
+   N('tc','Cholestérol total',null,205,{kind:'chol',min:60,max:500}), N('hdl','HDL-cholestérol',null,40,{kind:'chol',min:15,max:150}),
+   N('agediab','Âge au diagnostic du diabète','ans',48,{min:15,max:69}), N('a1c','HbA1c','%',7.8,{min:4,max:16,hint:'En % (DCCT) ; converti en mmol/mol'}), N('egfr','DFG (CKD-EPI)','mL/min/1,73 m²',82,{min:10,max:150}), REGION],
+ ex:{sex:'M'},
+ calc:function(v){
+   if([v.age, v.sbp, v.tc, v.hdl, v.agediab, v.a1c, v.egfr].some(isNaN)) return null;
+   var a1cmm = (v.a1c - 2.15) * 10.929;
+   var r = score2dm({female:v.sex === 'F', age:v.age, smoker:v.smoker, sbp:v.sbp, tc:v.tc/38.67, hdl:v.hdl/38.67, agediab:v.agediab, a1c:a1cmm, egfr:v.egfr, region:v.region}) * 100;
+   var lvl = r >= 20 ? 'crit' : r >= 10 ? 'crit' : r >= 5 ? 'warn' : 'ok';
+   var title = r >= 20 ? 'Risque très élevé' : r >= 10 ? 'Risque élevé' : r >= 5 ? 'Risque modéré' : 'Risque faible';
+   return R(lvl, fmt(r, 1), '%', title, (r >= 10 ? cls('IIa') + 'Envisager un iSGLT2 ou un aGLP-1 à bénéfice CV démontré, indépendamment de l’HbA1c. ' : '') + 'Objectif LDL : ' + (r >= 20 ? '< 1,4 mmol/L (55 mg/dL)' : r >= 10 ? '< 1,8 mmol/L (70 mg/dL)' : '< 2,6 mmol/L (100 mg/dL)') + '.',
+     [['HbA1c', fmt(a1cmm, 0) + ' mmol/mol'], ['Catégories', '< 5 · 5–10 · 10–20 · ≥ 20 %']], {meter:Math.min(1, r/30)}); },
+ ref:'SCORE2-Diabetes Working Group, Eur Heart J 2023 ; ESC 2023 – Diabète'},
+{id:'ascvd', grp:'Prévention', name:'ASCVD (PCE)', kw:'aha acc prevention 10 ans statine pooled cohort', units:true,
+ desc:'Pooled Cohort Equations AHA/ACC : risque d’événement athéroscléreux à 10 ans, 40–79 ans. Référence américaine, donnée à titre de comparaison.',
+ inputs:[SEX, S('race','Équation',[{v:'w',label:'Blanc / autre'},{v:'aa',label:'Afro-américain'}]), N('age','Âge','ans',55,{min:40,max:79}),
+   N('tc','Cholestérol total',null,213,{kind:'chol',min:60,max:500}), N('hdl','HDL-cholestérol',null,50,{kind:'chol',min:15,max:150}), N('sbp','PA systolique','mmHg',120,{min:80,max:240}),
+   B('treated','HTA traitée', 0), B('diabetes','Diabète', 0), B('smoker','Tabagisme actif', 0)],
+ ex:{sex:'F'},
+ calc:function(v){
+   if([v.age, v.tc, v.hdl, v.sbp].some(isNaN)) return null;
+   var r = pce({female:v.sex === 'F', aa:v.race === 'aa', age:v.age, tc:v.tc, hdl:v.hdl, sbp:v.sbp, treated:v.treated, diabetes:v.diabetes, smoker:v.smoker}) * 100;
+   var lvl = r >= 20 ? 'crit' : r >= 7.5 ? 'warn' : r >= 5 ? 'info' : 'ok';
+   var title = r >= 20 ? 'Risque élevé' : r >= 7.5 ? 'Risque intermédiaire' : r >= 5 ? 'Risque limite' : 'Risque faible';
+   return R(lvl, fmt(r, 1), '%', title, r >= 20 ? 'Statine de haute intensité (AHA/ACC 2018).' : r >= 7.5 ? 'Statine d’intensité modérée si facteurs aggravants ; score calcique coronaire si doute.' : r >= 5 ? 'Discussion des facteurs aggravants.' : 'Mesures hygiéno-diététiques.', [['Catégories AHA', '< 5 · 5–7,5 · 7,5–20 · ≥ 20 %']], {meter:Math.min(1, r/30)}); },
+ ref:'Goff DC, Circulation 2014 ; AHA/ACC 2018 – Cholestérol'},
+{id:'ptp', grp:'Prévention', name:'Probabilité pré-test (SCC)', kw:'syndrome coronarien chronique angor test ischemie coroscanner',
+ desc:'Probabilité clinique de coronaropathie obstructive selon l’âge, le sexe et les symptômes (tableau ESC 2019).',
+ inputs:[SEX, S('age','Âge',[{v:'0',label:'30–39'},{v:'1',label:'40–49'},{v:'2',label:'50–59'},{v:'3',label:'60–69'},{v:'4',label:'≥ 70'}], '2', true),
+   S('sym','Symptômes',[{v:'t',label:'Angor typique'},{v:'a',label:'Atypique'},{v:'n',label:'Non angineux'},{v:'d',label:'Dyspnée'}], 't', true)],
+ ex:{sex:'M', age:'3', sym:'a'},
+ calc:function(v){
+   var T = {t:{M:[3,22,32,44,52], F:[5,10,13,16,27]}, a:{M:[4,10,17,26,34], F:[3,6,6,11,19]}, n:{M:[1,3,11,22,24], F:[1,2,3,6,10]}, d:{M:[0,12,20,27,32], F:[3,3,9,14,12]}};
+   var p = T[v.sym][v.sex][+v.age];
+   if(p > 15) return R('crit', p, '%', 'Probabilité > 15 %', cls('I') + 'Test non invasif recommandé : coroscanner si probabilité basse à intermédiaire, imagerie fonctionnelle si plus élevée.', [], {meter:p/60});
+   if(p >= 5) return R('warn', p, '%', 'Probabilité 5–15 %', cls('IIb') + 'Test diagnostique à envisager selon la vraisemblance clinique (facteurs de risque, ECG, calcifications).', [], {meter:p/60});
+   return R('ok', p, '%', 'Probabilité < 5 %', 'Rechercher une autre cause ; test seulement pour raison impérieuse.', [], {meter:p/60}); },
+ ref:'ESC 2019 – Syndromes coronariens chroniques (Knuuti et al.). ESC 2024 propose le modèle RF-CL.'},
+{id:'duke', grp:'Prévention', name:'Score de Duke (épreuve d’effort)', kw:'epreuve effort tapis bruce ischemie',
+ desc:'Pronostic après une épreuve d’effort sur tapis (protocole de Bruce).',
+ inputs:[N('t','Durée d’exercice','min',7,{min:0,max:25}), N('st','Sous-décalage ST maximal','mm',1.5,{min:0,max:10}),
+   S('ang','Angor pendant l’effort',[{v:'0',label:'Aucun'},{v:'1',label:'Non limitant'},{v:'2',label:'Limitant'}], '1', true)],
+ ex:{ang:'1'},
+ calc:function(v){ if([v.t, v.st].some(isNaN)) return null;
+   var s = v.t - 5*v.st - 4*(+v.ang);
+   if(s >= 5) return R('ok', fmt(s,1), '', 'Faible risque', 'Mortalité annuelle ≈ 0,25 %. Traitement médical.', [['Survie à 4 ans', '99 %']], {meter:0.15});
+   if(s > -11) return R('warn', fmt(s,1), '', 'Risque intermédiaire', 'Mortalité annuelle ≈ 1,25 %. Imagerie de stress ou coroscanner.', [['Survie à 4 ans', '95 %']], {meter:0.55});
+   return R('crit', fmt(s,1), '', 'Haut risque', 'Mortalité annuelle ≈ 5 %. Coronarographie.', [['Survie à 4 ans', '79 %']], {meter:0.95}); },
+ ref:'Mark DB, N Engl J Med 1991'},
+
+/* ===== Insuffisance cardiaque ===== */
+{id:'h2fpef', grp:'Insuffisance cardiaque', name:'H₂FPEF', kw:'icfep fe preservee dyspnee diagnostic',
+ desc:'Probabilité d’IC à FE préservée devant une dyspnée inexpliquée avec FEVG ≥ 50 %.',
+ inputs:[B('h1','IMC > 30 kg/m²', 2, 'Heavy'), B('h2','≥ 2 antihypertenseurs', 1, 'Hypertensive'), B('f','Fibrillation atriale', 3, 'Paroxystique ou permanente'),
+   B('p','PAPs > 35 mmHg à l’écho', 1, 'Pulmonary hypertension'), B('e','Âge > 60 ans', 1, 'Elder'), B('fi','E/e′ moyen > 9', 1, 'Filling pressure')],
+ ex:{h1:true, h2:true, e:true, fi:true},
+ calc:function(v){ var s = sumBools(this, v); var pr = [25,40,55,68,78,86,92,95,97,98][s];
+   if(s >= 6) return R('crit', s, '/ 9', 'ICFEp probable', 'Probabilité > 90 %. Diagnostic retenu sans test supplémentaire.', [['Probabilité estimée', '≈ ' + pr + ' %']], {meter:s/9});
+   if(s >= 2) return R('warn', s, '/ 9', 'Probabilité intermédiaire', 'Compléter : NT-proBNP, écho d’effort diastolique ou cathétérisme d’effort.', [['Probabilité estimée', '≈ ' + pr + ' %']], {meter:s/9});
+   return R('ok', s, '/ 9', 'ICFEp peu probable', 'Rechercher une autre cause de dyspnée.', [['Probabilité estimée', '≈ ' + pr + ' %']], {meter:s/9}); },
+ ref:'Reddy YNV, Circulation 2018'},
+{id:'hfapeff', grp:'Insuffisance cardiaque', name:'HFA-PEFF', kw:'icfep fe preservee diagnostic echo bnp',
+ desc:'Étape 2 de l’algorithme HFA : trois domaines notés 0, 1 (mineur) ou 2 (majeur). Total sur 6.',
+ inputs:[S('rhythm','Rythme',[{v:'sr',label:'Sinusal'},{v:'af',label:'Fibrillation atriale'}], 'sr', true),
+   B('fM','e′ septal < 7 ou latéral < 10 cm/s, ou E/e′ ≥ 15, ou Vmax IT > 2,8 m/s', 0, 'Fonctionnel · majeur (seuils e′ selon l’âge)'),
+   B('fm','E/e′ 9–14 ou SLG < 16 %', 0, 'Fonctionnel · mineur'),
+   B('mM','OG dilatée (VOGi > 34 mL/m² en sinusal, > 40 en FA) ou HVG concentrique', 0, 'Morphologique · majeur'),
+   B('mm','VOGi 29–34 (sinusal) ou 34–40 (FA), HVG, SIV ou paroi ≥ 12 mm', 0, 'Morphologique · mineur'),
+   B('bM','NT-proBNP > 220 pg/mL (sinusal) ou > 660 (FA)', 0, 'Biomarqueur · majeur'),
+   B('bm','NT-proBNP 125–220 (sinusal) ou 365–660 (FA)', 0, 'Biomarqueur · mineur')],
+ ex:{fm:true, mM:true, bM:true},
+ calc:function(v){ var f = v.fM ? 2 : v.fm ? 1 : 0, m = v.mM ? 2 : v.mm ? 1 : 0, b = v.bM ? 2 : v.bm ? 1 : 0, s = f + m + b;
+   var rows = [['Fonctionnel', f], ['Morphologique', m], ['Biomarqueur', b]];
+   if(s >= 5) return R('crit', s, '/ 6', 'ICFEp confirmée', 'Diagnostic retenu. Étape 4 : rechercher l’étiologie (amylose, CMH, valvulopathie…).', rows, {meter:s/6});
+   if(s >= 2) return R('warn', s, '/ 6', 'Zone intermédiaire', 'Étape 3 : écho d’effort diastolique ou mesures hémodynamiques invasives.', rows, {meter:s/6});
+   return R('ok', s, '/ 6', 'ICFEp peu probable', 'Rechercher une autre cause.', rows, {meter:s/6}); },
+ ref:'Pieske B, Eur Heart J 2019'},
+
+/* ===== Chirurgie ===== */
+{id:'euroscore', grp:'Chirurgie cardiaque', name:'EuroSCORE II', kw:'chirurgie cardiaque mortalite operatoire tavi heart team', units:true,
+ desc:'Mortalité opératoire prédite en chirurgie cardiaque (modèle logistique).',
+ inputs:[N('age','Âge','ans',78,{min:18,max:100}), SEX, N('wt','Poids','kg',70,{min:30,max:200}), N('cr','Créatinine',null,1.2,{kind:'creat',min:0.2,max:15}), B('dial','Dialyse', 0),
+   B('art','Artériopathie extracardiaque', 0), B('mob','Mobilité réduite', 0, 'Séquelle neurologique ou musculo-squelettique'), B('redo','Chirurgie cardiaque antérieure', 0),
+   B('lung','BPCO', 0, 'Bronchodilatateurs ou corticoïdes au long cours'), B('endo','Endocardite active', 0), B('crit','État critique préopératoire', 0, 'TV/FV, massage, ventilation, inotropes, BPIA, IRA'),
+   B('ins','Diabète insulinotraité', 0),
+   S('nyha','NYHA',[{v:'1',label:'I'},{v:'2',label:'II'},{v:'3',label:'III'},{v:'4',label:'IV'}]), B('ccs4','Angor CCS 4', 0),
+   S('lv','FEVG',[{v:'g',label:'> 50 %'},{v:'m',label:'31–50 %'},{v:'p',label:'21–30 %'},{v:'vp',label:'≤ 20 %'}], 'g', true),
+   B('mi','IDM récent (< 90 jours)', 0), S('pa','PAPs',[{v:'n',label:'< 31'},{v:'m',label:'31–55'},{v:'s',label:'≥ 55 mmHg'}]),
+   S('urg','Urgence',[{v:'e',label:'Programmée'},{v:'u',label:'Urgente'},{v:'em',label:'Urgence'},{v:'s',label:'Sauvetage'}], 'e', true),
+   S('wt_int','Type d’intervention',[{v:'0',label:'PAC isolé'},{v:'1',label:'1 geste non-PAC'},{v:'2',label:'2 gestes'},{v:'3',label:'3 gestes ou +'}], '1', true),
+   B('aorta','Chirurgie de l’aorte thoracique', 0)],
+ ex:{sex:'F', nyha:'3', lv:'m', pa:'m'},
+ calc:function(v){
+   if([v.age, v.wt, v.cr].some(isNaN)) return null;
+   var cc = cockcroft(v.age, v.wt, v.cr, v.sex === 'F'), y = -5.324537;
+   y += 0.0285181 * Math.max(1, v.age - 59);
+   if(v.sex === 'F') y += 0.2196434;
+   if(v.dial) y += 0.6421508; else if(cc < 50) y += 0.8592256; else if(cc <= 85) y += 0.303553;
+   if(v.art) y += 0.5360268; if(v.mob) y += 0.2407181; if(v.redo) y += 1.118599; if(v.lung) y += 0.1886564; if(v.endo) y += 0.6194522; if(v.crit) y += 1.086517; if(v.ins) y += 0.3542749;
+   y += {1:0, 2:0.1070545, 3:0.2958358, 4:0.5597929}[v.nyha]; if(v.ccs4) y += 0.2226147;
+   y += {g:0, m:0.3150652, p:0.8084096, vp:0.9346919}[v.lv]; if(v.mi) y += 0.1528943;
+   y += {n:0, m:0.1788899, s:0.3491475}[v.pa]; y += {e:0, u:0.3174673, em:0.7039121, s:1.362947}[v.urg];
+   y += {0:0, 1:0.0062118, 2:0.5521478, 3:0.9724533}[v.wt_int]; if(v.aorta) y += 0.6527205;
+   var m = Math.exp(y) / (1 + Math.exp(y)) * 100;
+   var lvl = m >= 8 ? 'crit' : m >= 4 ? 'warn' : 'ok';
+   return R(lvl, fmt(m, 2), '%', m >= 8 ? 'Risque opératoire élevé' : m >= 4 ? 'Risque intermédiaire' : 'Risque faible',
+     'À intégrer dans la décision de la Heart Team avec la fragilité, l’anatomie et l’espérance de vie (ex. TAVI ou chirurgie).', [['Clairance (Cockcroft-Gault)', v.dial ? 'dialyse' : fmt(cc) + ' mL/min']], {meter:Math.min(1, m/20)}); },
+ ref:'Nashef SAM, Eur J Cardiothorac Surg 2012'},
+
+/* ===== Embolie pulmonaire ===== */
+{id:'wells', grp:'Embolie pulmonaire', name:'Wells (EP)', kw:'embolie pulmonaire probabilite clinique d-dimeres',
+ desc:'Probabilité clinique d’embolie pulmonaire.',
+ inputs:[B('dvt','Signes cliniques de TVP', 3), B('alt','Diagnostic alternatif moins probable que l’EP', 3), B('hr','FC > 100 bpm', 1.5),
+   B('imm','Immobilisation ≥ 3 j ou chirurgie < 4 semaines', 1.5), B('prev','Antécédent de TVP ou d’EP', 1.5), B('hem','Hémoptysie', 1), B('ca','Cancer actif', 1)],
+ ex:{alt:true, hr:true},
+ calc:function(v){ var s = sumBools(this, v);
+   var three = s > 6 ? 'élevée' : s >= 2 ? 'intermédiaire' : 'faible';
+   if(s > 4) return R('crit', fmt(s,1), 'points', 'EP probable', 'Angioscanner thoracique d’emblée (D-dimères inutiles). Anticoagulation en attendant si pas de risque hémorragique majeur.', [['Probabilité (3 niveaux)', three]], {meter:Math.min(1, s/12.5)});
+   return R('ok', fmt(s,1), 'points', 'EP peu probable', 'D-dimères (seuil ajusté à l’âge après 50 ans : âge × 10 µg/L). Négatifs : EP exclue. Positifs : angioscanner.', [['Probabilité (3 niveaux)', three]], {meter:s/12.5}); },
+ ref:'Wells PS, Thromb Haemost 2000 ; ESC 2019 – Embolie pulmonaire'},
+{id:'spesi', grp:'Embolie pulmonaire', name:'sPESI', kw:'embolie pulmonaire gravite pronostic ambulatoire',
+ desc:'Pronostic à 30 jours de l’EP confirmée, sans état de choc.',
+ inputs:[B('age','Âge > 80 ans'), B('ca','Cancer'), B('cp','Insuffisance cardiaque ou respiratoire chronique'), B('hr','FC ≥ 110 bpm'), B('sbp','PAS < 100 mmHg'), B('sat','SaO₂ < 90 %')],
+ ex:{hr:true},
+ calc:function(v){ var s = sumBools(this, v);
+   if(s === 0) return R('ok', 0, '/ 6', 'Risque faible', 'Mortalité à 30 jours ≈ 1 %. Prise en charge ambulatoire ou sortie précoce envisageable si VD normal et contexte favorable (critères Hestia).', [['Mortalité à 30 jours', '1,0 %']], {meter:0});
+   return R('warn', s, '/ 6', 'Risque intermédiaire', 'Évaluer le VD (écho ou scanner) et la troponine : VD + troponine positifs = intermédiaire-haut, surveillance en USIC (thrombolyse de sauvetage si dégradation).', [['Mortalité à 30 jours', '10,9 %']], {meter:s/6}); },
+ ref:'Jiménez D, Arch Intern Med 2010 ; ESC 2019 – Embolie pulmonaire'}
+];
+
+/* ---------- Rendu ---------- */
+var state = CS.store.get('scores.vals', {});
+var current = CS.store.get('scores.cur', 'cha2ds2va');
+if(!SCORES.some(function(s){ return s.id === current; })) current = 'cha2ds2va';
+
+function defaults(def, withEx){
+  var v = {};
+  def.inputs.forEach(function(i){ v[i.id] = i.type === 'bool' ? false : i.type === 'num' ? (withEx ? i.def : NaN) : i.def; });
+  if(withEx && def.ex) for(var k in def.ex) v[k] = def.ex[k];
+  return v;
+}
+function vals(def){
+  if(!state[def.id]) state[def.id] = defaults(def, true);
+  var v = state[def.id];
+  def.inputs.forEach(function(i){ if(i.type === 'num' && (v[i.id] == null || typeof v[i.id] !== 'number')) v[i.id] = NaN; if(!(i.id in v)) v[i.id] = i.type === 'bool' ? false : i.def; });
+  return v;
+}
+function save(){ CS.store.set('scores.vals', state); }
+
+function renderNav(){
+  var nav = CS.$('#sc-nav'), q = (CS.$('#sc-q').value || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  nav.innerHTML = ''; var grp = null;
+  SCORES.forEach(function(s){
+    var hay = (s.name + ' ' + s.grp + ' ' + s.kw).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if(q && hay.indexOf(q) < 0) return;
+    if(s.grp !== grp){ grp = s.grp; nav.appendChild(h('div', {class:'grp', text:grp})); }
+    nav.appendChild(h('button', {type:'button', 'aria-current':s.id === current ? 'true' : 'false', onclick:function(){ select(s.id); }}, h('span', {text:s.name})));
+  });
+  var pick = CS.$('#sc-pick'); pick.innerHTML = ''; grp = null; var og;
+  SCORES.forEach(function(s){ if(s.grp !== grp){ grp = s.grp; og = h('optgroup', {label:grp}); pick.appendChild(og); } og.appendChild(h('option', {value:s.id, text:s.name, selected:s.id === current})); });
+}
+function select(id){ current = id; CS.store.set('scores.cur', id); renderNav(); renderScore(); window.scrollTo({top:0}); }
+
+function renderScore(){
+  var def = SCORES.filter(function(s){ return s.id === current; })[0], v = vals(def);
+  CS.$('#sc-grp').textContent = def.grp; CS.$('#sc-title').textContent = def.name; CS.$('#sc-desc').textContent = def.desc;
+  var box = CS.$('#sc-inputs'); box.innerHTML = '';
+  def.inputs.forEach(function(inp){
+    var el;
+    if(inp.type === 'bool'){
+      var cb = h('input', {type:'checkbox', id:'in-' + inp.id});
+      cb.checked = !!v[inp.id];
+      cb.addEventListener('change', function(){ v[inp.id] = cb.checked; save(); renderResult(); });
+      el = h('label', {class:'tog', for:'in-' + inp.id}, cb, h('span', {class:'sw'}), h('span', {class:'t'}, inp.label, inp.sub ? h('small', {text:inp.sub}) : null), inp.pts ? h('span', {class:'pts', text:'+' + fmt(inp.pts, inp.pts % 1 ? 1 : 0)}) : null);
+    } else if(inp.type === 'sel'){
+      var long = inp.options.length > 4 || inp.options.some(function(o){ return o.label.length > 22; });
+      if(long){
+        var sel = h('select', {class:'inp', id:'in-' + inp.id});
+        inp.options.forEach(function(o){ sel.appendChild(h('option', {value:o.v, text:o.label + (o.pts ? '  (+' + o.pts + ')' : ''), selected:o.v === v[inp.id]})); });
+        sel.addEventListener('change', function(){ v[inp.id] = sel.value; save(); renderResult(); });
+        el = h('div', {class:'sc-sel'}, h('label', {class:'lbl', for:'in-' + inp.id, text:inp.label}), sel);
+      } else {
+        var sg = h('div', {class:'seg full', role:'group', 'aria-label':inp.label});
+        inp.options.forEach(function(o){ sg.appendChild(h('button', {'data-v':o.v, type:'button', text:o.label})); });
+        CS.seg(sg, v[inp.id], function(val){ v[inp.id] = val; save(); renderResult(); });
+        el = h('div', {class:'sc-sel'}, h('span', {class:'lbl', text:inp.label}), sg);
+      }
+      if(inp.wide || long) el.classList.add('wide');
+    } else {
+      var unit = inp.kind ? CS.unitLabel(inp.kind) : inp.unit;
+      var shown = isNaN(v[inp.id]) ? '' : (inp.kind ? +CS.fromMgdl(inp.kind, v[inp.id]).toFixed(inp.kind === 'creat' && CS.units() === 'si' ? 0 : 2) : v[inp.id]);
+      var ni = h('input', {class:'inp num', id:'in-' + inp.id, type:'text', inputmode:'decimal', value:shown, autocomplete:'off'});
+      ni.addEventListener('input', function(){
+        var n = CS.num(ni.value);
+        var canon = inp.kind && !isNaN(n) ? CS.toMgdl(inp.kind, n) : n;
+        var bad = ni.value !== '' && (isNaN(n) || (inp.min != null && canon < inp.min) || (inp.max != null && canon > inp.max));
+        ni.classList.toggle('bad', bad);
+        v[inp.id] = bad ? NaN : canon; save(); renderResult();
+      });
+      el = h('div', {class:'field sc-sel'}, h('label', {for:'in-' + inp.id, text:inp.label}), h('div', {class:'inp-unit'}, ni, unit ? h('span', {class:'u', text:unit}) : null), inp.hint ? h('span', {class:'hint', text:inp.hint}) : null);
+    }
+    box.appendChild(el);
+  });
+  renderResult();
+}
+
+function renderResult(){
+  var def = SCORES.filter(function(s){ return s.id === current; })[0], v = vals(def), el = CS.$('#sc-result'), r;
+  try{ r = def.calc(v); }catch(e){ r = null; }
+  el.className = 'result' + (r ? ' ' + r.level : '');
+  if(!r){ el.innerHTML = '<span class="eyebrow">Résultat</span><p class="muted" style="margin-top:8px">Complétez les champs numériques pour obtenir le résultat.</p>'; return; }
+  var html = '<span class="eyebrow">Résultat · ' + CS.esc(def.name) + '</span>' +
+    '<div style="margin-top:10px" class="big">' + CS.esc(r.big) + (r.unit ? '<small>' + CS.esc(r.unit) + '</small>' : '') + '</div>' +
+    '<h3 style="margin-top:8px">' + CS.esc(r.title) + '</h3>';
+  if(r.meter != null) html += '<div class="sc-meter" style="color:var(--' + (r.level === 'ok' ? 'ok' : r.level === 'warn' ? 'warn' : r.level === 'info' ? 'info' : 'crit') + ')"><i style="width:' + Math.round(CS.clamp(r.meter, 0.02, 1) * 100) + '%"></i></div>';
+  html += '<p class="sc-rec">' + r.rec + '</p>';
+  if(r.rows.length) html += '<div class="sc-rows">' + r.rows.map(function(x){ return '<div><span class="muted">' + CS.esc(x[0]) + '</span><b>' + CS.esc(x[1]) + '</b></div>'; }).join('') + '</div>';
+  if(r.note) html += '<p class="sc-ref">' + CS.esc(r.note) + '</p>';
+  html += '<p class="sc-ref">' + CS.esc(def.ref) + '</p>';
+  html += '<div class="row" style="margin-top:12px"><button class="btn sm" type="button" id="sc-copy">' + CS.I.copy + 'Copier le résultat</button></div>';
+  el.innerHTML = html;
+  CS.$('#sc-copy').onclick = function(){
+    var txt = def.name + ' : ' + r.big + (r.unit ? ' ' + r.unit : '') + ' — ' + r.title + '.\n' + r.rows.map(function(x){ return x[0] + ' : ' + x[1]; }).join('\n') + (r.rows.length ? '\n' : '') + r.rec.replace(/<[^>]+>/g, '');
+    CS.copy(txt, 'Résultat copié');
+  };
+}
+
+CS.init({title:'Scores de risque', cat:'Calculateurs', units:true, refs:['Recommandations ESC (2019–2024)', 'Publications originales citées sous chaque score']});
+CS.$('#sc-q').addEventListener('input', renderNav);
+CS.$('#sc-pick').addEventListener('change', function(e){ select(e.target.value); });
+CS.$('#sc-ex').addEventListener('click', function(){ var d = SCORES.filter(function(s){ return s.id === current; })[0]; state[d.id] = defaults(d, true); save(); renderScore(); CS.toast('Exemple chargé'); });
+CS.$('#sc-clear').addEventListener('click', function(){ var d = SCORES.filter(function(s){ return s.id === current; })[0]; state[d.id] = defaults(d, false); save(); renderScore(); });
+window.addEventListener('cs-units', renderScore);
+renderNav(); renderScore();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Consentement éclairé · Cœur Net</title>
+<!-- @include _base.css -->
+<style>
+.wz{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:860px){.wz{grid-template-columns:minmax(0,1fr)}}
+.steps{display:flex;flex-direction:column;gap:4px}
+.steps button{display:flex;align-items:center;gap:10px;border:0;background:none;padding:9px 10px;border-radius:var(--r-sm);cursor:pointer;text-align:start;color:var(--fg-2);font-size:.9rem}
+.steps button .n{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line-strong);font-weight:700;font-size:.8rem;flex:none}
+.steps button[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.steps button[aria-current="true"] .n{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.steps button.done .n{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+@media (max-width:860px){
+  .steps-card{position:sticky;top:calc(54px + env(safe-area-inset-top,0px));z-index:15;padding:8px}
+  .steps{flex-direction:row;justify-content:space-between;gap:2px}
+  .steps button{flex-direction:column;gap:3px;padding:6px 2px;font-size:.68rem;flex:1;min-width:0;text-align:center}
+  .steps button span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+}
+.proc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.proc{border:1.5px solid var(--line-strong);border-radius:var(--r);padding:14px;background:var(--surface);cursor:pointer;text-align:start;display:flex;flex-direction:column;gap:4px;min-height:84px}
+.proc[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px var(--accent-soft)}
+.proc b{font-size:.98rem}
+.proc small{color:var(--muted);font-size:.78rem}
+.pt-txt{font-size:1.1rem;line-height:1.6}
+[dir="rtl"].pt-txt,[dir="rtl"] .pt-txt{font-family:var(--font-ar);font-size:1.22rem;line-height:1.85}
+.flow{display:flex;flex-direction:column;gap:14px;counter-reset:s;padding:0;margin:0}
+.flow li{list-style:none;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;align-items:start}
+.flow li::before{counter-increment:s;content:counter(s);width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700}
+.risk{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);cursor:pointer}
+.risk:has(input:checked){border-color:color-mix(in srgb,var(--ok) 45%,var(--line));background:color-mix(in srgb,var(--ok-soft) 60%,var(--surface))}
+.risk input{width:22px;height:22px;accent-color:var(--ok)}
+.freq{font-size:.78rem;font-weight:650;padding:3px 8px;border-radius:6px;background:var(--surface-2);color:var(--fg-2);white-space:nowrap}
+.langbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.progress{height:6px;background:var(--surface-3);border-radius:6px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--ok);transition:width .25s}
+/* formulaire A4 */
+.form-a4{background:#fff;color:#111;border:1px solid var(--line);border-radius:var(--r);padding:28px 32px;font-size:10.5pt;line-height:1.45;max-width:820px;font-family:var(--font)}
+.form-a4[dir="rtl"]{font-family:var(--font-ar);font-size:11.5pt;line-height:1.7}
+.form-a4 .fh{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #111;padding-bottom:10px;margin-bottom:14px}
+.form-a4 .fh b{font-size:11pt}
+.form-a4 .fh small{display:block;color:#444}
+.form-a4 h2{font-size:15pt;margin:0 0 2px;color:#111}
+.form-a4 h4{font-size:10.5pt;margin:14px 0 4px;text-transform:uppercase;letter-spacing:.04em;color:#111}
+.form-a4[dir="rtl"] h4{text-transform:none;letter-spacing:0;font-size:11.5pt}
+.form-a4 .pid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border:1px solid #999;padding:8px 10px;margin:10px 0 4px}
+.form-a4 .pid span{display:block;font-size:8.5pt;color:#555}
+.form-a4 ol,.form-a4 ul{margin:0;padding-inline-start:20px}
+.form-a4 li{margin:2px 0}
+.form-a4 .rk{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:8px;align-items:start;padding:3px 0;border-bottom:1px dotted #bbb}
+.form-a4 .rk i{font-style:normal;font-weight:700}
+.form-a4 .rk em{font-style:normal;font-size:9pt;color:#444;white-space:nowrap}
+.form-a4 .decl{border:1px solid #999;padding:10px 12px;margin-top:12px}
+.form-a4 .notes{white-space:pre-wrap}
+.form-a4 .sigs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px;margin-top:22px}
+.form-a4 .sigs div{border-top:1px solid #111;padding-top:4px;font-size:9pt;min-height:60px}
+.form-a4 .foot{margin-top:16px;font-size:8pt;color:#666;border-top:1px solid #ccc;padding-top:6px}
+.form-wrap{overflow-x:auto}
+@media (max-width:640px){.form-a4{padding:16px}.form-a4 .pid{grid-template-columns:minmax(0,1fr)}.form-a4 .sigs{grid-template-columns:minmax(0,1fr)}}
+@page{size:A4;margin:14mm}
+@media print{body *{visibility:hidden}.form-a4,.form-a4 *{visibility:visible}.form-a4{position:absolute;left:0;top:0;width:100%;max-width:none;border:0;padding:0;border-radius:0}}
+.navb{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+@media (max-width:720px){.navb{position:sticky;bottom:calc(var(--tabbar-h) + 8px);background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);padding:8px;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow-md);z-index:10}.navb .btn{flex:1}}
+</style>
+<!-- @include _base.js -->
+<!-- @include _tour.js -->
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap">
+  <div class="wz">
+    <aside class="card steps-card"><nav class="steps" id="steps"></nav></aside>
+    <section class="card stack" id="pane"></section>
+  </div>
+</main>
+<footer id="cs-foot"></footer>
+<script>
+(function(){
+'use strict';
+var h = CS.h, T = CS.t, E = CS.esc;
+/* Fréquences : ['r', a, b, n] = a à b sur n ; ['lt', a, n] = < a sur n ; ['eq', a, n] = ≈ a sur n */
+function freq(f, l){
+  var ar = l !== 'fr', per = function(n){ return ar ? ' من كل ' + n : ' sur ' + n; };
+  if(f[0] === 'r') return ar ? 'من ' + f[1] + ' إلى ' + f[2] + per(f[3]) : f[1] + ' à ' + f[2] + per(f[3]);
+  if(f[0] === 'lt') return (ar ? 'أقل من ' : '< ') + f[1] + per(f[2]);
+  return (ar ? 'نحو ' : '≈ ') + f[1] + per(f[2]);
+}
+/* Procédures : chaque texte en français (fr), arabe standard (ar) et derja (tn, oral, pour l'explication à l'écran seulement) */
+var P = {
+ coro:{name:{fr:'Coronarographie', ar:'تصوير الشرايين التاجية', tn:'الكورونوغرافي'}, sub:{fr:'Examen des artères du cœur', ar:'فحص شرايين القلب'}, dur:{fr:'30 à 45 min', ar:'من 30 إلى 45 دقيقة'},
+  steps:[
+   {fr:'Vous êtes allongé, réveillé. Anesthésie locale du poignet.', ar:'تكون مستلقيًا وواعيًا، مع تخدير موضعي للمعصم.', tn:'تكون متمدّد وفايق. بنج موضعي في المعصم.'},
+   {fr:'Un tube fin (cathéter) est introduit dans l’artère du poignet et monte jusqu’au cœur.', ar:'يُدخَل أنبوب رفيع (قسطرة) في شريان المعصم ويُوجَّه حتى القلب.', tn:'تيو رقيق يدخل من شريان المعصم ويطلع حتى للقلب.'},
+   {fr:'Un produit visible aux rayons X est injecté : on filme les artères.', ar:'يُحقَن سائل ظليل يظهر بالأشعة السينية، فتُصوَّر الشرايين.', tn:'يحقنو دواء يبان في الراديو ويصوّرو الشرايين.'},
+   {fr:'Le cathéter est retiré, un bracelet compressif est posé sur le poignet pendant quelques heures.', ar:'تُسحَب القسطرة ويوضع سوار ضاغط على المعصم لبضع ساعات.', tn:'ينحّيو التيو ويحطّو سوار يضغط على المعصم كم ساعة.'}],
+  ben:{fr:'Savoir précisément si vos artères sont rétrécies et choisir le meilleur traitement.', ar:'معرفة ما إذا كانت شرايينك متضيّقة بدقة، واختيار أفضل علاج.', tn:'نعرفو بالضبط كان الشرايين متاعك ضيقين ونختارو أحسن علاج.'},
+  risks:[
+   [{fr:'Hématome au point de ponction', ar:'ورم دموي (كدمة) في موضع الوخز', tn:'زرقة ولا انتفاخ في بلاصة الإبرة'}, ['r',1,3,100]],
+   [{fr:'Réaction allergique au produit de contraste', ar:'تفاعل تحسّسي من المادة الظليلة', tn:'حساسية من الدواء متاع الراديو'}, ['lt',1,100]],
+   [{fr:'Aggravation de la fonction des reins', ar:'تدهور وظيفة الكليتين', tn:'الكلى تتعب أكثر'}, ['r',1,2,100]],
+   [{fr:'Trouble du rythme cardiaque', ar:'اضطراب في نظم القلب', tn:'اضطراب في دقّات القلب'}, ['lt',1,100]],
+   [{fr:'Infarctus, AVC ou décès', ar:'احتشاء القلب أو سكتة دماغية أو وفاة', tn:'جلطة قلبية، جلطة دماغية ولا وفاة'}, ['lt',1,1000]]],
+  alt:{fr:'Coroscanner ou test d’ischémie selon la situation.', ar:'التصوير المقطعي للشرايين التاجية أو اختبار نقص التروية حسب الحالة.', tn:'سكانير الشرايين ولا تحليل آخر حسب الحالة.'}},
+ atl:{name:{fr:'Angioplastie coronaire', ar:'رأب الشريان التاجي بالبالون والدعامة', tn:'توسيع الشريان بالستنت'}, sub:{fr:'Ballon et stent', ar:'بالون ودعامة'}, dur:{fr:'45 à 90 min', ar:'من 45 إلى 90 دقيقة'},
+  steps:[
+   {fr:'Même début que la coronarographie, par le poignet.', ar:'البداية نفسها كما في تصوير الشرايين التاجية، عبر المعصم.', tn:'نفس البداية متاع الكورونوغرافي، من المعصم.'},
+   {fr:'Un fil fin traverse le rétrécissement.', ar:'يمرّ سلك رفيع عبر موضع التضيّق.', tn:'خيط رقيق يتعدّى من البلاصة الضيقة.'},
+   {fr:'Un ballon est gonflé et un stent est déployé pour garder l’artère ouverte.', ar:'يُنفَخ بالون وتُثبَّت دعامة لإبقاء الشريان مفتوحًا.', tn:'يتنفخ بالون ويتحطّ ستنت باش الشريان يقعد محلول.'},
+   {fr:'Surveillance quelques heures, sortie souvent le lendemain. Double antiagrégation obligatoire.', ar:'مراقبة لبضع ساعات، والخروج غالبًا في اليوم التالي. العلاج المزدوج المضاد للصفائح إلزامي.', tn:'مراقبة كم ساعة، وغالبا تروّح غدوة. زوز دواوات متاع الدم لازمين.'}],
+  ben:{fr:'Rétablir le flux sanguin, soulager l’angine de poitrine et, après un infarctus, protéger le muscle du cœur.', ar:'استعادة تدفّق الدم، وتخفيف ألم الذبحة الصدرية، وحماية عضلة القلب بعد الاحتشاء.', tn:'نرجّعو الدم يتعدّى، نخفّفو وجيعة الصدر، ونحميو عضلة القلب بعد الجلطة.'},
+  risks:[
+   [{fr:'Hématome au point de ponction', ar:'ورم دموي في موضع الوخز', tn:'زرقة في بلاصة الإبرة'}, ['r',1,3,100]],
+   [{fr:'Occlusion du stent (thrombose)', ar:'انسداد الدعامة بخثرة', tn:'الستنت يتسكّر بجلطة'}, ['lt',1,100]],
+   [{fr:'Perforation ou dissection coronaire', ar:'انثقاب الشريان التاجي أو تسلّخه', tn:'الشريان يتجرح'}, ['lt',1,100]],
+   [{fr:'Chirurgie cardiaque en urgence', ar:'جراحة قلب طارئة', tn:'عملية قلب مستعجلة'}, ['lt',1,1000]],
+   [{fr:'Infarctus, AVC ou décès', ar:'احتشاء القلب أو سكتة دماغية أو وفاة', tn:'جلطة ولا وفاة'}, ['lt',1,100]]],
+  alt:{fr:'Traitement médical seul ou pontage coronaire selon l’anatomie.', ar:'العلاج الدوائي وحده أو جراحة المجازة التاجية حسب تشريح الشرايين.', tn:'الدواء برك ولا عملية البونتاج حسب الحالة.'}},
+ abl:{name:{fr:'Ablation de fibrillation atriale', ar:'استئصال الرجفان الأذيني بالقسطرة', tn:'كيّ الرجفان الأذيني'}, sub:{fr:'Radiofréquence ou cryothérapie', ar:'بالترددات الراديوية أو بالتبريد'}, dur:{fr:'2 à 3 h', ar:'من ساعتين إلى 3 ساعات'},
+  steps:[
+   {fr:'Anesthésie générale ou sédation profonde.', ar:'تخدير عام أو تهدئة عميقة.', tn:'بنج عام ولا تنويم عميق.'},
+   {fr:'Des sondes sont introduites par la veine de l’aine et montent jusqu’au cœur.', ar:'تُدخَل مسابر عبر وريد أعلى الفخذ حتى القلب.', tn:'مسابر تدخل من عرق الفخذ وتطلع للقلب.'},
+   {fr:'Les veines pulmonaires sont isolées par chaleur ou par froid.', ar:'تُعزَل الأوردة الرئوية بالحرارة أو بالبرودة.', tn:'يعزلو العروق الرئوية بالسخانة ولا بالبرودة.'},
+   {fr:'Repos allongé quelques heures, sortie souvent le lendemain.', ar:'راحة في الفراش لبضع ساعات، والخروج غالبًا في اليوم التالي.', tn:'تقعد متمدّد كم ساعة، وغالبا تروّح غدوة.'}],
+  ben:{fr:'Réduire ou supprimer les épisodes de fibrillation atriale et les symptômes.', ar:'تقليل نوبات الرجفان الأذيني وأعراضها أو إيقافها.', tn:'ننقّصو ولا نحبسو نوبات الرجفان والأعراض.'},
+  risks:[
+   [{fr:'Hématome au point de ponction', ar:'ورم دموي في موضع الوخز', tn:'زرقة في الفخذ'}, ['r',1,3,100]],
+   [{fr:'Épanchement autour du cœur (tamponnade)', ar:'انصباب حول القلب (اندحاس قلبي)', tn:'ماء حول القلب'}, ['eq',1,100]],
+   [{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, ['lt',1,100]],
+   [{fr:'Lésion de l’œsophage ou des veines pulmonaires', ar:'إصابة المريء أو الأوردة الرئوية', tn:'جرح في المريء ولا العروق'}, ['lt',1,1000]],
+   [{fr:'Récidive nécessitant une 2e procédure', ar:'عودة الرجفان مع الحاجة إلى إجراء ثانٍ', tn:'الرجفان يرجع ويلزم عملية ثانية'}, ['r',20,30,100]]],
+  alt:{fr:'Médicaments antiarythmiques ou contrôle de la fréquence.', ar:'أدوية مضادة لاضطراب النظم أو التحكّم في سرعة القلب.', tn:'دواء ينظّم الريتم ولا ينقّص السرعة.'}},
+ pm:{name:{fr:'Implantation de stimulateur', ar:'زرع منظِّم ضربات القلب', tn:'تركيب البيس ماكر'}, sub:{fr:'Pacemaker simple ou double chambre', ar:'منظِّم أحادي أو ثنائي الحجرة'}, dur:{fr:'45 à 60 min', ar:'من 45 إلى 60 دقيقة'},
+  steps:[
+   {fr:'Anesthésie locale sous la clavicule gauche.', ar:'تخدير موضعي تحت عظم الترقوة الأيسر.', tn:'بنج موضعي تحت عظم الترقوة الشمال.'},
+   {fr:'Une ou deux sondes sont glissées par une veine jusqu’au cœur.', ar:'يُمرَّر سلك أو سلكان عبر وريد حتى القلب.', tn:'سلك ولا زوز يدخلو من عرق حتى للقلب.'},
+   {fr:'Le boîtier est placé sous la peau et la plaie est refermée.', ar:'توضع العلبة تحت الجلد ويُغلَق الجرح.', tn:'العلبة تتحطّ تحت الجلد ويتسكّر الجرح.'},
+   {fr:'Éviter de lever le bras au-dessus de l’épaule pendant 4 semaines.', ar:'تجنّب رفع الذراع فوق مستوى الكتف مدة 4 أسابيع.', tn:'ما ترفعش يدك فوق كتفك مدّة 4 أسابيع.'}],
+  ben:{fr:'Éviter les pauses et la lenteur du cœur, supprimer malaises et fatigue.', ar:'تفادي بطء القلب وتوقّفاته، والتخلّص من نوبات الدوار والتعب.', tn:'نتفاداو بطء القلب والوقفات، ونحّيو التدويخ والتعب.'},
+  risks:[
+   [{fr:'Hématome de la loge', ar:'ورم دموي في جيب العلبة', tn:'زرقة في بلاصة العلبة'}, ['r',1,3,100]],
+   [{fr:'Déplacement de sonde', ar:'انزياح السلك', tn:'السلك يتحرّك من بلاصتو'}, ['r',1,2,100]],
+   [{fr:'Pneumothorax', ar:'استرواح الصدر', tn:'هوا حول الرية'}, ['lt',1,100]],
+   [{fr:'Infection', ar:'عدوى', tn:'تعفّن'}, ['eq',1,100]]],
+  alt:{fr:'Pas d’alternative efficace en cas de bloc de haut degré.', ar:'لا يوجد بديل فعّال في حالة الإحصار القلبي عالي الدرجة.', tn:'ما فماش بديل في البلوك الشديد.'}},
+ tavi:{name:{fr:'TAVI', ar:'زرع الصمام الأبهري عبر القسطرة (TAVI)', tn:'تبديل الصمام بالقسطرة'}, sub:{fr:'Valve aortique percutanée', ar:'صمام أبهري عبر الجلد'}, dur:{fr:'1 à 2 h', ar:'من ساعة إلى ساعتين'},
+  steps:[
+   {fr:'Anesthésie locale avec sédation, le plus souvent.', ar:'تخدير موضعي مع تهدئة في أغلب الحالات.', tn:'بنج موضعي مع تنويم خفيف في أغلب الحالات.'},
+   {fr:'La valve pliée est amenée par l’artère de l’aine.', ar:'يُوصَل الصمام المطوي عبر شريان أعلى الفخذ.', tn:'الصمام المطوي يجي من شريان الفخذ.'},
+   {fr:'Elle est déployée dans l’ancienne valve sous contrôle radiologique.', ar:'يُفتَح داخل الصمام القديم تحت المراقبة بالأشعة.', tn:'يتحلّ وسط الصمام القديم بالراديو.'},
+   {fr:'Lever le lendemain, sortie après 2 à 4 jours.', ar:'النهوض في اليوم التالي، والخروج بعد يومين إلى 4 أيام.', tn:'توقف غدوة، وتروّح بعد 2 حتى 4 أيام.'}],
+  ben:{fr:'Améliorer l’essoufflement et la survie sans ouvrir la poitrine.', ar:'تحسين ضيق التنفس وإطالة العمر دون فتح الصدر.', tn:'نحسّنو ضيق النفس ونطوّلو العمر من غير ما نحلّو الصدر.'},
+  risks:[
+   [{fr:'Pacemaker nécessaire', ar:'الحاجة إلى منظِّم ضربات القلب', tn:'يلزمك بيس ماكر'}, ['r',5,15,100]],
+   [{fr:'Complication de l’artère de l’aine', ar:'مضاعفة في شريان أعلى الفخذ', tn:'مشكل في شريان الفخذ'}, ['r',2,5,100]],
+   [{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, ['r',1,3,100]],
+   [{fr:'Fuite autour de la valve', ar:'تسرّب حول الصمام', tn:'تسريب حول الصمام'}, ['r',2,5,100]],
+   [{fr:'Décès dans le mois', ar:'الوفاة خلال الشهر الأول', tn:'وفاة في الشهر'}, ['r',1,3,100]]],
+  alt:{fr:'Remplacement valvulaire chirurgical, ou traitement médical seul.', ar:'استبدال الصمام جراحيًا، أو العلاج الدوائي وحده.', tn:'عملية جراحية، ولا الدواء برك.'}}
+};
+var RIGHTS = [
+ {fr:'Vous pouvez changer d’avis à tout moment, même après avoir signé.', ar:'يمكنك تغيير رأيك في أي وقت، حتى بعد التوقيع.', tn:'تنجم تبدّل رأيك في أي وقت، حتى بعد ما تصحّح.'},
+ {fr:'Vous pouvez demander un deuxième avis.', ar:'يمكنك طلب رأي طبي ثانٍ.', tn:'تنجم تطلب رأي طبيب آخر.'},
+ {fr:'Un délai de réflexion est possible, sauf urgence.', ar:'يمكنك أخذ مهلة للتفكير، إلا في الحالات المستعجلة.', tn:'تنجم تاخو وقت باش تخمّم، كان موش حالة مستعجلة.'}];
+var STEPS = [{fr:'Procédure', ar:'الإجراء'}, {fr:'Déroulement', ar:'المراحل'}, {fr:'Bénéfices et risques', ar:'الفوائد والمخاطر'}, {fr:'Notes', ar:'ملاحظات'}, {fr:'Formulaire', ar:'الاستمارة'}];
+/* Libellés de l'explication au patient (fr / ar / tn) et du formulaire imprimé (fr / ar) */
+var W = {
+ how:{fr:'Comment ça se passe', ar:'كيف يجري الإجراء', tn:'كيفاش تتعدّى'},
+ benrisk:{fr:'Bénéfices et risques', ar:'الفوائد والمخاطر', tn:'الفايدة والمخاطر'},
+ ben:{fr:'Bénéfice attendu : ', ar:'الفائدة المنتظرة: ', tn:'الفايدة: '},
+ alt:{fr:'Alternatives : ', ar:'البدائل: ', tn:'البدائل: '},
+ rights:{fr:'Vos droits', ar:'حقوقك', tn:'حقوقك'},
+ dur:{fr:'Durée habituelle : ', ar:'المدة المعتادة: ', tn:'قدّاش تدوم: '}
+};
+var F = { // formulaire
+ title:{fr:'Consentement éclairé : ', ar:'موافقة مستنيرة على: '},
+ pt:{fr:'Patient(e)', ar:'المريض(ة)'}, dob:{fr:'Date de naissance', ar:'تاريخ الولادة'}, dur:{fr:'Durée habituelle', ar:'المدة المعتادة'},
+ date:{fr:'Date', ar:'التاريخ'}, how:{fr:'Ce qui va se passer', ar:'ما الذي سيحدث'}, ben:{fr:'Bénéfice attendu', ar:'الفائدة المنتظرة'},
+ risks:{fr:'Risques expliqués', ar:'المخاطر التي شُرحت'}, alt:{fr:'Alternatives', ar:'البدائل'}, notes:{fr:'Notes complémentaires', ar:'ملاحظات إضافية'},
+ rights:{fr:'Vos droits', ar:'حقوقك'},
+ decl:{fr:function(n){ return 'Je déclare avoir reçu une information claire sur l’examen, ses bénéfices, ses risques et ses alternatives, avoir pu poser mes questions, et j’accepte la réalisation de : ' + n + '.'; },
+       ar:function(n){ return 'أُقِرّ بأنني تلقّيت معلومات واضحة عن هذا الإجراء وفوائده ومخاطره وبدائله، وأنني تمكّنت من طرح أسئلتي، وأوافق على إجراء: ' + n + '.'; }},
+ sigP:{fr:'Signature du patient (ou de son représentant)', ar:'توقيع المريض (أو من ينوب عنه)'}, sigD:{fr:'Signature du médecin', ar:'توقيع الطبيب'},
+ foot:{fr:'Fréquences des risques indicatives (registres et essais publiés). Modèle à adapter au formulaire officiel de l’établissement. Document préparé avec Cœur Net.',
+       ar:'نسب المخاطر تقريبية (مستقاة من السجلات والدراسات المنشورة). نموذج يُكيَّف حسب الاستمارة الرسمية للمؤسسة. وثيقة أُعدَّت باستعمال Cœur Net.'},
+ svc:{fr:'Service de cardiologie', ar:'قسم أمراض القلب'}
+};
+var UI = CS.lang();
+var st = CS.store.get('cons', null) || {step:0, proc:'coro', lang:UI, plang:UI, name:'', dob:'', checked:{}, notes:''};
+if(!(st.step < STEPS.length)) st.step = 0;
+if(!P[st.proc]) st.proc = 'coro';
+var svc = CS.store.get('cons.svc', {fr:'', ar:''});
+function p(){ return P[st.proc]; }
+function L(x){ return CS.t(x, st.lang); }                 // langue de l'explication
+function save(){ CS.store.set('cons', st); }
+function dirAttr(l){ return (l || st.lang) === 'fr' ? 'ltr' : 'rtl'; }
+function count(){ var n = 0; p().risks.forEach(function(_, i){ if(st.checked[i]) n++; }); return n; }
+
+function renderSteps(){
+  var nav = CS.$('#steps'); nav.innerHTML = '';
+  STEPS.forEach(function(s, i){ nav.appendChild(h('button', {type:'button', id:'st-' + i, class:i < st.step ? 'done' : '', 'aria-current':i === st.step ? 'true' : 'false', onclick:function(){ go(i); }}, h('span', {class:'n', text:String(i + 1)}), h('span', {text:s}))); });
+}
+function go(i){ st.step = i; save(); render(); window.scrollTo({top:0, behavior:'smooth'}); }
+function langSeg(){
+  var el = CS.segEl([['fr', 'Français'], ['ar', 'العربية'], ['tn', 'تونسي']], st.lang, function(v){ st.lang = v; save(); render(); });
+  el.id = 'expl-lang';
+  return h('div', {class:'langbar'}, h('span', {class:'small muted', text:{fr:'Expliquer en', ar:'الشرح بـ'}}), el);
+}
+function head(title, sub, withLang){
+  return h('div', {class:'row between'},
+    h('div', null, h('span', {class:'eyebrow', text:T({fr:'Étape ', ar:'المرحلة '}) + (st.step + 1) + ' / ' + STEPS.length}), h('h2', {text:title}), sub ? h('p', {class:'small muted', text:sub}) : null),
+    withLang ? langSeg() : null);
+}
+function navBtns(){
+  return h('div', {class:'navb'},
+    h('button', {class:'btn', type:'button', text:{fr:'Précédent', ar:'السابق'}, disabled:st.step === 0, onclick:function(){ go(st.step - 1); }}),
+    st.step < STEPS.length - 1 ? h('button', {class:'btn primary', id:'next', type:'button', text:{fr:'Suivant', ar:'التالي'}, onclick:function(){ go(st.step + 1); }}) : null);
+}
+function render(){
+  renderSteps();
+  var pane = CS.$('#pane'); pane.innerHTML = ''; var pr = p();
+  if(st.step === 0){
+    pane.appendChild(head({fr:'Procédure et patient', ar:'الإجراء والمريض'}, {fr:'Choisissez la procédure, puis renseignez le patient (facultatif : le formulaire peut être rempli à la main).', ar:'اختر الإجراء ثم أدخل بيانات المريض (اختياري: يمكن ملء الاستمارة باليد).'}));
+    var g = h('div', {class:'proc-grid', id:'procs'});
+    Object.keys(P).forEach(function(k){ g.appendChild(h('button', {class:'proc', type:'button', 'aria-pressed':st.proc === k ? 'true' : 'false', onclick:function(){ st.proc = k; st.checked = {}; save(); render(); }},
+      h('b', {text:P[k].name}), h('small', {text:T(P[k].sub) + ' · ' + T(P[k].dur)}))); });
+    pane.appendChild(g);
+    var nm = h('input', {class:'inp', id:'pt-name', value:st.name, autocomplete:'off', placeholder:{fr:'Nom et prénom', ar:'الاسم واللقب'}}), db = h('input', {class:'inp', id:'pt-dob', type:'date', value:st.dob});
+    nm.addEventListener('input', function(){ st.name = nm.value; save(); }); db.addEventListener('input', function(){ st.dob = db.value; save(); });
+    pane.appendChild(h('div', {class:'grid g2', id:'pt-fields'}, h('div', {class:'field'}, h('label', {for:'pt-name', text:F.pt}), nm), h('div', {class:'field'}, h('label', {for:'pt-dob', text:F.dob}), db)));
+    var sf = h('input', {class:'inp', id:'svc-fr', value:svc.fr, placeholder:'ex. Service de cardiologie, CHU …'}), sa = h('input', {class:'inp', id:'svc-ar', dir:'rtl', value:svc.ar, placeholder:'مثال: قسم أمراض القلب، المستشفى الجامعي …'});
+    sf.addEventListener('input', function(){ svc.fr = sf.value; CS.store.set('cons.svc', svc); }); sa.addEventListener('input', function(){ svc.ar = sa.value; CS.store.set('cons.svc', svc); });
+    pane.appendChild(h('div', {class:'grid g2', id:'svc'}, h('div', {class:'field'}, h('label', {for:'svc-fr', text:{fr:'En-tête du formulaire (français)', ar:'ترويسة الاستمارة (بالفرنسية)'}}), sf), h('div', {class:'field'}, h('label', {for:'svc-ar', text:{fr:'En-tête du formulaire (arabe)', ar:'ترويسة الاستمارة (بالعربية)'}}), sa)));
+  }
+  if(st.step === 1){
+    pane.appendChild(head(L(pr.name) + ' : ' + L(W.how), L(W.dur) + T(pr.dur, st.lang === 'fr' ? 'fr' : 'ar'), true));
+    var ol = h('ol', {class:'flow pt-txt', id:'flow', dir:dirAttr()});
+    pr.steps.forEach(function(s){ ol.appendChild(h('li', null, h('span', {text:L(s)}))); });
+    pane.appendChild(ol);
+  }
+  if(st.step === 2){
+    pane.appendChild(head(L(W.benrisk), {fr:'Cochez chaque risque une fois expliqué : il sera coché sur le formulaire.', ar:'ضع علامة على كل خطر بعد شرحه، وستظهر العلامة في الاستمارة.'}, true));
+    pane.appendChild(h('div', {class:'result ok pt-txt', dir:dirAttr()}, h('b', {text:L(W.ben)}), L(pr.ben)));
+    var list = h('div', {class:'stack', id:'risks'});
+    var bar = h('i', {style:{width:(count() / pr.risks.length * 100) + '%'}});
+    var cnt = h('b', {text:count() + ' / ' + pr.risks.length});
+    pr.risks.forEach(function(r, i){
+      var cb = h('input', {type:'checkbox', id:'r-' + i}); cb.checked = !!st.checked[i];
+      cb.addEventListener('change', function(){ st.checked[i] = cb.checked; save(); cnt.textContent = count() + ' / ' + pr.risks.length; bar.style.width = (count() / pr.risks.length * 100) + '%'; });
+      list.appendChild(h('label', {class:'risk', for:'r-' + i, dir:dirAttr()}, cb, h('span', {class:'pt-txt', text:L(r[0])}), h('span', {class:'freq', text:freq(r[1], st.lang)})));
+    });
+    pane.appendChild(list);
+    pane.appendChild(h('div', {class:'stack', style:{gap:'6px'}}, h('p', {class:'small'}, T({fr:'Risques expliqués : ', ar:'المخاطر المشروحة: '}), cnt), h('div', {class:'progress'}, bar)));
+    pane.appendChild(h('div', {class:'panel pt-txt', dir:dirAttr()}, h('b', {text:L(W.alt)}), L(pr.alt)));
+  }
+  if(st.step === 3){
+    pane.appendChild(head({fr:'Notes complémentaires', ar:'ملاحظات إضافية'}, {fr:'Facultatif. Ce texte est imprimé tel quel sur le formulaire, dans la langue où vous l’écrivez.', ar:'اختياري. يُطبع هذا النص كما هو في الاستمارة، باللغة التي تكتبه بها.'}));
+    var ta = h('textarea', {class:'inp', id:'notes', rows:6, dir:'auto', placeholder:{fr:'ex. Allergie à l’iode : prémédication prévue. Accord pour une angioplastie dans le même temps si nécessaire.', ar:'مثال: حساسية من اليود، مع تحضير دوائي مسبق. موافقة على رأب الشريان في الجلسة نفسها عند الحاجة.'}});
+    ta.value = st.notes || ''; ta.addEventListener('input', function(){ st.notes = ta.value; save(); });
+    pane.appendChild(h('div', {class:'field'}, h('label', {for:'notes', text:{fr:'Notes (facultatif)', ar:'ملاحظات (اختياري)'}}), ta));
+    pane.appendChild(h('div', {class:'panel', id:'rights'}, h('b', {text:T({fr:'À rappeler au patient : ', ar:'للتذكير للمريض: '}) + L(W.rights)}),
+      h('ul', {class:'pt-txt', dir:dirAttr(), style:{margin:'6px 0 0', paddingInlineStart:'20px'}}, RIGHTS.map(function(x){ return h('li', {text:L(x)}); })), langSeg()));
+  }
+  if(st.step === 4){
+    pane.appendChild(head({fr:'Formulaire à imprimer', ar:'الاستمارة للطباعة'}, {fr:'Entièrement en français ou entièrement en arabe, à signer sur papier.', ar:'كاملة بالفرنسية أو كاملة بالعربية، للتوقيع على الورق.'}));
+    var n = count(), tot = pr.risks.length;
+    var pl = CS.segEl([['fr', 'Français'], ['ar', 'العربية']], st.plang, function(x){ st.plang = x; save(); render(); });
+    pl.id = 'print-lang';
+    pane.appendChild(h('div', {class:'row between no-print'}, h('div', {class:'row'}, h('span', {class:'small muted', text:{fr:'Langue du formulaire', ar:'لغة الاستمارة'}}), pl)));
+    pane.appendChild(h('div', {class:'row no-print', id:'out-actions'},
+      h('button', {class:'btn primary', id:'print', type:'button', html:CS.I.print + '<span>' + E(T({fr:'Imprimer / PDF', ar:'طباعة / PDF'})) + '</span>', onclick:function(){ window.print(); }}),
+      h('button', {class:'btn', id:'share', type:'button', html:CS.I.upload + '<span>' + E(T({fr:'Envoyer (e-mail, WhatsApp…)', ar:'إرسال (بريد، واتساب…)'})) + '</span>', onclick:shareForm}),
+      h('button', {class:'btn', id:'dl', type:'button', html:CS.I.download + '<span>' + E(T({fr:'Fichier à imprimer', ar:'ملف للطباعة'})) + '</span>', onclick:function(){ CS.download(fileName(), standalone(), 'text/html'); }}),
+      h('button', {class:'btn ghost', id:'cptxt', type:'button', html:CS.I.copy + '<span>' + E(T({fr:'Copier le texte', ar:'نسخ النص'})) + '</span>', onclick:function(){ CS.copy(CS.$('#form').innerText); }})));
+    pane.appendChild(h('p', {class:'xs muted no-print', text:{fr:'Les PC du service n’ont pas Internet ? « Fichier à imprimer » crée un document autonome : envoyez-le par e-mail ou clé USB au poste relié à l’imprimante, ouvrez-le, imprimez. Rien d’autre à installer.', ar:'حواسيب القسم دون إنترنت؟ «ملف للطباعة» يُنشئ وثيقة مستقلة: أرسلها بالبريد أو بمفتاح USB إلى الحاسوب المتصل بالطابعة، افتحها واطبعها. لا حاجة إلى تثبيت أي شيء.'}}));
+    if(n < tot) pane.appendChild(h('div', {class:'result warn no-print', html:T({fr:'<b>' + (tot - n) + ' risque(s) pas encore coché(s).</b> Ils apparaîtront non cochés ; revenez à l’étape 3 si besoin.', ar:'<b>' + (tot - n) + ' من المخاطر لم يُؤشَّر عليها بعد.</b> ستظهر دون علامة؛ ارجع إلى المرحلة 3 عند الحاجة.'})}));
+    pane.appendChild(h('div', {class:'form-wrap'}, form(pr)));
+  }
+  pane.appendChild(navBtns());
+}
+function form(pr){
+  var l = st.plang === 'ar' ? 'ar' : 'fr', t = function(x){ return E(CS.t(x, l)); };
+  var nm = CS.t(pr.name, l);
+  var dr = l === 'ar' ? (CS.doctor() ? 'د. ' + CS.doctor().replace(/^dr\.?\s*/i, '') : '') : (CS.doctor() ? CS.doctorLabel() : '');
+  var head = l === 'ar' ? (svc.ar || F.svc.ar) : (svc.fr || F.svc.fr);
+  var html =
+    '<div class="fh"><div><b>' + E(head) + '</b><small>' + E(dr) + '</small></div><div style="text-align:end"><small>' + t(F.date) + '</small><b>' + E(CS.frDate(CS.todayISO())) + '</b></div></div>' +
+    '<h2>' + t(F.title) + E(nm) + '</h2>' +
+    '<div class="pid"><div><span>' + t(F.pt) + '</span><b>' + E(st.name || '…………………………') + '</b></div><div><span>' + t(F.dob) + '</span><b>' + E(st.dob ? CS.frDate(st.dob) : '……/……/…………') + '</b></div><div><span>' + t(F.dur) + '</span><b>' + t(pr.dur) + '</b></div></div>' +
+    '<h4>' + t(F.how) + '</h4><ol>' + pr.steps.map(function(x){ return '<li>' + t(x) + '</li>'; }).join('') + '</ol>' +
+    '<h4>' + t(F.ben) + '</h4><p>' + t(pr.ben) + '</p>' +
+    '<h4>' + t(F.risks) + '</h4>' + pr.risks.map(function(r, i){ return '<div class="rk"><i>' + (st.checked[i] ? '☑' : '☐') + '</i><div>' + t(r[0]) + '</div><em>' + E(freq(r[1], l)) + '</em></div>'; }).join('') +
+    '<h4>' + t(F.alt) + '</h4><p>' + t(pr.alt) + '</p>' +
+    (st.notes && st.notes.trim() ? '<h4>' + t(F.notes) + '</h4><p class="notes" dir="auto">' + E(st.notes.trim()) + '</p>' : '') +
+    '<h4>' + t(F.rights) + '</h4><ul>' + RIGHTS.map(function(x){ return '<li>' + t(x) + '</li>'; }).join('') + '</ul>' +
+    '<div class="decl">' + E(F.decl[l](l === 'fr' ? nm.toLowerCase() : nm)) + '</div>' +
+    '<div class="sigs"><div>' + t(F.sigP) + '</div><div style="border:0"></div></div>' +
+    '<p class="foot">' + t(F.foot) + '</p>';
+  return h('div', {class:'form-a4', id:'form', dir:l === 'ar' ? 'rtl' : 'ltr', lang:l, html:html});
+}
+/* Document autonome (HTML + styles intégrés) : s'ouvre et s'imprime sur n'importe quel PC, sans Internet */
+function fileName(){ return 'consentement-' + st.proc + '-' + (st.name ? st.name.trim().toLowerCase().replace(/[^a-z0-9؀-ۿ]+/gi, '-').replace(/^-|-$/g, '') + '-' : '') + CS.todayISO() + '.html'; }
+function standalone(){
+  var css = Array.prototype.map.call(document.querySelectorAll('style'), function(s){ return s.textContent; }).join('\n');
+  var f = CS.$('#form'), l = st.plang === 'ar' ? 'ar' : 'fr';
+  return '<!doctype html><html lang="' + l + '" dir="' + (l === 'ar' ? 'rtl' : 'ltr') + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + E(CS.t(F.title, l) + CS.t(P[st.proc].name, l)) + '</title><style>' + css +
+    '\nbody{background:#fff;padding:24px}.form-a4{margin:0 auto;border:0}.pbtn{position:fixed;top:12px;inset-inline-end:12px;padding:10px 16px;font:600 15px sans-serif;border-radius:8px;border:1px solid #888;background:#fff;cursor:pointer}@media print{.pbtn{display:none}body{padding:0}}</style></head><body>' +
+    '<button class="pbtn" onclick="window.print()">' + (l === 'ar' ? 'طباعة' : 'Imprimer') + '</button>' + f.outerHTML + '</body></html>';
+}
+function shareForm(){
+  var html = standalone(), name = fileName();
+  try{
+    var file = new File([html], name, {type:'text/html'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){ navigator.share({files:[file], title:name}).catch(function(){}); return; }
+  }catch(e){}
+  CS.download(name, html, 'text/html');
+  CS.toast({fr:'Partage indisponible ici : fichier téléchargé, à joindre à un e-mail.', ar:'المشاركة غير متاحة هنا: تمّ تنزيل الملف لإرفاقه ببريد.'});
+}
+CS.init({actions:[
+  h('button', {class:'btn sm', type:'button', id:'newpt', html:CS.I.plus + '<span class="hide-sm">' + E(T({fr:'Nouveau patient', ar:'مريض جديد'})) + '</span>', title:{fr:'Nouveau patient', ar:'مريض جديد'}, onclick:function(){
+    CS.ask({fr:'Effacer le patient en cours (nom, risques cochés, notes) ?', ar:'مسح المريض الحالي (الاسم والمخاطر المؤشَّر عليها والملاحظات)؟'}, {fr:'Effacer', ar:'مسح'}).then(function(ok){ if(ok){ st.step = 0; st.name = ''; st.dob = ''; st.checked = {}; st.notes = ''; save(); render(); } });
+  }})],
+  refs:['Fréquences des risques indicatives, issues des registres et essais publiés', 'Modèle à adapter au formulaire officiel de l’établissement']});
+window.addEventListener('cs-doctor', render);
+render();
+
+/* ---------- Visite guidée ---------- */
+CS.tour.define([
+  {title:{fr:'Le consentement, au lit du patient', ar:'الموافقة عند سرير المريض'},
+   body:{fr:'<p>Cet outil vous accompagne pendant l’explication d’une procédure, <b>en face du patient</b>, puis prépare le formulaire à signer.</p><p>Cinq étapes : procédure → déroulement → bénéfices et risques → notes → formulaire.</p>', ar:'<p>ترافقك هذه الأداة أثناء شرح الإجراء <b>أمام المريض</b>، ثم تُعِدّ الاستمارة للتوقيع.</p><p>خمس مراحل: الإجراء ← المراحل ← الفوائد والمخاطر ← الملاحظات ← الاستمارة.</p>'}},
+  {el:'#steps', title:{fr:'Les étapes', ar:'المراحل'}, body:{fr:'Touchez une étape pour y aller directement. Une coche verte = étape déjà vue. Tout est enregistré automatiquement.', ar:'المس مرحلة للانتقال إليها مباشرة. العلامة الخضراء تعني مرحلة تمّت. يُحفظ كل شيء تلقائيًا.'}},
+  {el:'#procs', before:function(){ if(st.step !== 0) go(0); }, title:{fr:'Choisir la procédure', ar:'اختيار الإجراء'}, body:{fr:'Coronarographie, angioplastie, ablation de FA, pacemaker ou TAVI. Chaque procédure a son déroulement, ses bénéfices, ses risques chiffrés et ses alternatives.', ar:'تصوير الشرايين التاجية أو رأبها أو استئصال الرجفان أو المنظِّم أو TAVI. لكل إجراء مراحله وفوائده ومخاطره بالأرقام وبدائله.'}},
+  {el:'#pt-fields', title:{fr:'Le patient', ar:'المريض'}, body:{fr:'Nom et date de naissance sont <b>facultatifs</b> : laissés vides, ils s’impriment en pointillés pour être remplis à la main.', ar:'الاسم وتاريخ الولادة <b>اختياريان</b>: إذا تُركا فارغين يُطبعان نقاطًا لتُملأ باليد.'}},
+  {el:'#svc', title:{fr:'L’en-tête de votre service', ar:'ترويسة قسمك'}, body:{fr:'Saisi une seule fois, en français et en arabe : il apparaît en haut de chaque formulaire.', ar:'يُدخَل مرة واحدة بالفرنسية والعربية، ويظهر أعلى كل استمارة.'}},
+  {el:'#expl-lang', before:function(){ go(1); }, title:{fr:'Expliquer dans la langue du patient', ar:'الشرح بلغة المريض'}, body:{fr:'L’explication s’affiche en grand, en <b>français</b>, en <b>arabe</b> ou en <b>tunisien</b> (derja). Tournez l’écran vers le patient.', ar:'يظهر الشرح بخط كبير بـ<b>الفرنسية</b> أو <b>العربية</b> أو <b>التونسية</b> (الدارجة). أدِر الشاشة نحو المريض.'}},
+  {el:'#risks', before:function(){ go(2); }, title:{fr:'Cocher les risques expliqués', ar:'التأشير على المخاطر المشروحة'}, body:{fr:'Chaque risque a sa <b>fréquence</b> (« 1 à 3 sur 100 »). Cochez-le une fois expliqué : la case sera cochée sur le formulaire imprimé.', ar:'لكل خطر <b>نسبته</b> («من 1 إلى 3 من كل 100»). أشِّر عليه بعد شرحه، وستظهر العلامة في الاستمارة المطبوعة.'}},
+  {el:'#notes', before:function(){ go(3); }, title:{fr:'Notes complémentaires', ar:'ملاحظات إضافية'}, body:{fr:'Facultatif : allergie, précaution, accord pour un geste associé… Le texte est imprimé tel quel.', ar:'اختياري: حساسية، احتياط، موافقة على إجراء مرافق… يُطبع النص كما هو.'}},
+  {el:'#print-lang', before:function(){ go(4); }, title:{fr:'Un formulaire, une seule langue', ar:'استمارة بلغة واحدة'}, body:{fr:'Le formulaire est <b>entièrement en français</b> ou <b>entièrement en arabe standard</b>, au choix du patient.', ar:'الاستمارة <b>كاملة بالفرنسية</b> أو <b>كاملة بالعربية الفصحى</b> حسب اختيار المريض.'}},
+  {el:'#print', title:{fr:'Imprimer ou enregistrer en PDF', ar:'الطباعة أو الحفظ بصيغة PDF'}, body:{fr:'Ouvre l’impression A4. Pour un PDF, choisissez « Enregistrer au format PDF » comme imprimante.', ar:'يفتح الطباعة بحجم A4. للحصول على PDF اختر «حفظ بصيغة PDF» كطابعة.'}},
+  {el:'#out-actions', title:{fr:'Depuis le téléphone, sans Internet au service', ar:'من الهاتف، دون إنترنت في القسم'}, body:{fr:'<b>Envoyer</b> ouvre le partage du téléphone (e-mail, WhatsApp…). <b>Fichier à imprimer</b> crée un document autonome à ouvrir sur le PC relié à l’imprimante, même hors ligne. <b>Copier le texte</b> pour le coller ailleurs.', ar:'<b>إرسال</b> يفتح مشاركة الهاتف (بريد، واتساب…). <b>ملف للطباعة</b> يُنشئ وثيقة مستقلة تُفتح على الحاسوب المتصل بالطابعة حتى دون اتصال. <b>نسخ النص</b> للصقه في مكان آخر.'}, after:function(){ go(0); }}
+]);
+})();
+</script>
+</body>
+</html>

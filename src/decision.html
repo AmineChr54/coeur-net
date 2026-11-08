@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Décision partagée · Cœur Net</title>
+<!-- @include _base.css -->
+<style>
+:root{--c-none:#cfd6de;--c-ev:#c42537;--c-avoid:#2f7fd8;--c-harm:#e08a00;--c-harm2:#7c5cc4}
+:root[data-theme="dark"]{--c-none:#3a434e;--c-ev:#ff5b6b;--c-avoid:#5aa5ff;--c-harm:#f0a73c;--c-harm2:#a68cf0}
+.da-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.da-act{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lay{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:980px){.lay{grid-template-columns:minmax(0,1fr)}}
+.prof{display:flex;flex-direction:column;gap:16px}
+.q{display:flex;flex-direction:column;gap:8px}
+.q>.ql{font-size:.86rem;font-weight:650;color:var(--fg-2);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.q>.ql small{font-weight:500;color:var(--muted)}
+.agebox{display:flex;align-items:center;gap:8px}
+.agebox .inp{width:84px;text-align:center;font-weight:700;font-size:1.1rem}
+.agebox .btn{width:44px;padding:0;font-size:1.2rem}
+.sub{border-inline-start:3px solid var(--accent-soft);padding-inline-start:12px;display:flex;flex-direction:column;gap:14px}
+.res{position:sticky;top:calc(70px + env(safe-area-inset-top,0px))}
+@media (max-width:980px){.res{position:static}}
+.gauge{display:flex;flex-direction:column;gap:8px}
+.gbar{position:relative;height:16px;border-radius:10px;display:flex;overflow:visible}
+.gbar span{flex:1;height:100%}
+.gbar span:first-child{border-radius:10px 0 0 10px}.gbar span:last-child{border-radius:0 10px 10px 0}
+[dir="rtl"] .gbar span:first-child{border-radius:0 10px 10px 0}[dir="rtl"] .gbar span:last-child{border-radius:10px 0 0 10px}
+.gbar .mk{position:absolute;top:-6px;width:4px;height:28px;border-radius:3px;background:var(--fg);box-shadow:0 0 0 3px var(--surface);transition:inset-inline-start .35s cubic-bezier(.2,.8,.2,1)}
+.glab{display:flex;justify-content:space-between;font-size:.74rem;color:var(--muted)}
+.bignum{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bignum b{font-family:var(--font-display);font-size:3rem;line-height:1;font-weight:750;letter-spacing:-.03em}
+.bignum .cat{font-size:1.05rem;font-weight:700}
+.lv-ok{color:var(--ok)} .lv-warn{color:var(--warn)} .lv-high{color:#d4572a} .lv-crit{color:var(--crit)}
+/* Couleurs de la figure ESC/EAS 2025 : jaune, orange, rouge, rouge foncé, bordeaux */
+:root{--r-low:#e9c11e;--r-mod:#f08c00;--r-high:#e8590c;--r-vhigh:#c0392b;--r-ext:#7b1d2a}
+.lvscale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+.lvs{padding:8px 2px;border-radius:8px;text-align:center;font-size:.74rem;font-weight:650;background:var(--surface-2);color:var(--muted);border:2px solid transparent;position:relative}
+.lvs::after{content:"";position:absolute;inset:auto 6px 3px;height:3px;border-radius:3px;background:var(--rc);opacity:.7}
+.lvs-low{--rc:var(--r-low)} .lvs-mod{--rc:var(--r-mod)} .lvs-high{--rc:var(--r-high)} .lvs-vhigh{--rc:var(--r-vhigh)} .lvs-extreme{--rc:var(--r-ext)}
+.lvs.on{background:var(--rc);color:#fff;border-color:var(--rc);box-shadow:0 3px 10px color-mix(in srgb,var(--rc) 40%,transparent)}
+.lvs.on.lvs-low{color:#3a2f00}
+.lvs.on::after{display:none}
+.lv-ext{color:var(--r-ext)}
+:root[data-theme="dark"] .lv-ext{color:#ff8a8a}
+.badge.lvb-low{background:#fbf1c4;color:#6b5600} .badge.lvb-mod{background:#fde3c2;color:#8a4b00} .badge.lvb-high{background:#fbd9c6;color:#a33d07} .badge.lvb-vhigh{background:var(--crit-soft);color:var(--crit)} .badge.lvb-extreme{background:#f1d0d5;color:var(--r-ext)}
+/* Grille KDIGO */
+.kdigo{display:grid;grid-template-columns:64px repeat(3,minmax(0,1fr));gap:4px;max-width:420px}
+.kh{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.72rem;color:var(--muted);line-height:1.15;text-align:center}
+.kh b{color:var(--fg-2);font-size:.8rem}
+.kv{align-items:flex-start}
+.kc{height:38px;border-radius:8px;border:2px solid transparent;cursor:pointer;display:grid;place-items:center;color:#fff}
+.kc svg{width:18px;height:18px}
+.k-g{background:#b9dfa8} .k-y{background:#f5e58c} .k-o{background:#f7b26b} .k-r{background:#ec8f8b}
+.kc.on{border-color:var(--fg);box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--fg);color:var(--fg)}
+:root[data-theme="dark"] .k-g{background:#3d6b33} :root[data-theme="dark"] .k-y{background:#7a6d1c} :root[data-theme="dark"] .k-o{background:#8a521c} :root[data-theme="dark"] .k-r{background:#8a2f2b}
+.why{margin:0;padding-inline-start:18px;display:flex;flex-direction:column;gap:4px}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:620px){.opts{grid-template-columns:minmax(0,1fr)}}
+.opt{border:1.5px solid var(--line);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.opt.fav{border-color:var(--ok);background:color-mix(in srgb,var(--ok-soft) 60%,var(--surface))}
+.opt.pos{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+.opt.no{opacity:.75}
+.opt h4{font-size:1rem}
+.opt ul{margin:0;padding-inline-start:18px;font-size:.82rem;color:var(--fg-2);display:flex;flex-direction:column;gap:3px}
+.arrays{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.arr{border:1px solid var(--line);border-radius:var(--r-lg);padding:14px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.arr h3{font-size:1rem}
+.arr svg{width:100%;height:auto;max-width:280px;align-self:center}
+.arr .cnt{display:flex;flex-direction:column;gap:4px;font-size:.86rem}
+.arr .cnt div{display:flex;align-items:center;gap:8px}
+.arr .cnt b{margin-inline-start:auto;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sw{width:12px;height:12px;border-radius:3px;flex:none}
+.summary{font-size:1.08rem;line-height:1.65}
+[dir="rtl"].summary{font-family:var(--font-ar);font-size:1.22rem;line-height:1.9}
+.ph-head{display:none}
+.mbar{display:none}
+@media (max-width:980px){
+  .mbar{display:flex;position:fixed;inset-inline:12px;bottom:calc(var(--tabbar-h) + 10px);z-index:30;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lg);cursor:pointer}
+  .mbar b{font-size:1.3rem;font-family:var(--font-display)}
+  main.wrap{padding-bottom:90px}
+}
+body.patient #prof-card,body.patient .tabs,body.patient #src,body.patient #reco{display:none}
+body.patient .lay{grid-template-columns:minmax(0,1fr)}
+body.patient .summary{font-size:1.35rem}
+body.patient [dir="rtl"].summary{font-size:1.5rem}
+@page{size:A4;margin:14mm}
+@media print{
+  .da-top,#prof-card,.mbar{display:none!important}
+  .lay{display:block}
+  .res{position:static}
+  .ph-head{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:8px;margin-bottom:12px;color:#111}
+  .arrays{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .arr{break-inside:avoid;border-color:#bbb}
+}
+</style>
+<!-- @include _base.js -->
+<!-- @include _tour.js -->
+<!-- @include _risk.js -->
+<!-- @include _globorisk_tun.js -->
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap stack">
+  <div class="da-top">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="da-act" id="acts"></div>
+  </div>
+  <div class="lay">
+    <section class="card prof" id="prof-card"></section>
+    <section class="res stack" id="res"></section>
+  </div>
+</main>
+<div class="mbar" id="mbar" role="button" tabindex="0"></div>
+<footer id="cs-foot"></footer>
+<script>
+(function(){
+'use strict';
+var h = CS.h, fmt = CS.fmt, T = CS.t, E = CS.esc;
+var pt = CS.patient();
+var st = CS.store.get('decision', null) || {
+  sc:'statin', lang:CS.lang(),
+  s:{},
+  t:{age:pt.age || 76, sex:pt.sex || 'm', renal:'m', nyha:'3', lv:'g', pa:'n', flags:[], femoral:'ok', valve:'tri', cad:'no', life:'ok'}
+};
+st.s = Object.assign({score:'globo', sex:pt.sex || 'm', age:pt.age || 58, rf:['hta'], sbp:150, tc:5.5, hdl:1.15, dm:'0', dmtype:'2', dmdur:'lt10', dmtod:'0', agediab:null, a1c:7.5, egfr:75,
+  ascvd:[], other:[], ckdG:null, ckdA:null, region:'high', inten:'high'}, st.s || {});
+function save(){ CS.store.set('decision', st); }
+function P(x){ return CS.t(x, st.lang); }  // texte destiné au patient (fr / ar / tn)
+var LV = {
+  low:{c:'ok', fr:'Faible', ar:'منخفض', tn:'ضعيف'},
+  lowmod:{c:'ok', fr:'Faible à modéré', ar:'منخفض إلى متوسط', tn:'ضعيف ولا متوسّط'},
+  mod:{c:'warn', fr:'Modéré', ar:'متوسط', tn:'متوسّط'},
+  high:{c:'high', fr:'Élevé', ar:'مرتفع', tn:'عالي'},
+  vhigh:{c:'crit', fr:'Très élevé', ar:'مرتفع جدًا', tn:'عالي برشا'},
+  extreme:{c:'ext', fr:'Extrême', ar:'أقصى', tn:'خطير برشا'}
+};
+
+/* ---------- Contrôles du profil ---------- */
+function chips(key, obj, opts, multi, onChange){
+  var row = h('div', {class:'chips', id:'q-' + key});
+  opts.forEach(function(o){
+    var v = String(o[0]);
+    var on = multi ? (obj[key] || []).indexOf(v) >= 0 : String(obj[key]) === v;
+    row.appendChild(h('button', {class:'chip', type:'button', 'aria-pressed':on ? 'true' : 'false', html:CS.I.check.replace('<svg', '<svg class="ck"') + '<span>' + E(T(o[1])) + '</span>', onclick:function(){
+      if(multi){ var a = obj[key] || []; var i = a.indexOf(v); if(i >= 0) a.splice(i, 1); else a.push(v); obj[key] = a; }
+      else obj[key] = o[0];
+      save(); (onChange || render)();
+    }}));
+  });
+  return row;
+}
+function q(label, hint, ctl){ return h('div', {class:'q'}, h('div', {class:'ql'}, h('span', {text:label}), hint ? h('small', {text:hint}) : null), ctl); }
+function ageCtl(obj, min, max){
+  var inp = h('input', {class:'inp', id:'age', inputmode:'numeric', value:obj.age});
+  function set(v){ v = CS.clamp(Math.round(v), min, max); obj.age = v; inp.value = v; save(); renderRes(); renderSub(); }
+  inp.addEventListener('change', function(){ var v = CS.num(inp.value); if(!isNaN(v)) set(v); else inp.value = obj.age; });
+  inp.addEventListener('keydown', function(e){ if(e.key === 'Enter') inp.blur(); });
+  return h('div', {class:'agebox'},
+    h('button', {class:'btn', type:'button', 'aria-label':'−1', text:'−', onclick:function(){ set(obj.age - 1); }}), inp,
+    h('button', {class:'btn', type:'button', 'aria-label':'+1', text:'+', onclick:function(){ set(obj.age + 1); }}),
+    h('span', {class:'muted', text:{fr:'ans', ar:'سنة'}}));
+}
+var subHost = null, renderSub = function(){};
+function cholLabel(lo, hi, kind){ // libellés de tranches en mg/dL ou mmol/L
+  var f = function(x){ return CS.units() === 'si' ? fmt(x, 1) : fmt(Math.round(x * 38.67)); };
+  if(lo == null) return '< ' + f(hi);
+  if(hi == null) return '≥ ' + f(lo);
+  return f(lo) + '–' + f(hi);
+}
+
+/* ---------- Statine : calcul ----------
+   Catégories et objectifs de LDL-C : figure ESC/EAS 2025 (mise à jour dyslipidémies), transmise par Anis.
+   Score de risque : Globorisk calibré pour la Tunisie (« en Tunisie, à la place de SCORE2, on a Globorisk »),
+   SCORE2/SCORE2-OP au choix. Facteurs de risque majeurs : liste d'Anis (HTA, tabac, obésité, sédentarité,
+   âge > 55 ans H / > 65 ans F, dyslipidémie). IRC : grille KDIGO DFG × albuminurie. Le niveau retenu est le plus élevé. */
+var ORD = {low:0, mod:1, high:2, vhigh:3, extreme:4};
+var RF = [['hta', {fr:'Hypertension artérielle', ar:'ارتفاع ضغط الدم'}], ['smoke', {fr:'Tabagisme', ar:'التدخين'}], ['obese', {fr:'Obésité', ar:'السمنة'}],
+  ['sed', {fr:'Sédentarité', ar:'قلة النشاط البدني'}], ['dyslip', {fr:'Dyslipidémie', ar:'اضطراب الدهون'}]];
+var KG = [['G1', '≥ 90'], ['G2', '60–89'], ['G3a', '45–59'], ['G3b', '30–44'], ['G4', '15–29'], ['G5', '< 15']], KA = [['A1', '< 30'], ['A2', '30–299'], ['A3', '≥ 300']];
+// Couleur de la case (carte de chaleur KDIGO) et sévérité retenue par l'ESC
+function ckdCell(g, a){
+  var gi = ['G1', 'G2', 'G3a', 'G3b', 'G4', 'G5'].indexOf(g), ai = ['A1', 'A2', 'A3'].indexOf(a);
+  var heat = gi <= 1 ? ['g', 'y', 'o'][ai] : gi === 2 ? ['y', 'o', 'r'][ai] : gi === 3 ? ['o', 'r', 'r'][ai] : 'r';
+  var sev = gi >= 4 || (gi === 3 && ai >= 1) ? 'severe' : gi >= 2 || ai === 2 ? 'moderate' : null;
+  return {heat:heat, sev:sev};
+}
+function nRF(s){
+  var n = (s.rf || []).length;
+  if((s.sex === 'm' && s.age > 55) || (s.sex === 'f' && s.age > 65)) n++;
+  return n;
+}
+function scoreCalc(s){
+  var o = {female:s.sex === 'f', age:s.age, smoker:(s.rf || []).indexOf('smoke') >= 0, sbp:+s.sbp, tc:+s.tc, hdl:+s.hdl, region:s.region, diabetes:s.dm === '1', dm:s.dm === '1'};
+  if(s.score === 'score2'){
+    if(s.age < 40 || s.age > 89) return {model:'SCORE2', r:NaN, why:{fr:'SCORE2 : validé de 40 à 89 ans', ar:'SCORE2: معتمد من 40 إلى 89 سنة'}};
+    if(o.diabetes && s.age < 70){ o.agediab = s.agediab || Math.max(18, s.age - 5); o.a1c = RISK.a1cToMmol(+s.a1c); o.egfr = +s.egfr; return {model:'SCORE2-Diabetes', r:RISK.score2dm(o) * 100}; }
+    return s.age >= 70 ? {model:'SCORE2-OP', r:RISK.score2op(o) * 100} : {model:'SCORE2', r:RISK.score2(o) * 100};
+  }
+  var g = RISK.globorisk(o);
+  if(isNaN(g)) return {model:'Globorisk', r:NaN, why:{fr:'Globorisk : calibré de 40 à 80 ans', ar:'Globorisk: معاير من 40 إلى 80 سنة'}};
+  return {model:'Globorisk (Tunisie)', r:g * 100};
+}
+function statinCalc(){
+  var s = st.s, reasons = [], cat = null, oth = s.other || [];
+  function add(c, why){ reasons.push({cat:c, why:why}); if(cat == null || ORD[c] > ORD[cat]) cat = c; }
+  var asc = s.ascvd || [], n = nRF(s), dm = s.dm === '1', t1 = s.dmtype === '1', dur = s.dmdur;
+  var ck = s.ckdG && s.ckdA ? ckdCell(s.ckdG, s.ckdA) : null;
+  // Prévention secondaire
+  if(asc.indexOf('ascvd') >= 0){
+    if(asc.indexOf('recur') >= 0 || asc.indexOf('poly') >= 0) add('extreme', {fr:'Maladie CV avec récidive sous statine maximale tolérée, ou atteinte polyvasculaire', ar:'مرض قلبي وعائي مع انتكاس رغم أقصى جرعة ستاتين، أو إصابة متعددة الأوعية'});
+    else add('vhigh', {fr:'Maladie CV athéroscléreuse avérée (clinique ou imagerie)', ar:'مرض قلبي وعائي تصلّبي مؤكَّد (سريريًا أو بالتصوير)'});
+  }
+  // Hypercholestérolémie familiale
+  var nNoDys = n - ((s.rf || []).indexOf('dyslip') >= 0 ? 1 : 0);
+  if(oth.indexOf('fh') >= 0) add(asc.indexOf('ascvd') >= 0 || nNoDys > 0 ? 'vhigh' : 'high', asc.indexOf('ascvd') >= 0 || nNoDys > 0 ? {fr:'HF avec maladie CV ou un autre facteur majeur', ar:'فرط كوليسترول عائلي مع مرض قلبي أو عامل رئيسي آخر'} : {fr:'HF sans autre facteur majeur', ar:'فرط كوليسترول عائلي دون عامل رئيسي آخر'});
+  // IRC
+  if(ck && ck.sev === 'severe') add('vhigh', {fr:'IRC sévère (' + s.ckdG + ' ' + s.ckdA + ')', ar:'قصور كلوي شديد (' + s.ckdG + ' ' + s.ckdA + ')'});
+  else if(ck && ck.sev === 'moderate') add('high', {fr:'IRC modérée (' + s.ckdG + ' ' + s.ckdA + ')', ar:'قصور كلوي متوسط (' + s.ckdG + ' ' + s.ckdA + ')'});
+  // Facteur isolé très élevé
+  if(oth.indexOf('single') >= 0 || +s.sbp >= 180) add('high', {fr:'Facteur isolé très élevé (CT > 8 mmol/L, LDL-C > 4,9 mmol/L ou PA ≥ 180/110)', ar:'عامل منفرد مرتفع جدًا (كوليسترول كلي > 8 أو LDL > 4,9 مليمول/ل أو ضغط ≥ 180/110)'});
+  // Diabète
+  if(dm){
+    if(s.dmtod === '1' || n >= 3 || (t1 && dur === 'gt20')) add('vhigh', {fr:'Diabète avec atteinte d’organe cible, ≥ 3 facteurs majeurs, ou DT1 précoce de longue durée (> 20 ans)', ar:'سكري مع إصابة عضو مستهدف، أو 3 عوامل رئيسية فأكثر، أو سكري نوع 1 مبكر وطويل (> 20 سنة)'});
+    else if(dur !== 'lt10' || n >= 1) add('high', {fr:'Diabète sans atteinte d’organe, ≥ 10 ans d’évolution ou autre facteur de risque', ar:'سكري دون إصابة عضوية، منذ 10 سنوات فأكثر أو مع عامل خطر آخر'});
+    else if((t1 && s.age < 35) || (!t1 && s.age < 50)) add('mod', {fr:'Diabète du sujet jeune (DT1 < 35 ans, DT2 < 50 ans), < 10 ans d’évolution, sans autre facteur', ar:'سكري لدى شاب (نوع 1 < 35 سنة، نوع 2 < 50 سنة)، أقل من 10 سنوات، دون عامل آخر'});
+  }
+  // Score (prévention primaire)
+  var sc = null;
+  if(asc.indexOf('ascvd') < 0){
+    sc = scoreCalc(s);
+    if(!isNaN(sc.r)) add(sc.r >= 20 ? 'vhigh' : sc.r >= 10 ? 'high' : sc.r >= 2 ? 'mod' : 'low', {fr:sc.model + ' : ' + fmt(sc.r, 1) + ' % à 10 ans', ar:sc.model + ': ' + fmt(sc.r, 1) + ' % خلال 10 سنوات'});
+    else if(sc.why) reasons.push({cat:null, why:sc.why});
+  }
+  return {cat:cat, risk:sc && !isNaN(sc.r) ? sc.r : null, model:sc ? sc.model : null, reasons:reasons, n:n};
+}
+var LVL = [['low', LV.low], ['mod', LV.mod], ['high', LV.high], ['vhigh', LV.vhigh], ['extreme', LV.extreme]];
+function levelScale(cat){
+  return h('div', {class:'lvscale', id:'lvscale'}, LVL.map(function(x){ return h('div', {class:'lvs lvs-' + x[0] + (cat === x[0] ? ' on' : '')}, h('span', {text:x[1]})); }));
+}
+/* Objectif de LDL-C et classe de recommandation (figure ESC/EAS 2025) */
+var RECO = {
+  low:{fr:'Objectif LDL-C < 3,0 mmol/L (116 mg/dL) · classe IIb. Hygiène de vie en premier.', ar:'هدف LDL أقل من 3,0 مليمول/ل (116 ملغ/دل) · الفئة IIb. نمط الحياة أولًا.'},
+  mod:{fr:'Objectif LDL-C < 2,6 mmol/L (100 mg/dL) · classe IIa.', ar:'هدف LDL أقل من 2,6 مليمول/ل (100 ملغ/دل) · الفئة IIa.'},
+  high:{fr:'Objectif LDL-C < 1,8 mmol/L (70 mg/dL) et baisse ≥ 50 % · classe I.', ar:'هدف LDL أقل من 1,8 مليمول/ل (70 ملغ/دل) وانخفاض 50% على الأقل · الفئة I.'},
+  vhigh:{fr:'Objectif LDL-C < 1,4 mmol/L (55 mg/dL) et baisse ≥ 50 % · classe I (IIa en prévention primaire d’une HF à très haut risque).', ar:'هدف LDL أقل من 1,4 مليمول/ل (55 ملغ/دل) وانخفاض 50% على الأقل · الفئة I (IIa في الوقاية الأولية لفرط الكوليسترول العائلي).'},
+  extreme:{fr:'Objectif LDL-C < 1,0 mmol/L (40 mg/dL) · classe IIb.', ar:'هدف LDL أقل من 1,0 مليمول/ل (40 ملغ/دل) · الفئة IIb.'}
+};
+
+/* ---------- TAVI : calcul ---------- */
+function taviCalc(){
+  var v = st.t, f = v.flags || [], has = function(k){ return f.indexOf(k) >= 0; };
+  var es = RISK.euroscore2({age:v.age, female:v.sex === 'f', renal:v.renal, nyha:+v.nyha, lv:v.lv, pa:v.pa, art:has('art'), mob:has('mob'), redo:has('redo'), lung:has('lung'), ins:has('ins'), mi:has('mi'), wt:1});
+  var esCat = es >= 8 ? 'vhigh' : es >= 4 ? 'high' : 'low';
+  var frail = has('frail'), porcel = has('porc'), hostile = has('chest');
+  var surgHard = frail || porcel || hostile || es >= 8;
+  var fem = v.femoral === 'ok', tri = v.valve === 'tri', cad = v.cad === 'complex', life = v.life === 'short';
+  var O = {tavi:{s:'pos', r:[]}, surg:{s:'pos', r:[]}, med:{s:'no', r:[]}};
+  function R(k, x){ O[k].r.push(x); }
+  if(life){
+    O.med.s = 'fav'; R('med', {fr:'Espérance de vie < 1 an ou comorbidité sévère : bénéfice improbable de l’intervention (futilité).', ar:'أمد حياة متوقَّع أقل من سنة أو مرض مرافق شديد: فائدة التدخل غير مرجَّحة.'});
+    O.tavi.s = 'no'; O.surg.s = 'no'; R('tavi', {fr:'Discuter en Heart Team ; privilégier le confort.', ar:'يُناقَش في فريق القلب؛ مع إعطاء الأولوية للراحة.'}); R('surg', {fr:'Non adaptée dans ce contexte.', ar:'غير ملائمة في هذا السياق.'});
+  } else {
+    R('med', {fr:'RA serré symptomatique : sans intervention, survie moyenne de 2 à 3 ans.', ar:'تضيّق أبهري شديد مع أعراض: دون تدخل، متوسط البقاء من سنتين إلى 3 سنوات.'});
+    // TAVI
+    if(!fem){ O.tavi.s = 'pos'; R('tavi', {fr:'Accès fémoral non adapté : voie alternative possible en centre expert.', ar:'المدخل الفخذي غير ملائم: يمكن اعتماد مدخل بديل في مركز متخصّص.'}); }
+    if(fem && tri && v.age >= 70){ O.tavi.s = 'fav'; R('tavi', {fr:'≥ 70 ans, valve tricuspide, accès fémoral : TAVI recommandée quel que soit le risque chirurgical (ESC 2025, classe I).', ar:'70 سنة فأكثر، صمام ثلاثي الشرف، مدخل فخذي ملائم: يوصى بـ TAVI مهما كان الخطر الجراحي (ESC 2025، الفئة I).'}); }
+    else if(fem && surgHard){ O.tavi.s = 'fav'; R('tavi', {fr:'Risque chirurgical élevé ou chirurgie difficile : TAVI privilégiée.', ar:'خطر جراحي مرتفع أو جراحة صعبة: تُفضَّل TAVI.'}); }
+    else if(fem && v.age < 70){ R('tavi', {fr:'< 70 ans : TAVI à discuter en Heart Team (durabilité, gestion à vie de la valve).', ar:'أقل من 70 سنة: تُناقَش TAVI في فريق القلب (متانة الصمام وتدبيره مدى الحياة).'}); }
+    if(!tri){ if(O.tavi.s === 'fav') O.tavi.s = 'pos'; R('tavi', {fr:'Bicuspidie : données plus limitées, anatomie à évaluer au scanner.', ar:'صمام ثنائي الشرف: المعطيات أقل، ويجب تقييم التشريح بالمفراس.'}); }
+    if(cad){ R('tavi', {fr:'Coronaropathie complexe : revascularisation à planifier.', ar:'مرض تاجي معقّد: يجب التخطيط لإعادة التروية.'}); }
+    // Chirurgie
+    if(surgHard){ O.surg.s = 'no'; R('surg', {fr:'Risque opératoire élevé ou chirurgie difficile (' + [es >= 8 ? 'EuroSCORE II ≥ 8 %' : '', frail ? 'fragilité' : '', porcel ? 'aorte porcelaine' : '', hostile ? 'thorax hostile' : ''].filter(Boolean).join(', ') + ').', ar:'خطر جراحي مرتفع أو جراحة صعبة.'}); }
+    else if(v.age < 70 && es < 4){ O.surg.s = 'fav'; R('surg', {fr:'< 70 ans et risque opératoire faible : chirurgie (RVA) recommandée.', ar:'أقل من 70 سنة وخطر جراحي منخفض: يوصى بالجراحة (استبدال الصمام).'}); }
+    else { R('surg', {fr:'Alternative valable : en discuter (durabilité, préférences du patient).', ar:'بديل مقبول: يُناقَش (متانة الصمام وتفضيلات المريض).'}); }
+    if(!surgHard && (cad || !tri)){ if(O.surg.s !== 'fav'){ O.surg.s = v.age < 75 ? 'fav' : 'pos'; } R('surg', {fr:cad ? 'Coronaropathie complexe : chirurgie combinée (RVA + pontages) possible.' : 'Bicuspidie : la chirurgie reste la référence si l’opérabilité le permet.', ar:cad ? 'مرض تاجي معقّد: جراحة مشتركة (استبدال الصمام مع المجازة) ممكنة.' : 'صمام ثنائي الشرف: تبقى الجراحة المرجع إن سمحت الحالة.'}); }
+    if(O.tavi.s === 'fav' && O.surg.s === 'fav') O.surg.s = 'pos';
+    // Points pratiques soulevés par Anis : durabilité de la bioprothèse et coût en Tunisie
+    R('tavi', {fr:'Valve biologique : durabilité de l’ordre de 10 ans ; coût élevé et accès limité en Tunisie.', ar:'صمام بيولوجي: متانة في حدود 10 سنوات؛ كلفة مرتفعة وإتاحة محدودة في تونس.'});
+    if(O.surg.s !== 'no') R('surg', {fr:'Plus lourde (sternotomie, convalescence), mais valve plus durable ; mécanique possible chez le sujet jeune (AVK à vie).', ar:'أثقل (شقّ القصّ ونقاهة أطول) لكن الصمام أمتن؛ ويمكن اختيار صمام ميكانيكي لدى الشاب (مضادّ تخثّر مدى الحياة).'});
+    if(v.age >= 65 && v.age < 75 && !surgHard) R('tavi', {fr:'Zone intermédiaire d’âge : décision en réunion Heart Team (cardiologue, chirurgien, anesthésiste).', ar:'سنّ وسطى: يُتّخذ القرار في اجتماع فريق القلب (طبيب القلب والجرّاح وطبيب التخدير).'});
+  }
+  return {es:es, esCat:esCat, O:O, surgHard:surgHard, life:life, fem:fem, inop:porcel || hostile || es >= 8, low:es < 4 && !frail && !porcel && !hostile};
+}
+
+/* ---------- Pictogrammes ---------- */
+function iconArray(cats){
+  var counts = cats.map(function(c){ return Math.round(c.n); });
+  var cells = []; cats.forEach(function(c, i){ for(var k = 0; k < counts[i]; k++) cells.push(c.k); });
+  while(cells.length < 100) cells.push('none'); cells = cells.slice(0, 100);
+  var s = '<svg viewBox="0 0 250 320" role="img" dir="ltr" aria-label="100">';
+  cells.forEach(function(k, i){
+    var x = (i % 10) * 25, y = Math.floor(i / 10) * 32, col = 'var(--c-' + k + ')';
+    s += '<g transform="translate(' + x + ' ' + y + ')"><circle cx="12.5" cy="7" r="5" style="fill:' + col + '"/><path d="M4 30 C4 19 8 14 12.5 14 C17 14 21 19 21 30Z" style="fill:' + col + '"/></g>';
+  });
+  return s + '</svg>';
+}
+function arraysEl(list){
+  var box = h('div', {class:'arrays', id:'arrays'}), d = st.lang === 'fr' ? 'ltr' : 'rtl';
+  list.forEach(function(a){
+    var cnt = h('div', {class:'cnt'});
+    a[1].forEach(function(c){ cnt.appendChild(h('div', {dir:d}, h('span', {class:'sw', style:{background:'var(--c-' + c.k + ')'}}), h('span', {text:P(c.l)}), h('b', {text:(c.n < 1 && c.n > 0 ? '< 1' : fmt(c.n, c.n < 10 && c.n % 1 ? 1 : 0)) + ' / 100'}))); });
+    var none = 100 - a[1].reduce(function(s, c){ return s + Math.round(c.n); }, 0);
+    cnt.appendChild(h('div', {dir:d}, h('span', {class:'sw', style:{background:'var(--c-none)'}}), h('span', {text:P({fr:'Aucun de ces événements', ar:'لا شيء من هذه الأحداث', tn:'ما صار شي'})}), h('b', {text:Math.max(0, none) + ' / 100'})));
+    box.appendChild(h('div', {class:'arr'}, h('h3', {dir:d, text:P(a[0])}), h('div', {html:iconArray(a[1])}), cnt));
+  });
+  return box;
+}
+/* Jauge : segs = [[fin du segment, couleur], …] en unités de la valeur ; graduations aux limites */
+function gauge(val, max, segs){
+  var pos = CS.clamp(val / max, 0, 1) * 100, prev = 0;
+  var bar = h('div', {class:'gbar'});
+  segs.forEach(function(s){ bar.appendChild(h('span', {style:{background:s[1], flex:'0 0 ' + ((Math.min(s[0], max) - prev) / max * 100) + '%'}})); prev = Math.min(s[0], max); });
+  bar.appendChild(h('i', {class:'mk', style:{insetInlineStart:'calc(' + pos + '% - 2px)'}}));
+  var lab = h('div', {class:'glab', style:{position:'relative', height:'16px'}});
+  [0].concat(segs.slice(0, -1).map(function(s){ return s[0]; })).forEach(function(x){ lab.appendChild(h('span', {style:{position:'absolute', insetInlineStart:(x / max * 100) + '%', transform:CS.isAr() ? 'translateX(50%)' : 'translateX(-50%)'}, text:fmt(x, x % 1 ? 1 : 0) + (x ? ' %' : '')})); });
+  lab.appendChild(h('span', {style:{position:'absolute', insetInlineEnd:'0'}, text:fmt(max) + ' %+'}));
+  return h('div', {class:'gauge', id:'gauge'}, bar, lab);
+}
+
+/* ---------- Rendu ---------- */
+var SC = {statin:{fr:'Statine en prévention primaire', ar:'الستاتين في الوقاية الأولية'}, tavi:{fr:'Rétrécissement aortique : TAVI, chirurgie ou traitement médical', ar:'تضيّق الصمام الأبهري: TAVI أو جراحة أو علاج دوائي'}};
+function renderTabs(){
+  var tb = CS.$('#tabs'); tb.innerHTML = '';
+  Object.keys(SC).forEach(function(k){ tb.appendChild(h('button', {role:'tab', type:'button', id:'tab-' + k, 'aria-selected':st.sc === k ? 'true' : 'false', text:SC[k], onclick:function(){ st.sc = k; save(); render(); }})); });
+}
+function renderProfile(){
+  var c = CS.$('#prof-card'); c.innerHTML = '';
+  c.appendChild(h('div', {class:'row between'}, h('h2', {text:{fr:'Profil du patient', ar:'ملف المريض'}}), h('button', {class:'btn sm ghost', type:'button', html:CS.I.user + '<span>' + E(T({fr:'Patient en cours', ar:'المريض الحالي'})) + '</span>', onclick:function(){
+    var p = CS.patient(); if(p.age){ st.s.age = st.t.age = p.age; } if(p.sex){ st.s.sex = st.t.sex = p.sex; } save(); render(); CS.toast({fr:'Âge et sexe repris du patient en cours', ar:'تم أخذ السن والجنس من المريض الحالي'});
+  }})));
+  if(st.sc === 'statin'){
+    var s = st.s;
+    c.appendChild(q({fr:'Score de risque', ar:'مقياس الخطر'}, null, CS.segEl([['globo', {fr:'Globorisk (Tunisie)', ar:'Globorisk (تونس)'}], ['score2', 'SCORE2']], s.score, function(x){ s.score = x; save(); render(); }, 'full')));
+    c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', s, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
+    c.appendChild(q({fr:'Âge', ar:'السن'}, s.score === 'globo' ? '40–80' : null, ageCtl(s, 18, 95)));
+    c.appendChild(q({fr:'Facteurs de risque', ar:'عوامل الخطر'}, T({fr:'âge > 55 H / > 65 F compté seul · total : ', ar:'السن (> 55 رجل / > 65 امرأة) يُحتسب تلقائيًا · المجموع: '}) + nRF(s), chips('rf', s, RF, true)));
+    c.appendChild(q({fr:'Pression artérielle systolique', ar:'الضغط الانقباضي'}, 'mmHg', chips('sbp', s, [[110, '< 120'], [130, '120–139'], [150, '140–159'], [170, '160–179'], [190, '≥ 180']])));
+    var cu = CS.units() === 'si' ? 'mmol/L' : 'mg/dL';
+    c.appendChild(q({fr:'Cholestérol total', ar:'الكوليسترول الكلي'}, cu, chips('tc', s, [[3.5, cholLabel(null, 4)], [4.5, cholLabel(4, 4.9)], [5.5, cholLabel(5, 5.9)], [6.5, cholLabel(6, 6.9)], [7.5, cholLabel(7, 7.9)], [8.5, cholLabel(8, null)]], false, function(){ if(+s.tc >= 8){ s.other = s.other || []; if(s.other.indexOf('single') < 0) s.other.push('single'); } save(); render(); })));
+    if(s.score === 'score2') c.appendChild(q({fr:'HDL-cholestérol', ar:'الكوليسترول الجيد HDL'}, cu, chips('hdl', s, [[0.9, cholLabel(null, 1.0)], [1.15, cholLabel(1.0, 1.29)], [1.45, cholLabel(1.3, 1.59)], [1.8, cholLabel(1.6, null)]])));
+    c.appendChild(q({fr:'Diabète', ar:'السكري'}, null, chips('dm', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])));
+    subHost = h('div'); c.appendChild(subHost);
+    renderSub = function(){
+      subHost.innerHTML = '';
+      if(s.dm !== '1') return;
+      var box = h('div', {class:'sub'},
+        q({fr:'Type', ar:'النوع'}, null, chips('dmtype', s, [['2', {fr:'Type 2', ar:'النوع 2'}], ['1', {fr:'Type 1', ar:'النوع 1'}]])),
+        q({fr:'Ancienneté du diabète', ar:'مدة السكري'}, null, chips('dmdur', s, [['lt10', {fr:'< 10 ans', ar:'< 10 سنوات'}], ['10to20', {fr:'10–20 ans', ar:'10–20 سنة'}], ['gt20', {fr:'> 20 ans', ar:'> 20 سنة'}]])),
+        q({fr:'Atteinte d’organe cible', ar:'إصابة عضو مستهدف'}, {fr:'rein, rétine, nerf, microalbuminurie…', ar:'الكلى، الشبكية، الأعصاب…'}, chips('dmtod', s, [['0', {fr:'Non', ar:'لا'}], ['1', {fr:'Oui', ar:'نعم'}]])));
+      if(s.score === 'score2' && s.age < 70){
+        if(!s.agediab) s.agediab = Math.max(18, s.age - 5);
+        var ad = h('input', {class:'inp', inputmode:'numeric', id:'agediab', value:s.agediab, style:{width:'90px'}});
+        ad.addEventListener('change', function(){ var v = CS.num(ad.value); if(!isNaN(v)){ s.agediab = CS.clamp(Math.round(v), 10, s.age); save(); renderRes(); } ad.value = s.agediab; });
+        box.appendChild(h('p', {class:'small muted', text:{fr:'SCORE2-Diabetes (avant 70 ans) : trois données de plus.', ar:'SCORE2-Diabetes (قبل 70 سنة): ثلاث معطيات إضافية.'}}));
+        box.appendChild(q({fr:'Âge au diagnostic', ar:'السن عند التشخيص'}, null, h('div', {class:'agebox'}, ad, h('span', {class:'muted', text:{fr:'ans', ar:'سنة'}}))));
+        box.appendChild(q('HbA1c', '%', chips('a1c', s, [[6.5, '< 7'], [7.5, '7–7,9'], [8.5, '8–8,9'], [9.5, '≥ 9']])));
+        box.appendChild(q({fr:'DFG', ar:'معدل الترشيح'}, 'mL/min/1,73 m²', chips('egfr', s, [[100, '≥ 90'], [75, '60–89'], [52, '45–59'], [37, '30–44']])));
+      }
+      subHost.appendChild(box);
+    };
+    renderSub();
+    c.appendChild(q({fr:'Maladie cardiovasculaire', ar:'مرض قلبي وعائي'}, {fr:'prévention secondaire', ar:'وقاية ثانوية'}, chips('ascvd', s, [['ascvd', {fr:'Maladie CV avérée (IDM, AVC, AOMI, plaque)', ar:'مرض قلبي وعائي مؤكَّد'}], ['recur', {fr:'Récidive sous statine maximale', ar:'انتكاس رغم أقصى ستاتين'}], ['poly', {fr:'Atteinte coronaire + périphérique', ar:'إصابة تاجية وطرفية'}]], true, function(){ var a = s.ascvd || []; if((a.indexOf('recur') >= 0 || a.indexOf('poly') >= 0) && a.indexOf('ascvd') < 0) a.push('ascvd'); save(); render(); })));
+    c.appendChild(q({fr:'Autres situations', ar:'حالات أخرى'}, null, chips('other', s, [['fh', {fr:'Hypercholestérolémie familiale', ar:'فرط كوليسترول عائلي'}], ['single', {fr:'CT > 8 · LDL > 4,9 mmol/L · PA ≥ 180/110', ar:'كوليسترول > 8 · LDL > 4,9 · ضغط ≥ 180/110'}]], true)));
+    // Grille KDIGO
+    var grid = h('div', {class:'kdigo', id:'kdigo'});
+    grid.appendChild(h('span')); KA.forEach(function(a){ grid.appendChild(h('span', {class:'kh', html:'<b>' + a[0] + '</b><small>' + a[1] + '</small>'})); });
+    KG.forEach(function(g){
+      grid.appendChild(h('span', {class:'kh kv', html:'<b>' + g[0] + '</b><small>' + g[1] + '</small>'}));
+      KA.forEach(function(a){ var cell = ckdCell(g[0], a[0]), on = s.ckdG === g[0] && s.ckdA === a[0];
+        grid.appendChild(h('button', {type:'button', class:'kc k-' + cell.heat + (on ? ' on' : ''), 'aria-pressed':on ? 'true' : 'false', 'aria-label':g[0] + ' ' + a[0], onclick:function(){ if(on){ s.ckdG = s.ckdA = null; } else { s.ckdG = g[0]; s.ckdA = a[0]; } save(); render(); }}, on ? h('span', {html:CS.I.check}) : null)); });
+    });
+    c.appendChild(q({fr:'Fonction rénale (KDIGO)', ar:'وظيفة الكلى (KDIGO)'}, {fr:'DFG mL/min/1,73 m² × albuminurie mg/g · touchez la case', ar:'معدل الترشيح × البيلة الألبومينية · المس الخانة'}, grid));
+    if(s.score === 'score2'){
+      var reg = h('select', {class:'inp', id:'region'}, [['low', {fr:'Faible', ar:'منخفض'}], ['moderate', {fr:'Modéré', ar:'متوسط'}], ['high', {fr:'Élevé', ar:'مرتفع'}], ['veryhigh', {fr:'Très élevé', ar:'مرتفع جدًا'}]].map(function(o){ return h('option', {value:o[0], text:o[1], selected:s.region === o[0]}); }));
+      reg.addEventListener('change', function(){ s.region = reg.value; save(); renderRes(); });
+      c.appendChild(q({fr:'Région de risque ESC (SCORE2)', ar:'منطقة الخطر حسب ESC (SCORE2)'}, {fr:'calibration', ar:'المعايرة'}, reg));
+    }
+  } else {
+    var v = st.t;
+    c.appendChild(q({fr:'Âge', ar:'السن'}, null, ageCtl(v, 40, 99)));
+    c.appendChild(q({fr:'Sexe', ar:'الجنس'}, null, chips('sex', v, [['m', {fr:'Homme', ar:'رجل'}], ['f', {fr:'Femme', ar:'امرأة'}]])));
+    c.appendChild(q({fr:'Valve aortique', ar:'الصمام الأبهري'}, null, chips('valve', v, [['tri', {fr:'Tricuspide', ar:'ثلاثي الشرف'}], ['bi', {fr:'Bicuspide', ar:'ثنائي الشرف'}]])));
+    c.appendChild(q({fr:'Accès fémoral (scanner)', ar:'المدخل الفخذي (المفراس)'}, null, chips('femoral', v, [['ok', {fr:'Adapté', ar:'ملائم'}], ['no', {fr:'Non adapté', ar:'غير ملائم'}]])));
+    c.appendChild(q({fr:'Essoufflement (NYHA)', ar:'ضيق التنفس (NYHA)'}, null, chips('nyha', v, [['1', 'I'], ['2', 'II'], ['3', 'III'], ['4', 'IV']])));
+    c.appendChild(q({fr:'FEVG', ar:'الكسر القذفي'}, null, chips('lv', v, [['g', '> 50 %'], ['m', '31–50 %'], ['p', '21–30 %'], ['vp', '≤ 20 %']])));
+    c.appendChild(q({fr:'Fonction rénale (clairance)', ar:'وظيفة الكلى (التصفية)'}, 'mL/min', chips('renal', v, [['n', '> 85'], ['m', '50–85'], ['s', '< 50'], ['dial', {fr:'Dialyse', ar:'غسيل الكلى'}]])));
+    c.appendChild(q({fr:'PAPs', ar:'الضغط الرئوي الانقباضي'}, 'mmHg', chips('pa', v, [['n', '< 31'], ['m', '31–54'], ['s', '≥ 55']])));
+    c.appendChild(q({fr:'Antécédents et terrain', ar:'السوابق والحالة العامة'}, {fr:'plusieurs choix', ar:'عدة اختيارات'}, chips('flags', v, [
+      ['frail', {fr:'Fragilité', ar:'هشاشة'}], ['porc', {fr:'Aorte porcelaine', ar:'أبهر خزفي'}], ['chest', {fr:'Thorax hostile', ar:'صدر غير ملائم للجراحة'}],
+      ['redo', {fr:'Chirurgie cardiaque antérieure', ar:'جراحة قلب سابقة'}], ['art', {fr:'Artériopathie', ar:'اعتلال الشرايين'}], ['lung', {fr:'BPCO', ar:'انسداد رئوي مزمن'}],
+      ['ins', {fr:'Diabète insulinotraité', ar:'سكري معالج بالأنسولين'}], ['mob', {fr:'Mobilité réduite', ar:'حركة محدودة'}], ['mi', {fr:'IDM < 90 jours', ar:'احتشاء منذ أقل من 90 يومًا'}]], true)));
+    c.appendChild(q({fr:'Coronaires', ar:'الشرايين التاجية'}, null, chips('cad', v, [['no', {fr:'Pas de lésion complexe', ar:'لا آفة معقّدة'}], ['complex', {fr:'Atteinte complexe (pontage ?)', ar:'إصابة معقّدة (مجازة؟)'}]])));
+    c.appendChild(q({fr:'Espérance de vie', ar:'أمد الحياة المتوقَّع'}, null, chips('life', v, [['ok', {fr:'> 1 an', ar:'أكثر من سنة'}], ['short', {fr:'< 1 an / comorbidité sévère', ar:'أقل من سنة / مرض مرافق شديد'}]])));
+  }
+}
+function renderRes(){
+  var box = CS.$('#res'); box.innerHTML = '';
+  var d = st.lang === 'fr' ? 'ltr' : 'rtl';
+  var out = h('div', {class:'card stack', id:'out'});
+  out.appendChild(h('div', {class:'ph-head', html:'<div><b>' + E(T(SC[st.sc])) + '</b><br><small>' + E(CS.doctorLabel()) + '</small></div><div><small>' + E(CS.frDate(CS.todayISO())) + '</small></div>'}));
+  var mb = CS.$('#mbar'); mb.innerHTML = '';
+  if(st.sc === 'statin'){
+    var r = statinCalc(), lv = r.cat ? LV[r.cat] : null;
+    var top = h('div', {class:'stack', id:'risk'});
+    top.appendChild(h('span', {class:'eyebrow', text:T({fr:'Catégorie de risque cardiovasculaire · ESC/EAS 2025', ar:'فئة الخطر القلبي الوعائي · ESC/EAS 2025'})}));
+    top.appendChild(h('div', {class:'bignum'}, lv ? h('b', {class:'lv-' + lv.c, style:{fontSize:'2.2rem'}, text:T(lv)}) : h('span', {class:'cat muted', text:'—'}), r.risk != null ? h('span', {class:'cat muted', text:r.model + ' ' + fmt(r.risk, 1) + ' %'}) : null));
+    top.appendChild(levelScale(r.cat));
+    if(r.risk != null) top.appendChild(gauge(r.risk, 30, [[2, '#e9c11e'], [10, '#f08c00'], [20, '#e8590c'], [30, '#c0392b']]));
+    if(r.reasons.length) top.appendChild(h('ul', {class:'why small', id:'why'}, r.reasons.map(function(x){ return h('li', null, x.cat ? h('span', {class:'badge lvb-' + x.cat, text:LV[x.cat]}) : null, ' ', T(x.why)); })));
+    if(r.cat) top.appendChild(h('div', {class:'result ' + (ORD[r.cat] >= 3 ? 'crit' : ORD[r.cat] === 2 ? 'warn' : 'ok'), id:'reco', html:E(T(RECO[r.cat]))}));
+    out.appendChild(top);
+    if(lv){ mb.appendChild(h('span', {class:'small muted', text:T({fr:'Risque', ar:'الخطر'})})); mb.appendChild(h('b', {class:'lv-' + lv.c, text:T(lv)})); if(r.risk != null) mb.appendChild(h('span', {class:'small muted', text:fmt(r.risk, 1) + ' %'})); }
+    if(r.risk != null){
+      var inten = CS.segEl([['mod', {fr:'Modérée', ar:'متوسطة'}], ['high', {fr:'Forte', ar:'قوية'}]], st.s.inten, function(x){ st.s.inten = x; save(); renderRes(); });
+      out.appendChild(h('div', {class:'row'}, h('span', {class:'small muted', text:{fr:'Intensité de la statine', ar:'شدة الستاتين'}}), inten));
+      var rr = st.s.inten === 'high' ? 0.43 : 0.31, r0 = r.risk, r1 = r0 * (1 - rr);
+      var ev = {fr:'Infarctus ou AVC', ar:'احتشاء أو سكتة دماغية', tn:'جلطة قلبية ولا دماغية'};
+      var A = [{k:'ev', l:ev, n:r0}];
+      var B = [{k:'ev', l:ev, n:r1}, {k:'avoid', l:{fr:'Événement évité', ar:'حدث تمّ تجنّبه', tn:'حادث تفاداه الدواء'}, n:r0 - r1}, {k:'harm', l:{fr:'Diabète apparu plus tôt', ar:'ظهور السكري مبكرًا', tn:'سكري جا بكري'}, n:st.s.inten === 'high' ? 1.2 : 0.7}, {k:'harm2', l:{fr:'Douleurs musculaires dues à la statine', ar:'آلام عضلية بسبب الستاتين', tn:'وجيعة عضلات من الدواء'}, n:1}];
+      var it = st.s.inten === 'high' ? {fr:'forte', ar:'قوية', tn:'قوية'} : {fr:'modérée', ar:'متوسطة', tn:'متوسطة'};
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Votre risque est ' + LV[r.cat].fr.toLowerCase() + '. Sur 100 personnes comme vous pendant 10 ans, environ ' + fmt(r0) + ' feront un infarctus ou un AVC sans statine, contre ' + fmt(r1) + ' avec une statine d’intensité ' + it.fr + ' : ' + fmt(r0 - r1) + ' événement(s) évité(s). Les douleurs musculaires réellement dues à la statine concernent environ 1 personne sur 100.',
+        ar:'مستوى خطرك ' + LV[r.cat].ar + '. من بين 100 شخص يشبهونك، خلال 10 سنوات، سيُصاب نحو ' + fmt(r0) + ' بنوبة قلبية أو سكتة دماغية دون ستاتين، مقابل ' + fmt(r1) + ' مع ستاتين بشدة ' + it.ar + '، أي أن الدواء يجنّب نحو ' + fmt(r0 - r1) + ' حدثًا. أما آلام العضلات الناتجة فعلًا عن الستاتين فتصيب نحو شخص واحد من كل 100.',
+        tn:'الخطر متاعك ' + LV[r.cat].tn + '. على 100 شخص كيفك في 10 سنين، تقريب ' + fmt(r0) + ' يصيرلهم جلطة من غير دواء، و' + fmt(r1) + ' بالدواء. ' + fmt(r0 - r1) + ' حوادث تفاداهم الدواء. وجيعة العضلات اللي جاية حقيقة من الدواء: تقريب شخص على 100.'})}));
+      out.appendChild(arraysEl([[{fr:'Sans statine', ar:'دون ستاتين', tn:'من غير دواء'}, A], [{fr:'Avec statine', ar:'مع الستاتين', tn:'بالدواء'}, B]]));
+    }
+    out.appendChild(h('p', {class:'xs muted', id:'src', text:T({fr:'Sources : ', ar:'المصادر: '}) + 'catégories et objectifs : ESC/EAS 2025 (dyslipidémies, mise à jour) ; Globorisk lab, calibration Tunisie (Ueda, Lancet Diabetes Endocrinol 2017) ; SCORE2/SCORE2-OP (Eur Heart J 2021) ; IRC : KDIGO ; réduction relative ≈ 22 % par mmol/L de LDL (CTT 2010) ; effets indésirables : CTT 2022. Estimations arrondies.'}));
+  } else {
+    var x = taviCalc(), lvE = LV[x.esCat];
+    var top2 = h('div', {class:'stack', id:'risk'});
+    top2.appendChild(h('span', {class:'eyebrow', text:T({fr:'Mortalité opératoire prédite · EuroSCORE II', ar:'الوفيات الجراحية المتوقَّعة · EuroSCORE II'})}));
+    top2.appendChild(h('div', {class:'bignum'}, h('b', {class:'lv-' + lvE.c, text:fmt(x.es, 1) + ' %'}), h('span', {class:'cat lv-' + lvE.c, text:T(x.esCat === 'low' ? {fr:'Risque faible', ar:'خطر منخفض'} : x.esCat === 'high' ? {fr:'Risque intermédiaire', ar:'خطر متوسط'} : {fr:'Risque élevé', ar:'خطر مرتفع'})})));
+    top2.appendChild(gauge(x.es, 16, [[4, 'var(--ok)'], [8, 'var(--warn)'], [16, 'var(--crit)']]));
+    out.appendChild(top2);
+    mb.appendChild(h('span', {class:'small muted', text:'EuroSCORE II'})); mb.appendChild(h('b', {class:'lv-' + lvE.c, text:fmt(x.es, 1) + ' %'}));
+    var fav = Object.keys(x.O).filter(function(k){ return x.O[k].s === 'fav'; })[0];
+    var NM = {tavi:{fr:'TAVI', ar:'TAVI'}, surg:{fr:'Chirurgie (RVA)', ar:'الجراحة'}, med:{fr:'Traitement médical', ar:'العلاج الدوائي'}};
+    if(fav) mb.appendChild(h('span', {class:'lv-ok', text:'→ ' + T(NM[fav])}));
+    var ST = {fav:{fr:'Option privilégiée', ar:'الخيار المفضَّل'}, pos:{fr:'Option possible', ar:'خيار ممكن'}, no:{fr:'Peu adaptée', ar:'غير ملائم'}};
+    var opts = h('div', {class:'opts', id:'reco'});
+    ['tavi', 'surg', 'med'].forEach(function(k){
+      var o = x.O[k];
+      opts.appendChild(h('div', {class:'opt ' + o.s}, h('span', {class:'badge ' + (o.s === 'fav' ? 'ok' : o.s === 'pos' ? 'warn' : ''), text:ST[o.s]}), h('h4', {text:NM[k]}), h('ul', null, o.r.map(function(z){ return h('li', {text:z}); }))));
+    });
+    out.appendChild(opts);
+    out.appendChild(h('p', {class:'xs muted', text:{fr:'Orientation indicative : la décision revient à la Heart Team, avec le patient.', ar:'توجيه إرشادي: القرار لفريق القلب بالتشاور مع المريض.'}}));
+    // Pictogrammes seulement quand l'essai correspond au profil : PARTNER 1B = inopérable vrai ; PARTNER 3 = bas risque non fragile
+    if(!x.life && x.inop && x.fem){
+      var T2 = [{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:30.7}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:10.6}, {k:'harm2', l:{fr:'Complication vasculaire majeure', ar:'مضاعفة وعائية كبرى', tn:'مشكل في الشريان'}, n:16}];
+      var M = [{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:50.7}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:4.5}];
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Chez les patients qui ne peuvent pas être opérés, à 1 an : sur 100 personnes, environ 51 décèdent avec le traitement médical seul, contre 31 avec la TAVI. 20 vies sauvées pour 100 patients traités, au prix de plus d’AVC et de complications vasculaires (moins fréquentes avec les valves actuelles).',
+        ar:'لدى المرضى الذين لا يمكن إجراء الجراحة لهم، بعد سنة: من بين 100 شخص يتوفّى نحو 51 مع العلاج الدوائي وحده، مقابل 31 مع TAVI. أي إنقاذ 20 حياة لكل 100 مريض، مقابل سكتات دماغية ومضاعفات وعائية أكثر (أقل تواترًا مع الصمامات الحالية).',
+        tn:'مريض ما ينجمش يعمل عملية، بعد عام: على 100 شخص، تقريب 51 يموتو بالدواء برك، و31 بالتافي. 20 حياة تتسلّك على كل 100 مريض، مقابل جلطات ومشاكل شرايين أكثر (أقل مع الصمامات الجديدة).'})}));
+      out.appendChild(arraysEl([[{fr:'TAVI', ar:'TAVI', tn:'التافي'}, T2], [{fr:'Traitement médical seul', ar:'العلاج الدوائي وحده', tn:'الدواء برك'}, M]]));
+      out.appendChild(h('p', {class:'xs muted', id:'src', text:'PARTNER 1B (Leon MB, NEJM 2010), 1 an, valves de première génération. ESC/EACTS 2025 (valvulopathies).'}));
+    } else if(!x.life && !x.low){
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Pour un patient à risque opératoire intermédiaire ou fragile, la TAVI fait au moins aussi bien que la chirurgie à 1 et 2 ans (essais PARTNER 2 et SURTAVI), avec une récupération plus rapide. Sans intervention, le rétrécissement serré avec symptômes est grave (survie moyenne 2 à 3 ans).',
+        ar:'لدى المريض ذي الخطر الجراحي المتوسط أو الهش، تعطي TAVI نتائج لا تقل عن الجراحة بعد سنة وسنتين (دراستا PARTNER 2 وSURTAVI)، مع تعافٍ أسرع. ودون تدخل، يكون التضيّق الشديد المصحوب بأعراض خطيرًا (متوسط البقاء من سنتين إلى 3 سنوات).',
+        tn:'مريض خطر العملية عندو متوسّط ولا ضعيف البنية: التافي تعطي نتيجة كيف العملية ولا خير بعد عام وعامين، والراحة أسرع. من غير تدخّل، التضييق الشديد مع الأعراض خطير (العمر المتوسط 2 ولا 3 سنين).'})}));
+      out.appendChild(h('p', {class:'xs muted', id:'src', text:'PARTNER 2 (Leon MB, NEJM 2016), SURTAVI (Reardon MJ, NEJM 2017) : non-infériorité de la TAVI à risque intermédiaire. ESC/EACTS 2025 (valvulopathies).'}));
+    } else if(!x.life){
+      var Tl =[{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:1.0}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:1.2}, {k:'harm2', l:{fr:'Pacemaker nécessaire', ar:'الحاجة إلى منظِّم ضربات', tn:'يلزمو بيس ماكر'}, n:6.5}, {k:'avoid', l:{fr:'FA nouvelle', ar:'رجفان أذيني جديد', tn:'رجفان جديد'}, n:5}];
+      var Sl = [{k:'ev', l:{fr:'Décès', ar:'وفاة', tn:'وفاة'}, n:2.5}, {k:'harm', l:{fr:'AVC', ar:'سكتة دماغية', tn:'جلطة دماغية'}, n:3.1}, {k:'harm2', l:{fr:'Pacemaker nécessaire', ar:'الحاجة إلى منظِّم ضربات', tn:'يلزمو بيس ماكر'}, n:4}, {k:'avoid', l:{fr:'FA nouvelle', ar:'رجفان أذيني جديد', tn:'رجفان جديد'}, n:39.5}];
+      out.appendChild(h('p', {class:'summary', id:'sum', dir:d, text:P({
+        fr:'Chez les patients à faible risque opératoire, à 1 an, la TAVI et la chirurgie donnent une survie excellente. La TAVI expose un peu plus au pacemaker ; la chirurgie expose davantage à la FA après l’opération et demande une convalescence plus longue. Sans intervention, le rétrécissement serré avec symptômes est grave (survie moyenne 2 à 3 ans).',
+        ar:'لدى المرضى ذوي الخطر الجراحي المنخفض، بعد سنة، تعطي TAVI والجراحة نتائج بقاء ممتازة. تزيد TAVI قليلًا من الحاجة إلى منظِّم ضربات القلب، بينما تزيد الجراحة من الرجفان الأذيني بعد العملية وتتطلّب نقاهة أطول. ودون تدخل، يكون التضيّق الشديد المصحوب بأعراض خطيرًا (متوسط البقاء من سنتين إلى 3 سنوات).',
+        tn:'مريض خطر العملية عندو ضعيف، بعد عام: التافي والعملية الجراحية يعطيو نتيجة مليحة برشا. التافي فيها شوية أكثر بيس ماكر، والعملية فيها رجفان أكثر وتلزمها راحة أطول. من غير تدخّل، التضييق الشديد مع الأعراض خطير (العمر المتوسط 2 ولا 3 سنين).'})}));
+      out.appendChild(arraysEl([[{fr:'TAVI', ar:'TAVI', tn:'التافي'}, Tl], [{fr:'Chirurgie (remplacement valvulaire)', ar:'الجراحة (استبدال الصمام)', tn:'العملية الجراحية'}, Sl]]));
+      out.appendChild(h('p', {class:'xs muted', id:'src', text:'PARTNER 3 (Mack MJ, NEJM 2019), 1 an, patients à faible risque. ESC/EACTS 2025 : TAVI recommandée dès 70 ans si valve tricuspide et accès fémoral adapté (classe I) ; chirurgie pour les moins de 70 ans à faible risque.'}));
+    }
+  }
+  box.appendChild(out);
+}
+function renderActs(){
+  var a = CS.$('#acts'); a.innerHTML = '';
+  var ls = CS.segEl([['fr', 'Français'], ['ar', 'العربية'], ['tn', 'تونسي']], st.lang, function(v){ st.lang = v; save(); renderRes(); });
+  ls.id = 'plang';
+  a.appendChild(h('span', {class:'small muted', text:{fr:'Pour le patient :', ar:'للمريض:'}}));
+  a.appendChild(ls);
+  var pm = h('button', {class:'btn sm', id:'pmode', type:'button', 'aria-pressed':document.body.classList.contains('patient') ? 'true' : 'false', text:document.body.classList.contains('patient') ? {fr:'Quitter le mode patient', ar:'الخروج من وضع المريض'} : {fr:'Mode patient', ar:'وضع المريض'}, onclick:function(){ document.body.classList.toggle('patient'); renderActs(); }});
+  a.appendChild(pm);
+  a.appendChild(h('button', {class:'btn sm', type:'button', id:'prt', html:CS.I.print + '<span>' + E(T({fr:'Imprimer', ar:'طباعة'})) + '</span>', onclick:function(){ window.print(); }}));
+}
+function render(){ renderTabs(); renderActs(); renderProfile(); renderRes(); }
+CS.$('#mbar').addEventListener('click', function(){ CS.$('#out').scrollIntoView({behavior:'smooth', block:'start'}); });
+window.addEventListener('cs-units', render);
+CS.init({units:true, refs:['SCORE2 / SCORE2-OP (Eur Heart J 2021)', 'SCORE2-Diabetes (Eur Heart J 2023)', 'EuroSCORE II (Nashef 2012)', 'ESC/EACTS 2025 valvulopathies', 'Pictogrammes de 100 personnes (Ottawa Decision Support Framework)']});
+render();
+
+CS.tour.define([
+  {title:{fr:'La décision partagée', ar:'القرار المشترك'}, body:{fr:'<p>Vous construisez le <b>profil du patient</b> en touchant des choix ; l’outil calcule son <b>risque</b>, son <b>niveau de danger</b> et ce que recommandent les guidelines.</p><p>Puis vous montrez au patient, en images, ce que chaque option change pour 100 personnes comme lui.</p>', ar:'<p>تبني <b>ملف المريض</b> بلمس الاختيارات، فتحسب الأداة <b>خطره</b> و<b>مستوى الخطورة</b> وما توصي به التوصيات.</p><p>ثم تُري المريض بالصور ما يغيّره كل خيار لدى 100 شخص يشبهونه.</p>'}},
+  {el:'#tabs', title:{fr:'Deux décisions', ar:'قراران'}, body:{fr:'<b>Statine en prévention primaire</b> (SCORE2) et <b>rétrécissement aortique</b> : TAVI, chirurgie ou traitement médical (EuroSCORE II + Heart Team).', ar:'<b>الستاتين في الوقاية الأولية</b> (SCORE2) و<b>تضيّق الصمام الأبهري</b>: TAVI أو الجراحة أو العلاج الدوائي (EuroSCORE II وفريق القلب).'}},
+  {el:'#prof-card', before:function(){ if(st.sc !== 'statin'){ st.sc = 'statin'; render(); } }, title:{fr:'Le profil, en quelques touches', ar:'الملف ببضع لمسات'}, body:{fr:'Chaque ligne est une question. Touchez la bonne tranche : pas besoin de la valeur exacte. Le bouton <b>Patient en cours</b> reprend l’âge et le sexe déjà saisis.', ar:'كل سطر سؤال. المس الشريحة المناسبة دون حاجة إلى القيمة الدقيقة. يأخذ زر <b>المريض الحالي</b> السن والجنس المُدخلين سابقًا.'}},
+  {el:'#q-rf', title:{fr:'Les facteurs de risque', ar:'عوامل الخطر'}, body:{fr:'HTA, tabac, obésité, sédentarité, dyslipidémie ; l’âge (> 55 ans chez l’homme, > 65 ans chez la femme) est compté tout seul. Leur nombre sert aux règles du diabète et de l’HF.', ar:'ارتفاع الضغط والتدخين والسمنة وقلة النشاط واضطراب الدهون؛ ويُحتسب السن (> 55 للرجل، > 65 للمرأة) تلقائيًا. ويُستعمل عددها في قواعد السكري وفرط الكوليسترول العائلي.'}},
+  {el:'#kdigo', title:{fr:'La fonction rénale en un geste', ar:'وظيفة الكلى بلمسة'}, body:{fr:'La grille KDIGO : touchez la case DFG × albuminurie. IRC modérée → risque élevé ; IRC sévère → très élevé.', ar:'شبكة KDIGO: المس خانة معدل الترشيح × البيلة الألبومينية. قصور متوسط ← خطر مرتفع؛ قصور شديد ← مرتفع جدًا.'}},
+  {el:'#risk', title:{fr:'Le niveau de risque', ar:'مستوى الخطر'}, body:{fr:'Une des <b>5 catégories</b> de la figure ESC/EAS 2025, de faible à extrême, avec <b>Globorisk</b> calibré pour la Tunisie. La liste explique pourquoi ; en dessous, l’<b>objectif de LDL-C</b> et la classe de recommandation.', ar:'إحدى <b>الفئات الخمس</b> في شكل ESC/EAS 2025، من منخفض إلى أقصى، مع <b>Globorisk</b> المعاير لتونس. تشرح القائمة السبب، وتحتها <b>هدف LDL</b> وفئة التوصية.'}},
+  {el:'#arrays', title:{fr:'Expliquer au patient', ar:'الشرح للمريض'}, body:{fr:'100 personnes comme lui, avec et sans traitement. Le texte au-dessus est dans la langue choisie : <b>français, arabe ou tunisien</b>.', ar:'مئة شخص يشبهونه، مع العلاج ودونه. النص أعلاه باللغة المختارة: <b>الفرنسية أو العربية أو التونسية</b>.'}},
+  {el:'#pmode', title:{fr:'Mode patient et impression', ar:'وضع المريض والطباعة'}, body:{fr:'Le mode patient cache les réglages et agrandit le texte pour tourner l’écran vers lui. « Imprimer » donne une fiche à lui remettre.', ar:'يخفي وضع المريض الإعدادات ويكبّر النص لتدير الشاشة نحوه. وتعطي «طباعة» ورقة تسلّمها له.'}},
+  {el:'#tab-tavi', before:function(){ st.sc = 'tavi'; save(); render(); }, title:{fr:'Rétrécissement aortique', ar:'تضيّق الصمام الأبهري'}, body:{fr:'Même principe : âge, valve, accès fémoral, terrain… L’outil calcule l’<b>EuroSCORE II</b> et indique, avec les raisons, l’option que privilégient les guidelines ESC/EACTS 2025.', ar:'المبدأ نفسه: السن والصمام والمدخل الفخذي والحالة العامة… تحسب الأداة <b>EuroSCORE II</b> وتبيّن مع الأسباب الخيار الذي تفضّله توصيات ESC/EACTS 2025.'}, after:function(){ st.sc = 'statin'; save(); render(); }}
+]);
+})();
+</script>
+</body>
+</html>

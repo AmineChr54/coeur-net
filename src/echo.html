@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Compte rendu d’écho</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!-- @include _base.css -->
+<style>
+.eg{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:18px;align-items:start}
+@media (max-width:1150px){.eg{grid-template-columns:minmax(0,1fr)}}
+.eg-right{position:sticky;top:calc(70px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:14px}
+@media (max-width:1150px){.eg-right{position:static}}
+.sec h3{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sec h3 .badge{font-weight:600}
+.mf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.m{display:flex;flex-direction:column;gap:4px;min-width:0}
+.m label{font-size:.8rem;font-weight:600;color:var(--fg-2)}
+.m .inp{min-height:38px}
+.m .fl{font-size:.72rem;display:flex;gap:6px;align-items:center;min-height:16px;color:var(--muted)}
+.m .fl .badge{padding:1px 7px}
+.m.abn .inp{border-color:var(--warn);background:color-mix(in srgb,var(--warn-soft) 50%,var(--surface))}
+.m.sev .inp{border-color:var(--crit);background:color-mix(in srgb,var(--crit-soft) 50%,var(--surface))}
+.derived{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.dv{background:var(--surface-2);border-radius:var(--r-sm);padding:8px 10px}
+.dv span{display:block;font-size:.72rem;color:var(--muted)}
+.dv b{font-variant-numeric:tabular-nums;font-size:1rem}
+.dv.abn b{color:var(--warn)} .dv.sev b{color:var(--crit)}
+#report{font-size:.86rem;line-height:1.55;white-space:pre-wrap;font-family:var(--font);max-height:62vh;overflow:auto;background:var(--surface-2);border-radius:var(--r);padding:14px;border:1px solid var(--line)}
+#report .rh{font-weight:700;letter-spacing:.04em}
+@media print{
+  body *{visibility:hidden}
+  #print-area,#print-area *{visibility:visible}
+  #print-area{position:absolute;left:0;top:0;width:100%}
+  #report{max-height:none;overflow:visible;background:#fff;border:0;font-size:11pt}
+}
+</style>
+<!-- @include _base.js -->
+<!-- @include _tour.js -->
+<!-- @include _diastolic.js -->
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap">
+  <div class="eg">
+    <section class="stack" id="form"></section>
+    <aside class="eg-right">
+      <div class="card stack">
+        <h2>Valeurs calculées</h2>
+        <div class="derived" id="derived"></div>
+      </div>
+      <div class="card stack" id="print-area">
+        <div class="row between"><h2>Compte rendu</h2><div class="row no-print"><button class="btn sm" id="copy" type="button"></button><button class="btn sm" id="print" type="button"></button></div></div>
+        <div id="report" aria-live="polite"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+<footer id="cs-foot"></footer>
+<script>
+(function(){
+'use strict';
+var h = CS.h, fmt = CS.fmt;
+// Normes ASE/EACVI 2015 (Lang) : [min, max] par sexe ; dir : 'range', 'max' (≤ max), 'min' (≥ min)
+var N = {
+  lvedd:{M:[42,58.4], F:[37.8,52.2]}, lvesd:{M:[25,39.8], F:[21.6,34.8]}, ivs:{M:[6,10], F:[6,9]}, pw:{M:[6,10], F:[6,9]},
+  lvef:{M:[52,72], F:[54,74]}, edvi:{M:[34,74], F:[29,61]}, esvi:{M:[11,31], F:[8,24]}, lvmi:{M:[49,115], F:[43,95]},
+  root:{M:[0,40], F:[0,36]}, asc:{M:[0,38], F:[0,36]}
+};
+var F = [
+ {sec:'Patient', items:[
+   {id:'sex', l:'Sexe', t:'sel', o:[['M','Homme'],['F','Femme']]}, {id:'age', l:'Âge', u:'ans'}, {id:'ht', l:'Taille', u:'cm'}, {id:'wt', l:'Poids', u:'kg'},
+   {id:'hr', l:'Fréquence', u:'bpm'}, {id:'rhythm', l:'Rythme', t:'sel', o:[['sr','Sinusal'],['af','Fibrillation atriale']]},
+   {id:'ind', l:'Indication', t:'txt', wide:true}]},
+ {sec:'Ventricule gauche', items:[
+   {id:'lvedd', l:'DTDVG', u:'mm', n:'lvedd'}, {id:'lvesd', l:'DTSVG', u:'mm', n:'lvesd'}, {id:'ivs', l:'SIV (diastole)', u:'mm', n:'ivs'}, {id:'pw', l:'Paroi postérieure', u:'mm', n:'pw'},
+   {id:'edv', l:'VTD (biplan)', u:'mL'}, {id:'esv', l:'VTS (biplan)', u:'mL'}, {id:'lvef', l:'FEVG (biplan)', u:'%', n:'lvef', dir:'min'}, {id:'gls', l:'SLG', u:'%', hint:'Valeur absolue'},
+   {id:'wm', l:'Cinétique segmentaire', t:'sel', o:[['n','Normale'],['hs','Hypokinésie segmentaire'],['as','Akinésie segmentaire'],['hg','Hypokinésie globale']]}]},
+ {sec:'Fonction diastolique et oreillette gauche', items:[
+   {id:'e', l:'Onde E', u:'cm/s'}, {id:'a', l:'Onde A', u:'cm/s'}, {id:'es', l:'e′ septal', u:'cm/s', lim:[7,'min']}, {id:'el', l:'e′ latéral', u:'cm/s', lim:[10,'min']},
+   {id:'trv', l:'Vmax IT', u:'m/s', lim:[2.8,'max']}, {id:'lav', l:'Volume OG (biplan)', u:'mL'}, {id:'lars', l:'Strain réservoir OG', u:'%', hint:'Optionnel (ASE 2025)'}]},
+ {sec:'Ventricule droit et pressions', items:[
+   {id:'tapse', l:'TAPSE', u:'mm', lim:[17,'min']}, {id:'sprime', l:'Onde S′ tricuspide', u:'cm/s', lim:[9.5,'min']}, {id:'rvb', l:'Diamètre basal VD', u:'mm', lim:[41,'max']},
+   {id:'ivc', l:'VCI', u:'mm', lim:[21,'max']}, {id:'ivcc', l:'Collapsus VCI > 50 %', t:'sel', o:[['y','Oui'],['n','Non']]}]},
+ {sec:'Valves', items:[
+   {id:'avmax', l:'RA : Vmax', u:'m/s'}, {id:'avmg', l:'RA : gradient moyen', u:'mmHg'}, {id:'ava', l:'RA : surface', u:'cm²'},
+   {id:'mreroa', l:'IM : SOR (PISA)', u:'cm²'}, {id:'mrrvol', l:'IM : volume régurgité', u:'mL'}, {id:'mrvc', l:'IM : vena contracta', u:'mm'}, {id:'mrtype', l:'IM : mécanisme', t:'sel', o:[['p','Primaire'],['s','Secondaire']]},
+   {id:'arvc', l:'IA : vena contracta', u:'mm'}, {id:'arpht', l:'IA : PHT', u:'ms'}, {id:'mva', l:'RM : surface', u:'cm²'}, {id:'mvmg', l:'RM : gradient moyen', u:'mmHg'}]},
+ {sec:'Aorte et péricarde', items:[
+   {id:'root', l:'Sinus de Valsalva', u:'mm', n:'root', dir:'max'}, {id:'asc', l:'Aorte ascendante', u:'mm', n:'asc', dir:'max'},
+   {id:'peri', l:'Péricarde', t:'sel', o:[['0','Sec'],['1','Épanchement minime'],['2','Épanchement modéré'],['3','Épanchement abondant']]}]}
+];
+var EX = {sex:'F', age:72, ht:160, wt:70, hr:72, rhythm:'sr', ind:'Souffle systolique, dyspnée d’effort NYHA II, HTA', lvedd:47, lvesd:30, ivs:12.5, pw:11.5, edv:95, esv:38, lvef:60, gls:16.5, wm:'n',
+  e:95, a:70, es:5.5, el:7.5, trv:3.0, lav:68, tapse:21, sprime:11, rvb:36, ivc:18, ivcc:'y', avmax:4.3, avmg:46, ava:0.8, mreroa:0.1, mrrvol:14, mrvc:2.5, mrtype:'p', arvc:'', arpht:'', mva:'', mvmg:'', root:33, asc:35, peri:'0'};
+var v = CS.store.get('echo.vals', null) || Object.assign({}, EX);
+var guide = CS.store.get('dia.guideline', '2025');
+
+function n(id){ return CS.num(v[id]); }
+function bsa(){ return n('ht') > 0 && n('wt') > 0 ? Math.sqrt(n('ht') * n('wt') / 3600) : NaN; }
+function flagOf(it){
+  var x = n(it.id); if(isNaN(x)) return null;
+  if(it.n){ var r = N[it.n][v.sex]; var dir = it.dir || 'range';
+    if(dir === 'min') return x < r[0] ? {lvl:x < 30 ? 'sev' : x < 41 ? 'sev' : 'abn', txt:'< ' + r[0]} : {lvl:'ok', txt:'≥ ' + r[0]};
+    if(dir === 'max') return x > r[1] ? {lvl:x > r[1] + 8 ? 'sev' : 'abn', txt:'> ' + r[1]} : {lvl:'ok', txt:'≤ ' + r[1]};
+    if(x > r[1]) return {lvl:x > r[1] * 1.15 ? 'sev' : 'abn', txt:'N ' + fmt(r[0], 0) + '–' + fmt(r[1], 0)};
+    if(x < r[0] && it.id !== 'lvedd' && it.id !== 'lvesd') return {lvl:'abn', txt:'N ' + fmt(r[0], 0) + '–' + fmt(r[1], 0)};
+    return {lvl:'ok', txt:'N ' + fmt(r[0], 0) + '–' + fmt(r[1], 0)};
+  }
+  if(it.lim){ var t = it.lim[0]; if(it.lim[1] === 'min') return x < t ? {lvl:'abn', txt:'< ' + fmt(t, t % 1 ? 1 : 0)} : {lvl:'ok', txt:'≥ ' + fmt(t, t % 1 ? 1 : 0)}; return x > t ? {lvl:'abn', txt:'> ' + fmt(t, t % 1 ? 1 : 0)} : {lvl:'ok', txt:'≤ ' + fmt(t, t % 1 ? 1 : 0)}; }
+  if(it.id === 'gls') return x < 16 ? {lvl:'abn', txt:'< 16 %'} : x < 18 ? {lvl:'abn', txt:'limite'} : {lvl:'ok', txt:'≥ 18 %'};
+  return null;
+}
+
+function guideSeg(){
+  var g = h('div', {class:'seg', role:'group', 'aria-label':'Recommandation pour la fonction diastolique'}, h('button', {'data-v':'2025', text:'Diastole ASE 2025'}), h('button', {'data-v':'2016', text:'ASE/EACVI 2016'}));
+  CS.seg(g, guide, function(x){ guide = x; CS.store.set('dia.guideline', x); update(); });
+  return g;
+}
+function buildForm(){
+  var box = CS.$('#form'); box.innerHTML = '';
+  box.appendChild(h('div', {class:'row between'}, h('div', {class:'row'}, h('span', {class:'badge info', text:'Exemple pré-rempli'}), h('span', {class:'small muted', text:'Normes ASE/EACVI selon le sexe'}), guideSeg()),
+    h('div', {class:'row'}, h('button', {class:'btn sm', type:'button', text:'Recharger l’exemple', onclick:function(){ v = Object.assign({}, EX); buildForm(); update(); }}),
+      h('button', {class:'btn sm', type:'button', text:'Tout effacer', onclick:function(){ var s = v.sex; v = {sex:s, rhythm:'sr', wm:'n', ivcc:'y', mrtype:'p', peri:'0'}; buildForm(); update(); }}))));
+  F.forEach(function(sec){
+    var grid = h('div', {class:'mf'});
+    sec.items.forEach(function(it){
+      var input;
+      if(it.t === 'sel'){ input = h('select', {class:'inp', id:'f-' + it.id}, it.o.map(function(o){ return h('option', {value:o[0], text:o[1], selected:String(v[it.id]) === o[0]}); })); }
+      else if(it.t === 'txt'){ input = h('input', {class:'inp', id:'f-' + it.id, value:v[it.id] || ''}); }
+      else input = h('div', {class:'inp-unit'}, h('input', {class:'inp num', id:'f-' + it.id, inputmode:'decimal', value:v[it.id] == null ? '' : v[it.id]}), h('span', {class:'u', text:it.u}));
+      var m = h('div', {class:'m', id:'m-' + it.id, style:it.wide ? {gridColumn:'1/-1'} : null}, h('label', {for:'f-' + it.id, text:it.l}), input, h('div', {class:'fl', id:'fl-' + it.id}));
+      grid.appendChild(m);
+    });
+    box.appendChild(h('div', {class:'card sec'}, h('h3', {text:sec.sec}), grid));
+  });
+  CS.$$('#form input, #form select').forEach(function(el){ el.addEventListener('input', function(){ v[el.id.slice(2)] = el.value; update(); }); });
+}
+function paintFlags(){
+  F.forEach(function(sec){ sec.items.forEach(function(it){
+    var m = CS.$('#m-' + it.id), fl = CS.$('#fl-' + it.id); if(!m || it.t) return;
+    var f = flagOf(it); m.classList.remove('abn', 'sev');
+    if(!f){ fl.innerHTML = it.hint ? CS.esc(it.hint) : ''; return; }
+    if(f.lvl !== 'ok') m.classList.add(f.lvl);
+    fl.innerHTML = '<span class="badge ' + (f.lvl === 'ok' ? 'ok' : f.lvl === 'sev' ? 'crit' : 'warn') + '">' + (f.lvl === 'ok' ? 'Normal' : 'Anormal') + '</span>' + CS.esc(f.txt);
+  }); });
+}
+
+/* ---------- Calculs ---------- */
+function calc(){
+  var r = {}, sc = bsa(); r.bsa = sc;
+  var d = n('lvedd') / 10, s = n('ivs') / 10, p = n('pw') / 10;
+  r.mass = d > 0 && s > 0 && p > 0 ? 0.8 * 1.04 * (Math.pow(d + s + p, 3) - Math.pow(d, 3)) + 0.6 : NaN;
+  r.lvmi = r.mass / sc; r.rwt = 2 * n('pw') / n('lvedd');
+  r.edvi = n('edv') / sc; r.esvi = n('esv') / sc; r.lavi = n('lav') / sc;
+  r.ea = n('e') / n('a'); r.eeavg = n('e') / ((n('es') + n('el')) / 2); r.eesep = n('e') / n('es');
+  var lvmN = N.lvmi[v.sex][1], hyp = r.lvmi > lvmN;
+  r.geom = isNaN(r.lvmi) || isNaN(r.rwt) ? '' : hyp ? (r.rwt > 0.42 ? 'Hypertrophie concentrique' : 'Hypertrophie excentrique') : (r.rwt > 0.42 ? 'Remodelage concentrique' : 'Géométrie normale');
+  r.rap = isNaN(n('ivc')) ? NaN : (n('ivc') <= 21 && v.ivcc === 'y') ? 3 : (n('ivc') > 21 && v.ivcc === 'n') ? 15 : 8;
+  r.pasp = n('trv') > 0 ? 4 * n('trv') * n('trv') + (isNaN(r.rap) ? 5 : r.rap) : NaN;
+  r.php = isNaN(n('trv')) ? '' : n('trv') <= 2.8 ? 'faible' : n('trv') <= 3.4 ? 'intermédiaire' : 'élevée';
+  var lvef = n('lvef'), myoDis = lvef < 50 || hyp || n('ivs') > N.ivs[v.sex][1] || v.wm !== 'n';
+  // Valves
+  r.as = aortic(lvef); r.mr = mitralR(); r.ar = aorticR(); r.ms = mitralS();
+  // Fonction diastolique : moteur partagé (_diastolic.js)
+  r.dia = diastolic(r, lvef, myoDis);
+  // FEVG
+  var ef = N.lvef[v.sex][0];
+  r.efTxt = isNaN(lvef) ? '' : lvef >= ef ? 'conservée' : lvef >= 41 ? 'légèrement altérée' : lvef >= 30 ? 'modérément altérée' : 'sévèrement altérée';
+  return r;
+}
+function diastolic(r, lvef, myoDis){
+  var pop = r.ms.sev ? 'ms' : r.mr.sev === 'sévère' && v.mrtype === 'p' ? 'mr' : 'std';
+  var R = CS.diastolic({rhythm:v.rhythm, pop:pop, age:v.age, lvef:lvef, myo:myoDis, e:v.e, a:v.a, es:v.es, el:v.el, trv:v.trv, pasp:isNaN(r.rap) ? NaN : r.pasp, lavi:r.lavi, lars:v.lars}, {guideline:guide});
+  if(R.algo === 'na' || (!R.crit.some(function(c){ return c.abn !== null; }) && R.lap === 'indeterminate')) return {grade:'', txt:'', lvl:'ok'};
+  return {grade:R.grade || (R.lap === 'normal' ? '0' : 'x'), lvl:R.lvl, R:R,
+    txt:R.title + (R.lapTxt ? ', ' + R.lapTxt : '') + (pop !== 'std' || v.rhythm === 'af' ? ' (' + R.popLabel.toLowerCase() + ')' : '') + ' – ' + (guide === '2016' && R.pop === 'std' ? 'ASE/EACVI 2016' : 'ASE 2025')};
+}
+function worst(arr){ var o = ['', 'léger', 'modéré', 'sévère']; return arr.reduce(function(a, b){ return o.indexOf(b) > o.indexOf(a) ? b : a; }, ''); }
+function aortic(lvef){
+  var vm = n('avmax'), mg = n('avmg'), a = n('ava'), g = [];
+  if(!isNaN(vm)) g.push(vm >= 4 ? 'sévère' : vm >= 3 ? 'modéré' : vm >= 2.6 ? 'léger' : '');
+  if(!isNaN(mg)) g.push(mg >= 40 ? 'sévère' : mg >= 20 ? 'modéré' : mg > 0 ? 'léger' : '');
+  if(!isNaN(a)) g.push(a < 1 ? 'sévère' : a <= 1.5 ? 'modéré' : 'léger');
+  var s = worst(g), note = '';
+  if(a < 1 && mg < 40 && vm < 4){ note = lvef < 50 ? 'RA bas débit bas gradient classique : écho dobutamine' : 'RA bas gradient à FEVG préservée : vérifier le VES indexé, score calcique au scanner'; }
+  return {sev:s, txt:s ? 'Rétrécissement aortique ' + s + ' (' + [!isNaN(vm) ? 'Vmax ' + fmt(vm, 1) + ' m/s' : '', !isNaN(mg) ? 'Gmoy ' + fmt(mg) + ' mmHg' : '', !isNaN(a) ? 'SVA ' + fmt(a, 2) + ' cm²' : ''].filter(Boolean).join(', ') + ')' : '', note:note};
+}
+function mitralR(){
+  var e = n('mreroa'), r = n('mrrvol'), vc = n('mrvc'), g = [];
+  if(!isNaN(e)) g.push(e >= 0.4 ? 'sévère' : e >= 0.2 ? 'modéré' : 'léger');
+  if(!isNaN(r)) g.push(r >= 60 ? 'sévère' : r >= 30 ? 'modéré' : 'léger');
+  if(!isNaN(vc)) g.push(vc >= 7 ? 'sévère' : vc >= 3 ? 'modéré' : 'léger');
+  var s = worst(g); if(!s) return {sev:''};
+  var label = s === 'léger' ? 'minime à légère' : s === 'modéré' ? 'modérée' : 'sévère';
+  return {sev:s, txt:'Insuffisance mitrale ' + (v.mrtype === 's' ? 'secondaire ' : 'primaire ') + label + ' (' + [!isNaN(e) ? 'SOR ' + fmt(e, 2) + ' cm²' : '', !isNaN(r) ? 'VR ' + fmt(r) + ' mL' : '', !isNaN(vc) ? 'VC ' + fmt(vc, 1) + ' mm' : ''].filter(Boolean).join(', ') + ')'};
+}
+function aorticR(){
+  var vc = n('arvc'), p = n('arpht'), g = [];
+  if(!isNaN(vc)) g.push(vc > 6 ? 'sévère' : vc >= 3 ? 'modéré' : 'léger');
+  if(!isNaN(p)) g.push(p < 200 ? 'sévère' : p <= 500 ? 'modéré' : 'léger');
+  var s = worst(g); if(!s) return {sev:''};
+  return {sev:s, txt:'Insuffisance aortique ' + (s === 'léger' ? 'légère' : s === 'modéré' ? 'modérée' : 'sévère')};
+}
+function mitralS(){
+  var a = n('mva'), mg = n('mvmg'); if(isNaN(a)) return {sev:''};
+  var s = a < 1 ? 'sévère' : a <= 1.5 ? 'modéré' : 'léger';
+  return {sev:s, txt:'Rétrécissement mitral ' + (a < 1 ? 'très serré' : a <= 1.5 ? 'serré' : 'peu serré') + ' (surface ' + fmt(a, 2) + ' cm²' + (isNaN(mg) ? '' : ', Gmoy ' + fmt(mg) + ' mmHg') + ')'};
+}
+
+/* ---------- Valeurs dérivées + compte rendu ---------- */
+function update(){
+  CS.store.set('echo.vals', v); paintFlags();
+  CS.$$('.seg[aria-label^="Recommandation"] button').forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.v === guide ? 'true' : 'false'); });
+  var r = calc(), sexN = v.sex;
+  function dv(label, val, d, unit, lvl){ return '<div class="dv ' + (lvl || '') + '"><span>' + label + '</span><b>' + (isNaN(val) || val == null ? '–' : fmt(val, d) + (unit ? ' ' + unit : '')) + '</b></div>'; }
+  var lvmN = N.lvmi[sexN][1];
+  CS.$('#derived').innerHTML =
+    dv('Surface corporelle (Mosteller)', r.bsa, 2, 'm²') + dv('Masse VG (Devereux)', r.mass, 0, 'g') +
+    dv('Masse VG indexée', r.lvmi, 0, 'g/m²', r.lvmi > lvmN ? 'abn' : '') + dv('Épaisseur pariétale relative', r.rwt, 2, '', r.rwt > 0.42 ? 'abn' : '') +
+    dv('VTD indexé', r.edvi, 0, 'mL/m²', r.edvi > N.edvi[sexN][1] ? 'abn' : '') + dv('VOG indexé', r.lavi, 0, 'mL/m²', r.lavi > 48 ? 'sev' : r.lavi > 34 ? 'abn' : '') +
+    dv('E/A', r.ea, 2) + dv('E/e′ moyen', r.eeavg, 1, '', r.eeavg > 14 ? 'abn' : '') +
+    dv('PAPs estimée', r.pasp, 0, 'mmHg', r.pasp > 35 ? 'abn' : '') + dv('POD estimée', r.rap, 0, 'mmHg') +
+    '<div class="dv ' + (r.dia.lvl === 'ok' ? '' : r.dia.lvl) + '" style="grid-column:1/-1"><span>Fonction diastolique</span><b>' + CS.esc(r.dia.txt || '–') + '</b></div>' +
+    (r.geom ? '<div class="dv ' + (/Hyper/.test(r.geom) ? 'abn' : '') + '" style="grid-column:1/-1"><span>Géométrie VG</span><b>' + r.geom + '</b></div>' : '');
+  CS.$('#report').innerHTML = CS.esc(report(r)).replace(/^(ÉCHOCARDIOGRAPHIE TRANSTHORACIQUE|CONCLUSION)$/gm, '<span class="rh">$1</span>');
+}
+function report(r){
+  var L = [], sexW = v.sex === 'F', P = function(x, d){ return fmt(n(x), d || 0); };
+  L.push('ÉCHOCARDIOGRAPHIE TRANSTHORACIQUE');
+  L.push(CS.frDateLong() + ' · ' + CS.doctorLabel() + ', cardiologue');
+  L.push((sexW ? 'Patiente' : 'Patient') + (n('age') ? ' de ' + P('age') + ' ans' : '') + (r.bsa ? ' · SC ' + fmt(r.bsa, 2) + ' m²' : '') + (n('hr') ? ' · FC ' + P('hr') + '/min' : '') + ' · ' + (v.rhythm === 'af' ? 'fibrillation atriale' : 'rythme sinusal') + '.');
+  if(v.ind) L.push('Indication : ' + v.ind + '.');
+  L.push('');
+  var lvDil = n('lvedd') > N.lvedd[v.sex][1];
+  var wm = {n:'cinétique segmentaire normale', hs:'hypokinésie segmentaire', as:'akinésie segmentaire', hg:'hypokinésie globale'}[v.wm || 'n'];
+  L.push('Ventricule gauche : ' + (isNaN(n('lvedd')) ? '' : (lvDil ? 'dilaté' : 'non dilaté') + ' (DTDVG ' + P('lvedd') + ' mm). ') +
+    (r.geom ? r.geom + ' (SIV ' + P('ivs', 1) + ' mm, PP ' + P('pw', 1) + ' mm, MVGi ' + fmt(r.lvmi) + ' g/m², EPR ' + fmt(r.rwt, 2) + '). ' : '') +
+    (isNaN(n('lvef')) ? '' : 'FEVG ' + P('lvef') + ' % (biplan), ' + r.efTxt + '. ') + (isNaN(n('gls')) ? '' : 'SLG −' + P('gls', 1) + ' %' + (n('gls') < 18 ? ' (diminué)' : '') + '. ') + 'Cinétique : ' + wm + '.');
+  if(r.dia.txt) L.push('Fonction diastolique : ' + [!isNaN(r.ea) ? 'E/A ' + fmt(r.ea, 2) : '', !isNaN(r.eeavg) ? 'E/e′ moyen ' + fmt(r.eeavg, 1) : '', !isNaN(r.lavi) ? 'VOGi ' + fmt(r.lavi) + ' mL/m²' : '', !isNaN(n('trv')) ? 'Vmax IT ' + P('trv', 1) + ' m/s' : ''].filter(Boolean).join(', ') + '. ' + r.dia.txt + '.');
+  if(!isNaN(r.lavi)) L.push('Oreillette gauche : ' + (r.lavi > 48 ? 'très dilatée' : r.lavi > 41 ? 'modérément dilatée' : r.lavi > 34 ? 'légèrement dilatée' : 'non dilatée') + ' (VOGi ' + fmt(r.lavi) + ' mL/m²).');
+  var rvBad = n('tapse') < 17 || n('sprime') < 9.5;
+  L.push('Ventricule droit : ' + (n('rvb') > 41 ? 'dilaté' : 'non dilaté') + (isNaN(n('rvb')) ? '' : ' (' + P('rvb') + ' mm)') + ', fonction systolique ' + (rvBad ? 'altérée' : 'conservée') + (isNaN(n('tapse')) ? '' : ' (TAPSE ' + P('tapse') + ' mm' + (isNaN(n('sprime')) ? '' : ', S′ ' + P('sprime', 1) + ' cm/s') + ')') + '.' +
+    (isNaN(r.pasp) ? '' : ' PAPs estimée à ' + fmt(r.pasp) + ' mmHg (POD ' + r.rap + ' mmHg, VCI ' + P('ivc') + ' mm ' + (v.ivcc === 'y' ? 'compliante' : 'peu compliante') + ') ; probabilité échographique d’HTP ' + r.php + '.'));
+  var valves = [r.as, r.mr, r.ar, r.ms].filter(function(x){ return x.sev; });
+  L.push('Valves : ' + (valves.length ? valves.map(function(x){ return x.txt; }).join('. ') : 'pas de valvulopathie significative') + '.');
+  if(r.as.note) L.push('  → ' + r.as.note + '.');
+  if(!isNaN(n('root'))) L.push('Aorte : sinus de Valsalva ' + P('root') + ' mm' + (isNaN(n('asc')) ? '' : ', aorte ascendante ' + P('asc') + ' mm') + (n('root') > N.root[v.sex][1] || n('asc') > N.asc[v.sex][1] ? ' (dilatée).' : ' (non dilatée).'));
+  L.push('Péricarde : ' + {0:'sec', 1:'épanchement minime', 2:'épanchement modéré', 3:'épanchement abondant'}[v.peri || '0'] + '.');
+  L.push(''); L.push('CONCLUSION');
+  var C = [];
+  if(r.as.sev === 'sévère' || r.as.sev === 'modéré') C.push(r.as.txt);
+  if(!isNaN(n('lvef')) && r.efTxt !== 'conservée') C.push('Dysfonction systolique VG ' + r.efTxt.replace('altérée', '') + '(FEVG ' + P('lvef') + ' %)');
+  else if(!isNaN(n('lvef'))) C.push('FEVG ' + r.efTxt + ' (' + P('lvef') + ' %)' + (n('gls') < 18 ? ', SLG diminué' : ''));
+  if(/Hyper/.test(r.geom)) C.push(r.geom);
+  if(r.dia.grade && r.dia.grade !== '0' && r.dia.txt) C.push(r.dia.txt);
+  if(r.mr.sev && r.mr.sev !== 'léger') C.push(r.mr.txt);
+  if(r.ar.sev && r.ar.sev !== 'léger') C.push(r.ar.txt);
+  if(r.ms.sev) C.push(r.ms.txt);
+  if(rvBad) C.push('Dysfonction systolique VD');
+  if(r.pasp > 35) C.push('PAPs estimée ' + fmt(r.pasp) + ' mmHg');
+  if(!C.length) C.push('Échocardiographie normale');
+  C.forEach(function(c){ L.push('• ' + c + '.'); });
+  if(r.as.sev === 'sévère') L.push('\nRA sévère : évaluer les symptômes et discuter l’indication de remplacement valvulaire (TAVI ou chirurgie) en Heart Team.');
+  return L.join('\n');
+}
+CS.$('#copy').innerHTML = CS.I.copy + 'Copier';
+CS.$('#print').innerHTML = CS.I.print + 'Imprimer';
+CS.$('#copy').addEventListener('click', function(){ CS.copy(CS.$('#report').textContent, 'Compte rendu copié'); });
+CS.$('#print').addEventListener('click', function(){ window.print(); });
+CS.init({title:'Compte rendu d’échocardiographie', cat:'Imagerie et mesures', refs:['Lang RM et al., JASE/EHJ-CVI 2015 (quantification des cavités)', 'Nagueh SF et al., JASE 2016 et 2025 (fonction diastolique)', 'ESC/EACTS 2021 – Valvulopathies', 'ESC/ERS 2022 – Hypertension pulmonaire']});
+window.addEventListener('cs-doctor', update);
+buildForm(); update();
+})();
+</script>
+</body>
+</html>

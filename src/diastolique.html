@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Fonction diastolique</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!-- @include _base.css -->
+<style>
+.dg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+@media (max-width:980px){.dg{grid-template-columns:minmax(0,1fr)}}
+.dg-right{position:sticky;top:calc(70px + env(safe-area-inset-top,0px));display:flex;flex-direction:column;gap:14px}
+@media (max-width:980px){.dg-right{position:static}}
+.ctx{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ctx .wide{grid-column:1/-1}
+@media (max-width:420px){.ctx{grid-template-columns:minmax(0,1fr)}}
+.mf{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:560px) and (max-width:980px){.mf{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.m{display:flex;flex-direction:column;gap:4px;min-width:0}
+.m label{font-size:.8rem;font-weight:600;color:var(--fg-2)}
+.m .inp{font-size:1.05rem;font-variant-numeric:tabular-nums;min-height:48px}
+.m .fl{font-size:.72rem;min-height:16px;color:var(--muted)}
+.m.abn .inp{border-color:var(--warn)}
+.m.req .inp{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.m.req .fl{color:var(--accent);font-weight:600}
+details.more{border-top:1px solid var(--line);padding-top:12px}
+details.more summary{cursor:pointer;font-weight:650;font-size:.95rem;list-style:none;display:flex;align-items:center;gap:8px;min-height:40px}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::before{content:"";width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;margin:0 4px}
+details.more[open] summary::before{transform:rotate(45deg)}
+details.more .mf{margin-top:10px}
+/* Résultat */
+.res{border-radius:var(--r-lg);border:1px solid var(--line);background:var(--surface);padding:18px 18px 16px 22px;position:relative;overflow:hidden}
+.res::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--muted)}
+.res.ok::before{background:var(--ok)} .res.abn::before{background:var(--warn)} .res.sev::before{background:var(--crit)}
+.res .t{font-family:var(--font-display);font-size:1.55rem;font-weight:700;letter-spacing:-.015em;line-height:1.2}
+.res.ok .t{color:var(--ok)} .res.abn .t{color:var(--warn)} .res.sev .t{color:var(--crit)}
+.res .lap{font-size:1.02rem;color:var(--fg-2);margin-top:4px}
+.res .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.sent{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;font-size:.92rem;line-height:1.5}
+.todo{border:1px solid color-mix(in srgb,var(--accent) 35%,var(--line));background:var(--accent-soft);border-radius:var(--r);padding:12px 14px}
+.todo h3{font-size:.92rem;color:var(--accent);margin-bottom:6px}
+.todo ul,.notes ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.88rem}
+.todo li span{color:var(--muted)}
+.notes{font-size:.86rem;color:var(--fg-2)}
+/* Chemin et organigramme */
+.trail{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0}
+.trail li{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;font-size:.9rem;padding-bottom:10px;position:relative}
+.trail li::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--accent);margin:4px 0 0 5px;box-shadow:0 0 0 3px var(--accent-soft)}
+.trail li:not(:last-child)::after{content:"";position:absolute;left:10px;top:18px;bottom:0;width:2px;background:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.trail li.end::before{background:var(--fg)}
+.flow-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);-webkit-overflow-scrolling:touch;scroll-behavior:smooth;margin-top:10px}
+.flow{display:block;width:100%;height:auto}
+.flowd>summary{list-style:none;width:max-content}
+.flowd>summary::-webkit-details-marker{display:none}
+.flow-hint{display:none;margin-top:6px}
+@media (min-width:641px){.flowd>summary{display:none}}
+@media (max-width:640px){.flow{min-width:700px}.flow-hint{display:block}.flow .n text{font-size:12px}}
+.m .fl.hint{color:var(--muted)}
+.m.abn .fl{color:var(--warn);font-weight:600}
+.trail li{animation:fadeIn .25s ease both}
+.flow .n rect{fill:var(--surface);stroke:var(--line-strong);stroke-width:1}
+.flow .n text{fill:var(--muted);font:500 11px var(--font)}
+.flow .n.on rect{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+.flow .n.on text{fill:var(--fg);font-weight:650}
+.flow .n.out rect{rx:16px}
+.flow .n.out.on.ok rect{fill:var(--ok-soft);stroke:var(--ok)}
+.flow .n.out.on.abn rect{fill:var(--warn-soft);stroke:var(--warn)}
+.flow .n.out.on.sev rect{fill:var(--crit-soft);stroke:var(--crit)}
+.flow .e{fill:none;stroke:var(--line-strong);stroke-width:1.2}
+.flow .e.on{stroke:var(--accent);stroke-width:2.4}
+.flow .el{fill:var(--muted);font:500 10px var(--font)}
+.tbl .ab{color:var(--warn);font-weight:650} .tbl .nm{color:var(--ok)}
+/* Barre de résultat sur téléphone */
+.sbar{display:none}
+@media (max-width:980px){
+  .sbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;align-items:center;gap:10px;padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(15,29,43,.08);cursor:pointer}
+  .sbar .dot{width:12px;height:12px;flex:none}
+  .sbar b{flex:1;min-width:0;font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sbar span{font-size:.8rem;color:var(--accent);font-weight:600;white-space:nowrap}
+  body{padding-bottom:64px}
+}
+@media print{.sbar{display:none!important}}
+</style>
+<!-- @include _base.js -->
+<!-- @include _tour.js -->
+<!-- @include _diastolic.js -->
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap">
+  <div class="dg">
+    <section class="stack">
+      <div class="card stack">
+        <div class="row between"><h2 data-ar="السياق">Contexte</h2><span class="badge info" id="ex-badge">Exemple : patiente de 70 ans, HTA, dyspnée d’effort</span></div>
+        <div class="ctx" id="ctx"></div>
+      </div>
+      <div class="card stack">
+        <div class="row between"><h2 id="h-mes" data-ar="القياسات">Mesures</h2><span class="small muted" id="h-mes2" data-ar="فاصلة أو نقطة · الإدخال = الخانة التالية">Virgule ou point · Entrée = champ suivant</span></div>
+        <div class="grid g2" id="modes"></div>
+        <div class="mf" id="core"></div>
+        <details class="more" id="more"><summary><span data-ar="المعايير التكميلية">Paramètres complémentaires</span> <span class="badge" id="more-n"></span></summary><div class="mf" id="extra"></div></details>
+      </div>
+    </section>
+    <aside class="dg-right" id="out">
+      <div class="res" id="res"></div>
+      <div class="card stack">
+        <div class="row between"><h2 data-ar="جملة التقرير">Phrase du compte rendu</h2><button class="btn sm" id="copy" type="button"></button></div>
+        <p class="sent" id="sent"></p>
+      </div>
+      <div class="card stack">
+        <div class="row between"><h2 data-ar="المسار في الخوارزمية">Chemin dans l’algorithme</h2><span class="small muted" id="algo-name"></span></div>
+        <ol class="trail" id="trail"></ol>
+        <details class="flowd" id="flowd"><summary class="btn sm" id="flow-sum" data-ar="المخطط الكامل">Organigramme complet</summary><div class="flow-wrap" id="flow-wrap"></div><p class="xs muted flow-hint">Faites glisser horizontalement · le chemin suivi est en bleu.</p></details>
+      </div>
+      <details class="card more" id="how" style="border-top:1px solid var(--line)"><summary data-ar="طريقة الحساب">Comment c’est calculé</summary>
+        <div class="stack" style="margin-top:10px"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Critère</th><th>Valeur</th><th>Seuil</th><th>Statut</th></tr></thead><tbody id="crit"></tbody></table></div>
+        <p class="xs muted" id="refs"></p></div>
+      </details>
+    </aside>
+  </div>
+</main>
+<div class="sbar" id="sbar" role="button" tabindex="0" aria-label="Voir le résultat"><i class="dot" id="sb-dot"></i><b id="sb-t"></b><span data-ar="التفاصيل">Détails</span></div>
+<footer id="cs-foot"></footer>
+<script>
+(function(){
+'use strict';
+var h = CS.h, D = CS.diastolic;
+/* Par défaut, la pratique décrite par Anis : e′ latéral seul, surface de l'OG en 4 cavités (pas de poids ni de taille). */
+var EX = {age:'70', lvef:'62', rhythm:'sr', pop:'std', myo:false, ageAdj:false, emode:'lat', lamode:'area', e:'95', a:'70', el:'6,5', trv:'3,0', laa:'24'};
+var BLANK = {rhythm:'sr', pop:'std', myo:false, ageAdj:false, emode:'lat', lamode:'area'};
+var v = CS.store.get('dia', null) || Object.assign({}, EX);
+if(!v.emode) v.emode = 'lat'; if(!v.lamode) v.lamode = 'area';
+var guide = CS.store.get('dia.guideline', '2025');
+function save(){ CS.store.set('dia', v); }
+(function prefill(){ var p = CS.patient(); if(!v.age && p.age) v.age = String(p.age); if(!v.ht && p.height) v.ht = String(p.height); if(!v.wt && p.weight) v.wt = String(p.weight); if(p.rhythm === 'fa' && !v._rh){ v.rhythm = 'af'; v._rh = 1; } })();
+
+var FD = {
+  e:{l:'Onde E', u:'cm/s'}, a:{l:'Onde A', u:'cm/s'},
+  es:{l:'e′ septal', u:'cm/s', hint:function(){ return guide === '2016' ? 'réduite si < 7' : 'réduite si ≤ 6'; }},
+  el:{l:'e′ latéral', u:'cm/s', hint:function(){ return guide === '2016' ? 'réduite si < 10' : 'réduite si ≤ 7'; }},
+  trv:{l:'Vmax IT', u:'m/s', hint:function(){ return guide === '2016' ? 'anormale si > 2,8' : 'anormale si ≥ 2,8'; }},
+  laa:{l:'Surface OG (4 cavités)', u:'cm²', hint:function(){ return 'dilatée si > 20'; }},
+  lavi:{l:'VOG indexé', u:'mL/m²', hint:function(){ return 'dilaté si > 34'; }},
+  lav:{l:'Volume OG', u:'mL', hint:function(){ return 'ou les aires ci-dessous'; }},
+  a4:{l:'Aire OG 4 cavités', u:'cm²'}, a2:{l:'Aire OG 2 cavités', u:'cm²'}, len:{l:'Longueur OG (la plus courte)', u:'cm'},
+  ht:{l:'Taille', u:'cm'}, wt:{l:'Poids', u:'kg'}
+};
+function coreIds(){
+  var ids = ['e', 'a'].concat(v.emode === 'both' ? ['es', 'el'] : ['el'], ['trv']);
+  if(v.lamode === 'area') ids.push('laa');
+  else if(v.lamode === 'lavi') ids.push('lavi');
+  else ids = ids.concat(['lav', 'a4', 'a2', 'len', 'ht', 'wt']);
+  return ids;
+}
+var CORE = [];
+/* Volume OG : saisi, ou aire-longueur biplan V = 0,85 × A4C × A2C / L ; indexé par la surface corporelle (Mosteller) */
+function laCalc(){
+  var V = CS.num(v.lav), src = 'saisi';
+  if(isNaN(V)){ var A1 = CS.num(v.a4), A2 = CS.num(v.a2), Lg = CS.num(v.len); if(A1 > 0 && A2 > 0 && Lg > 0){ V = 0.85 * A1 * A2 / Lg; src = 'aire-longueur'; } }
+  var S = CS.bsa(v.ht, v.wt);
+  return {V:V, src:src, bsa:S, lavi:V > 0 && S > 0 ? V / S : NaN};
+}
+function engineInput(){
+  var x = Object.assign({}, v);
+  if(v.emode !== 'both') delete x.es;
+  delete x.laa; delete x.lavi;
+  if(v.lamode === 'area') x.laa = v.laa;
+  else if(v.lamode === 'lavi') x.lavi = v.lavi;
+  else { var c = laCalc(); if(!isNaN(c.lavi)) x.lavi = String(c.lavi); }
+  return x;
+}
+var EXTRA = [
+  {id:'lars', l:'Strain réservoir OG (LARS)', u:'%'}, {id:'pvsd', l:'Flux VP : rapport S/D', u:'ratio'},
+  {id:'ivrt', l:'TRIV', u:'ms'}, {id:'pasp', l:'PAPS (si POD estimée)', u:'mmHg'},
+  {id:'dt', l:'Temps de décélération', u:'ms'}, {id:'ara', l:'Durée Ar – A', u:'ms'},
+  {id:'valsalva', l:'Baisse de E/A au Valsalva', u:'%'}, {id:'lwave', l:'Onde L', u:'cm/s'},
+  {id:'prv', l:'IP télédiastolique', u:'m/s'}, {id:'padp', l:'PAP diastolique', u:'mmHg'},
+  {id:'bmi', l:'IMC', u:'kg/m²', pops:['af']}, {id:'srivr', l:'SRIVR (strain rate)', u:'s⁻¹', pops:['htx']},
+  {id:'tee', l:'Intervalle TE-e′', u:'ms', pops:['ms', 'mr']}];
+// Clés « à mesurer » renvoyées par le moteur → champs à mettre en évidence
+var NEED = {'e′':['es', 'el'], E:['e'], e:['e'], trv:['trv'], tr:['trv'], ea:['e', 'a'], a:['a'], lars:['lars'], lavi:['lavi', 'laa', 'lav'], pvsd:['pvsd'], ivrt:['ivrt'],
+  sup:['ara', 'valsalva', 'lwave', 'prv', 'padp'], dt:['dt'], eesep:['e', 'es'], ee:['e', 'es', 'el'], eelat:['e', 'el'], bmi:['bmi'], srivr:['srivr'], esr:['srivr'], tee:['tee'], ara:['ara']};
+
+/* ---------- Formulaire ---------- */
+function field(it){
+  var inp = h('input', {class:'inp num', id:'f-' + it.id, inputmode:'decimal', enterkeyhint:'next', autocomplete:'off', value:v[it.id] == null ? '' : v[it.id]});
+  inp.addEventListener('input', function(){ v[it.id] = inp.value; save(); update(); });
+  // Entrée : champ suivant (saisie rapide au clavier ou sur téléphone)
+  inp.addEventListener('keydown', function(e){
+    if(e.key !== 'Enter') return; e.preventDefault();
+    var all = CS.$$('#core input.inp, #extra input.inp').filter(function(x){ return x.offsetParent; });
+    var i = all.indexOf(inp); if(i >= 0 && all[i + 1]) all[i + 1].focus(); else { inp.blur(); toRes(); }
+  });
+  return h('div', {class:'m', id:'m-' + it.id}, h('label', {for:'f-' + it.id, text:it.l}), h('div', {class:'inp-unit'}, inp, h('span', {class:'u', text:it.u})), h('div', {class:'fl', id:'fl-' + it.id}));
+}
+function segCtl(key, label, opts, onSet){
+  var g = h('div', {class:'seg full', role:'group', 'aria-label':label}, opts.map(function(o){ return h('button', {'data-v':o[0], text:o[1]}); }));
+  CS.seg(g, String(key === 'guide' ? guide : v[key]), function(x){ if(key === 'guide'){ guide = x; CS.store.set('dia.guideline', x); } else { v[key] = x; save(); } if(onSet) onSet(); update(); });
+  return h('div', {class:'field'}, h('span', {class:'lbl', text:label}), g);
+}
+function buildCtx(){
+  var box = CS.$('#ctx'); box.innerHTML = '';
+  box.appendChild(h('div', {class:'wide'}, segCtl('guide', CS.t({fr:'Recommandation', ar:'التوصية'}), [['2025', 'ASE 2025'], ['2016', 'ASE/EACVI 2016']], buildCtx)));
+  box.appendChild(segCtl('rhythm', CS.t({fr:'Rythme', ar:'النظم'}), [['sr', CS.t({fr:'Sinusal', ar:'جيبي'})], ['af', CS.t({fr:'FA', ar:'رجفان أذيني'})]], buildExtra));
+  var age = h('input', {class:'inp num', id:'f-age', inputmode:'numeric', value:v.age || ''}), ef = h('input', {class:'inp num', id:'f-lvef', inputmode:'numeric', value:v.lvef || ''});
+  age.addEventListener('input', function(){ v.age = age.value; save(); update(); });
+  ef.addEventListener('input', function(){ v.lvef = ef.value; save(); update(); });
+  box.appendChild(h('div', {class:'grid g2', style:{gap:'10px'}},
+    h('div', {class:'field'}, h('label', {for:'f-age', text:{fr:'Âge', ar:'السن'}}), h('div', {class:'inp-unit'}, age, h('span', {class:'u', text:{fr:'ans', ar:'سنة'}}))),
+    h('div', {class:'field'}, h('label', {for:'f-lvef', text:{fr:'FEVG', ar:'الكسر القذفي'}}), h('div', {class:'inp-unit'}, ef, h('span', {class:'u', text:'%'})))));
+  var sel = h('select', {class:'inp', id:'f-pop'}, Object.keys(D.POPS).filter(function(k){ return k !== 'af'; }).map(function(k){ return h('option', {value:k, text:D.POPS[k].l, selected:v.pop === k}); }));
+  sel.addEventListener('change', function(){ v.pop = sel.value; save(); buildExtra(); update(); });
+  box.appendChild(h('div', {class:'field wide'}, h('label', {for:'f-pop', text:{fr:'Situation particulière', ar:'حالة خاصة'}}), sel));
+  if(guide === '2016') box.appendChild(h('label', {class:'tog wide'}, chk('myo'), h('span', {class:'sw'}), h('span', {class:'t'}, 'Cardiopathie myocardique', h('small', {text:'HVG, cinétique segmentaire… (automatique si FEVG < 50 %) : algorithme B'}))));
+  else box.appendChild(h('label', {class:'tog wide'}, chk('ageAdj'), h('span', {class:'sw'}), h('span', {class:'t'}, CS.t({fr:'Seuils de e′ selon l’âge', ar:'عتبات e′ حسب السن'}), h('small', {text:{fr:'Tableau 6 de l’ASE 2025 au lieu des seuils fixes', ar:'الجدول 6 من ASE 2025 بدل العتبات الثابتة'}}))));
+}
+function chk(key){
+  var c = h('input', {type:'checkbox', checked:!!v[key]});
+  c.addEventListener('change', function(){ v[key] = c.checked; save(); update(); });
+  return c;
+}
+function buildModes(){
+  var b = CS.$('#modes'); b.innerHTML = '';
+  b.appendChild(h('div', {class:'field', id:'mode-e'}, h('span', {class:'lbl', text:{fr:'e′ mesurée', ar:'سرعة e′ المقاسة'}}),
+    CS.segEl([['lat', {fr:'Latéral seul', ar:'الجانبية فقط'}], ['both', {fr:'Septal + latéral', ar:'الحاجزية والجانبية'}]], v.emode, function(x){ v.emode = x; save(); buildCore(); update(); }, 'full')));
+  b.appendChild(h('div', {class:'field', id:'mode-la'}, h('span', {class:'lbl', text:{fr:'Oreillette gauche', ar:'الأذين الأيسر'}}),
+    CS.segEl([['area', {fr:'Surface', ar:'المساحة'}], ['lavi', {fr:'VOG indexé', ar:'الحجم المفهرس'}], ['vol', {fr:'Volume', ar:'الحجم'}]], v.lamode, function(x){ v.lamode = x; save(); buildCore(); update(); }, 'full')));
+}
+function buildCore(){
+  CORE = coreIds().map(function(id){ return Object.assign({id:id}, FD[id]); });
+  var b = CS.$('#core'); b.innerHTML = '';
+  CORE.forEach(function(it){ b.appendChild(field(it)); });
+  if(v.lamode === 'vol') b.appendChild(h('div', {class:'panel small', id:'la-calc', style:{gridColumn:'1/-1'}}));
+  if(v.lamode === 'area') b.appendChild(h('p', {class:'xs muted', style:{gridColumn:'1/-1'}, text:{fr:'Surface OG en 4 cavités, en télésystole : seuil > 20 cm². Approximation pratique quand le poids et la taille ne sont pas disponibles ; le VOGi (> 34 mL/m²) reste la référence des recommandations.', ar:'مساحة الأذين الأيسر في مقطع الحجرات الأربع نهاية الانقباض: العتبة أكثر من 20 سم². تقريب عملي عند غياب الوزن والطول؛ ويبقى الحجم المفهرس (أكثر من 34 مل/م²) هو مرجع التوصيات.'}}));
+}
+function buildExtra(){
+  var b = CS.$('#extra'), pop = v.rhythm === 'af' ? 'af' : v.pop; b.innerHTML = '';
+  EXTRA.forEach(function(it){ if(!it.pops || it.pops.indexOf(pop) >= 0) b.appendChild(field(it)); });
+}
+
+/* ---------- Organigrammes ---------- */
+// [id, x, y, w, h, lignes, sortie ?]
+var FLOW = {
+ m25:{h:400, nodes:[
+  ['top', 150, 8, 460, 46, ['e′ réduite (sept. ≤ 6, lat. ≤ 7, moy. ≤ 6,5) · E/e′ augmenté', 'Vmax IT ≥ 2,8 m/s ou PAPS ≥ 35 mmHg']],
+  ['m.allnormal', 8, 88, 130, 34, ['Tous normaux']],
+  ['m.eonly', 160, 88, 150, 34, ['e′ réduite seule']],
+  ['m.mixed', 330, 88, 230, 34, ['E/e′ ou IT seul, ou 2 anormaux']],
+  ['m.all3', 590, 88, 160, 34, ['Les 3 anormaux']],
+  ['m.ea08', 140, 160, 90, 32, ['E/A ≤ 0,8']],
+  ['m.ea08p', 240, 160, 90, 32, ['E/A > 0,8']],
+  ['m.supp', 345, 150, 250, 58, ['S/D VP ≤ 0,67 · LARS ≤ 18 %', 'VOGi > 34 · sinon TRIV ≤ 70 ms', '(puis méthodes supplémentaires)']],
+  ['m.normlap', 250, 250, 130, 34, ['LAP normale']],
+  ['m.inclap', 610, 250, 130, 34, ['LAP élevée']],
+  ['o.0', 8, 340, 130, 40, ['Fonction normale'], 1],
+  ['o.1', 160, 340, 130, 40, ['Grade 1'], 1],
+  ['o.ind', 400, 340, 140, 40, ['Indéterminée'], 1],
+  ['o.2', 560, 340, 92, 40, ['Grade 2', 'E/A < 2'], 1],
+  ['o.3', 660, 340, 92, 40, ['Grade 3', 'E/A ≥ 2'], 1]],
+  edges:[['top', 'm.allnormal'], ['top', 'm.eonly'], ['top', 'm.mixed'], ['top', 'm.all3'], ['m.allnormal', 'o.0'], ['m.eonly', 'm.ea08'], ['m.eonly', 'm.ea08p'], ['m.ea08', 'o.1'],
+   ['m.ea08p', 'm.supp'], ['m.mixed', 'm.supp'], ['m.supp', 'm.normlap', 'aucun'], ['m.supp', 'm.inclap', '≥ 1 présent'], ['m.supp', 'o.ind', 'non disponibles'], ['m.all3', 'm.inclap'],
+   ['m.normlap', 'o.1'], ['m.normlap', 'o.0'], ['m.inclap', 'o.2'], ['m.inclap', 'o.3']]},
+ a16:{h:400, nodes:[
+  ['a.start', 120, 8, 520, 46, ['FEVG normale : E/e′ moyen > 14 · e′ sept. < 7 ou lat. < 10', 'Vmax IT > 2,8 m/s · VOGi > 34 mL/m²']],
+  ['a.normal', 20, 90, 150, 34, ['< 50 % positifs']],
+  ['a.indet', 300, 90, 150, 34, ['50 % positifs']],
+  ['a.dd', 560, 90, 170, 34, ['> 50 % : algorithme B']],
+  ['b.ea', 450, 160, 290, 34, ['Algorithme B : E/A et onde E']],
+  ['b.g1', 330, 230, 140, 40, ['E/A ≤ 0,8', 'et E ≤ 50']],
+  ['b.mid', 480, 230, 150, 40, ['E/A ≤ 0,8 et E > 50', 'ou 0,8 < E/A < 2']],
+  ['b.g3', 640, 230, 110, 40, ['E/A ≥ 2']],
+  ['o.0', 20, 340, 150, 40, ['Fonction normale'], 1],
+  ['o.ind', 190, 340, 120, 40, ['Indéterminée'], 1],
+  ['o.1', 330, 340, 130, 40, ['Grade 1'], 1],
+  ['o.2', 480, 340, 130, 40, ['Grade 2'], 1],
+  ['o.3', 640, 340, 110, 40, ['Grade 3'], 1]],
+  edges:[['a.start', 'a.normal'], ['a.start', 'a.indet'], ['a.start', 'a.dd'], ['a.normal', 'o.0'], ['a.indet', 'o.ind'], ['a.dd', 'b.ea'], ['b.ea', 'b.g1'], ['b.ea', 'b.mid'], ['b.ea', 'b.g3'],
+   ['b.g1', 'o.1'], ['b.mid', 'o.1', '≥ 2 négatifs'], ['b.mid', 'o.2', '≥ 2 positifs'], ['b.mid', 'o.ind'], ['b.g3', 'o.3']]}
+};
+FLOW.b16 = {h:300, nodes:[
+  ['b.ea', 200, 8, 360, 40, ['FEVG < 50 % ou cardiopathie myocardique', 'Algorithme B : E/A et onde E']],
+  ['b.g1', 40, 90, 170, 40, ['E/A ≤ 0,8 et E ≤ 50']],
+  ['b.mid', 260, 84, 240, 52, ['E/A ≤ 0,8 et E > 50 ou 0,8 < E/A < 2', 'E/e′ moy. > 14 · IT > 2,8 · VOGi > 34']],
+  ['b.g3', 560, 90, 160, 40, ['E/A ≥ 2']],
+  ['o.1', 40, 240, 150, 40, ['Grade 1'], 1],
+  ['o.ind', 230, 240, 150, 40, ['Indéterminée'], 1],
+  ['o.2', 410, 240, 150, 40, ['Grade 2'], 1],
+  ['o.3', 590, 240, 150, 40, ['Grade 3'], 1]],
+  edges:[['b.ea', 'b.g1'], ['b.ea', 'b.mid'], ['b.ea', 'b.g3'], ['b.g1', 'o.1'], ['b.mid', 'o.1', '≥ 2 négatifs'], ['b.mid', 'o.ind', 'discordants'], ['b.mid', 'o.2', '≥ 2 positifs'], ['b.g3', 'o.3']]};
+
+function onSet(R){
+  var on = {top:1, 'a.start':1};
+  R.path.forEach(function(p){ on[p.id] = 1; });
+  ['b.g1b', 'b.g2', 'b.indet'].forEach(function(k){ if(on[k]) on['b.mid'] = 1; });
+  if(R.path.some(function(p){ return /^b\./.test(p.id); })) on['b.ea'] = 1;
+  if(on['m.fig2']) on['m.normlap'] = 1;
+  var g = R.grade;
+  on[g === '0' ? 'o.0' : g === '1' ? 'o.1' : g === '2' ? 'o.2' : g === '3' ? 'o.3' : g === '?' ? 'o.ind' : 'none'] = 1;
+  return on;
+}
+function drawFlow(R){
+  var F = FLOW[R.algo], wrap = CS.$('#flow-wrap');
+  if(!F){ wrap.hidden = true; return; }
+  wrap.hidden = false;
+  var on = onSet(R), idx = {}, s = '<svg class="flow" viewBox="0 0 760 ' + F.h + '" role="img" aria-label="Organigramme de l’algorithme avec le chemin suivi">';
+  F.nodes.forEach(function(n){ idx[n[0]] = n; });
+  F.edges.forEach(function(e){
+    var a = idx[e[0]], b = idx[e[1]], x1 = a[1] + a[3] / 2, y1 = a[2] + a[4], x2 = b[1] + b[3] / 2, y2 = b[2], my = y1 + (y2 - y1) / 2;
+    var hot = on[e[0]] && on[e[1]];
+    s += '<path class="e' + (hot ? ' on' : '') + '" d="M' + x1 + ' ' + y1 + ' V' + my + ' H' + x2 + ' V' + (y2 - 3) + '" marker-end="url(#ar' + (hot ? 'on' : '') + ')"/>';
+    if(e[2]) s += '<text class="el" x="' + ((x1 + x2) / 2) + '" y="' + (my - 4) + '" text-anchor="middle">' + CS.esc(e[2]) + '</text>';
+  });
+  F.nodes.forEach(function(n){
+    var hot = on[n[0]], cls = 'n' + (n[6] ? ' out' : '') + (hot ? ' on' : '') + (hot && n[6] ? ' ' + R.lvl : '');
+    s += '<g class="' + cls + '"><rect x="' + n[1] + '" y="' + n[2] + '" width="' + n[3] + '" height="' + n[4] + '" rx="' + (n[6] ? 18 : 6) + '"/>';
+    var lh = 14, y0 = n[2] + n[4] / 2 - (n[5].length - 1) * lh / 2 + 4;
+    n[5].forEach(function(t, i){ s += '<text x="' + (n[1] + n[3] / 2) + '" y="' + (y0 + i * lh) + '" text-anchor="middle">' + CS.esc(t) + '</text>'; });
+    s += '</g>';
+  });
+  s += '<defs><marker id="ar" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8z" style="fill:var(--line-strong)"/></marker><marker id="aron" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8z" style="fill:var(--accent)"/></marker></defs></svg>';
+  wrap.innerHTML = s;
+  // sur téléphone : amener la sortie atteinte au centre de la zone visible
+  var outN = F.nodes.filter(function(n){ return n[6] && on[n[0]]; })[0];
+  if(outN && wrap.scrollWidth > wrap.clientWidth){ var scale = wrap.scrollWidth / 760; wrap.scrollLeft = Math.max(0, (outN[1] + outN[3] / 2) * scale - wrap.clientWidth / 2); }
+}
+
+/* ---------- Mise à jour ---------- */
+var ALGO = {m25:'ASE 2025 · algorithme principal (fig. 3)', a16:'ASE/EACVI 2016 · algorithme A', b16:'ASE/EACVI 2016 · algorithme B', af25:'ASE 2025 · fibrillation atriale (fig. 8)', mac25:'ASE 2025 · MAC (fig. 4)', ph25:'ASE 2025 · HTP (fig. 6)', htx25:'ASE 2025 · transplantés (fig. 5)', ind25:'ASE 2025 · indicateurs (tableau 7)', na:'Non applicable'};
+var lastSent = '';
+function update(){
+  var R = D(engineInput(), {guideline:guide});
+  var lc = CS.$('#la-calc');
+  if(lc){ var c = laCalc();
+    lc.innerHTML = CS.esc(CS.t({fr:'Volume OG : ', ar:'حجم الأذين الأيسر: '})) + '<b>' + (isNaN(c.V) ? '–' : CS.fmt(c.V, 0) + ' mL') + '</b>' + (c.src === 'aire-longueur' && !isNaN(c.V) ? ' <span class="muted">(0,85 × A4C × A2C / L)</span>' : '') +
+      ' · ' + CS.esc(CS.t({fr:'SC : ', ar:'م.س.ج: '})) + '<b>' + (isNaN(c.bsa) ? '–' : CS.fmt(c.bsa, 2) + ' m²') + '</b> · VOGi : <b>' + (isNaN(c.lavi) ? '–' : CS.fmt(c.lavi, 0) + ' mL/m²') + '</b>'; }
+  var pop = v.rhythm === 'af' ? 'af' : v.pop;
+  // Résultat
+  var res = CS.$('#res'); res.className = 'res ' + R.lvl; res.innerHTML = '';
+  res.appendChild(h('span', {class:'eyebrow', text:R.pop === 'std' ? 'Résultat' : R.popLabel}));
+  res.appendChild(h('div', {class:'t', text:R.title}));
+  if(R.lapTxt) res.appendChild(h('div', {class:'lap', text:R.lapTxt.charAt(0).toUpperCase() + R.lapTxt.slice(1)}));
+  res.appendChild(h('div', {class:'meta'}, h('span', {class:'badge info', text:ALGO[R.algo] || ''}),
+    ok(R.derived.ea) ? h('span', {class:'badge', text:'E/A ' + CS.fmt(R.derived.ea, 2)}) : null,
+    ok(R.derived.eeavg) ? h('span', {class:'badge', text:'E/e′ moyen ' + CS.fmt(R.derived.eeavg, 1)}) : null));
+  if(R.missing.length){
+    res.appendChild(h('div', {class:'todo', style:{marginTop:'12px'}}, h('h3', {text:R.grade === '?' || R.lap === 'indeterminate' ? 'Pour conclure, mesurer' : 'À compléter si possible'}),
+      h('ul', null, R.missing.map(function(m){ return h('li', null, h('b', {text:m.label}), m.why ? h('span', {text:' : ' + m.why}) : null); }))));
+  }
+  if(R.notes.length) res.appendChild(h('div', {class:'notes', style:{marginTop:'12px'}}, h('ul', null, R.notes.map(function(n){ return h('li', {text:n}); }))));
+  // Phrase
+  lastSent = R.sentence || R.notes.join(' ');
+  CS.$('#sent').textContent = lastSent || '–';
+  // Chemin
+  CS.$('#algo-name').textContent = ALGO[R.algo] || '';
+  var tr = CS.$('#trail'); tr.innerHTML = '';
+  R.path.forEach(function(p){ tr.appendChild(h('li', null, h('span', {text:p.txt}))); });
+  tr.appendChild(h('li', {class:'end'}, h('b', {text:R.title + (R.lapTxt ? ' : ' + R.lapTxt : '')})));
+  drawFlow(R);
+  // Critères
+  var tb = CS.$('#crit'); tb.innerHTML = '';
+  R.crit.forEach(function(c){
+    tb.appendChild(h('tr', null, h('td', {text:(c.grp ? c.grp + ' · ' : '') + c.label}), h('td', {class:'tnum', text:c.value || '–'}), h('td', {class:'small', text:c.thr || ''}),
+      h('td', {class:c.abn === true ? 'ab' : c.abn === false ? 'nm' : 'muted', text:c.abn === true ? 'Anormal' : c.abn === false ? 'Normal' : 'Non disponible'})));
+  });
+  CS.$('#refs').textContent = 'Références : ' + R.refs.join(' ; ') + '. Seuils relus sur les figures des publications.';
+  // Champs : anormaux et à mesurer
+  var req = {};
+  R.missing.forEach(function(m){ (NEED[m.k] || []).forEach(function(id){ if(isNaN(CS.num(v[id]))) req[id] = 1; }); });
+  var abn = {};
+  R.crit.forEach(function(c){ if(c.abn === true) ({e:['es', 'el'], tr:['trv'], lavi:['lavi', 'laa', 'lav', 'a4', 'a2', 'len'], lars:['lars'], pvsd:['pvsd'], ivrt:['ivrt'], dt:['dt'], ee:['e'], eelat:['e', 'el'], eesep:['e', 'es']}[c.k] || []).forEach(function(id){ abn[id] = 1; }); });
+  var extraReq = 0;
+  CORE.concat(EXTRA).forEach(function(it){
+    var m = CS.$('#m-' + it.id); if(!m) return;
+    m.classList.toggle('req', !!req[it.id]); m.classList.toggle('abn', !!abn[it.id] && !req[it.id]);
+    var fl = CS.$('#fl-' + it.id), hint = it.hint ? it.hint() : '';
+    fl.textContent = req[it.id] ? CS.t({fr:'À mesurer', ar:'يجب قياسه'}) : abn[it.id] && hint ? '⚠ ' + hint : hint;
+    fl.className = 'fl' + (req[it.id] || abn[it.id] ? '' : ' hint');
+    if(req[it.id] && EXTRA.indexOf(it) >= 0) extraReq++;
+  });
+  var filled = EXTRA.filter(function(it){ return !isNaN(CS.num(v[it.id])); }).length;
+  CS.$('#more-n').textContent = extraReq ? extraReq + ' à mesurer' : filled ? filled + ' saisi(s)' : 'optionnels';
+  CS.$('#more-n').className = 'badge' + (extraReq ? ' acc' : '');
+  if(extraReq || pop !== 'std') CS.$('#more').open = true;
+  // Barre mobile
+  CS.$('#sb-t').textContent = R.title + (R.lap === 'elevated' && R.grade ? ' · pressions élevées' : R.lap === 'normal' && R.grade ? ' · pressions normales' : '');
+  CS.$('#sb-dot').style.background = R.lvl === 'ok' ? 'var(--ok)' : R.lvl === 'sev' ? 'var(--crit)' : 'var(--warn)';
+  CS.$('#ex-badge').hidden = !Object.keys(EX).every(function(k){ return String(v[k]) === String(EX[k]); });
+}
+function ok(x){ return x != null && !isNaN(x) && isFinite(x); }
+
+function rebuild(){ buildCtx(); buildModes(); buildCore(); buildExtra(); update(); }
+(function(){ var fd = CS.$('#flowd'); fd.open = !window.matchMedia('(max-width:640px)').matches; fd.addEventListener('toggle', function(){ if(fd.open) update(); }); })();
+CS.$('#copy').innerHTML = CS.I.copy + 'Copier';
+CS.$('#copy').addEventListener('click', function(){ if(lastSent) CS.copy(lastSent, 'Phrase copiée'); });
+function toRes(){ CS.$('#out').scrollIntoView({behavior:'smooth', block:'start'}); }
+CS.$('#sbar').addEventListener('click', toRes);
+CS.$('#sbar').addEventListener('keydown', function(e){ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toRes(); } });
+CS.init({actions:[
+  h('button', {class:'btn sm hide-sm', id:'ex-btn', type:'button', text:{fr:'Exemple', ar:'مثال'}, onclick:function(){ v = Object.assign({}, EX); save(); rebuild(); }}),
+  h('button', {class:'btn sm', id:'new-btn', type:'button', html:CS.I.plus + '<span class="hide-sm">' + CS.esc(CS.t({fr:'Nouveau patient', ar:'مريض جديد'})) + '</span>', title:{fr:'Nouveau patient', ar:'مريض جديد'}, onclick:function(){ v = Object.assign({}, BLANK, {emode:v.emode, lamode:v.lamode}); var p = CS.patient(); if(p.age) v.age = String(p.age); save(); rebuild(); var f = CS.$('#f-e'); if(f) f.focus(); }})],
+  refs:[D.REFS.r2025, D.REFS.r2016, 'Surface OG > 20 cm² : quantification des cavités ASE/EACVI 2015']});
+CS.$('#copy').innerHTML = CS.I.copy + '<span>' + CS.esc(CS.t({fr:'Copier', ar:'نسخ'})) + '</span>';
+rebuild();
+
+CS.tour.define([
+  {title:{fr:'La fonction diastolique, sans rien retenir par cœur', ar:'الوظيفة الانبساطية دون حفظ أي شيء'}, body:{fr:'<p>Vous saisissez les mesures de l’écho ; l’outil suit l’<b>algorithme ASE 2025</b> (ou 2016) à votre place et donne le <b>grade</b>, les <b>pressions de remplissage</b> et la <b>phrase du compte rendu</b>.</p><p>Tout se recalcule à chaque chiffre tapé.</p>', ar:'<p>تُدخل قياسات الصدى، فتتّبع الأداة <b>خوارزمية ASE 2025</b> (أو 2016) بدلًا منك وتعطي <b>الدرجة</b> و<b>ضغوط الامتلاء</b> و<b>جملة التقرير</b>.</p><p>يُعاد الحساب مع كل رقم تكتبه.</p>'}},
+  {el:'#ctx', title:{fr:'Le contexte', ar:'السياق'}, body:{fr:'Recommandation (ASE 2025 ou 2016), rythme (sinusal ou FA), âge, FEVG et situation particulière (HTP, valvulopathie mitrale, transplantation…) : chacun change l’algorithme utilisé.', ar:'التوصية (ASE 2025 أو 2016) والنظم (جيبي أو رجفان) والسن والكسر القذفي والحالة الخاصة (ارتفاع الضغط الرئوي، اعتلال الصمام التاجي، الزرع…): كل منها يغيّر الخوارزمية المستعملة.'}},
+  {el:'#mode-e', title:{fr:'e′ latéral seul ? C’est prévu', ar:'السرعة الجانبية فقط؟ هذا ممكن'}, body:{fr:'Si vous ne mesurez que l’<b>e′ latéral</b>, gardez « Latéral seul » : l’algorithme utilise alors les seuils latéraux (e′ ≤ 7 cm/s, E/e′ ≥ 13).', ar:'إذا كنت تقيس <b>e′ الجانبية</b> فقط، اترك «الجانبية فقط»: تستعمل الخوارزمية عندئذ العتبات الجانبية (e′ ≤ 7 سم/ث، E/e′ ≥ 13).'}},
+  {el:'#mode-la', title:{fr:'L’oreillette gauche : surface ou volume', ar:'الأذين الأيسر: المساحة أو الحجم'}, body:{fr:'<b>Surface</b> en 4 cavités (seuil > 20 cm²) quand vous n’avez ni poids ni taille. <b>VOG indexé</b> si votre appareil le donne. <b>Volume</b> : saisissez le volume, ou les deux aires et la longueur (formule aire-longueur), plus taille et poids : le VOGi est calculé.', ar:'<b>المساحة</b> في مقطع الحجرات الأربع (العتبة أكثر من 20 سم²) عند غياب الوزن والطول. <b>الحجم المفهرس</b> إذا كان جهازك يعطيه. <b>الحجم</b>: أدخل الحجم أو المساحتين والطول (معادلة المساحة والطول) مع الطول والوزن، فيُحسب الحجم المفهرس.'}},
+  {el:'#core', title:{fr:'Les mesures', ar:'القياسات'}, body:{fr:'Sous chaque champ, le <b>seuil</b> ; il passe en orange quand la valeur est anormale. <b>Entrée</b> passe au champ suivant. Un champ entouré de bleu = <b>à mesurer</b> pour pouvoir conclure.', ar:'تحت كل خانة <b>العتبة</b>، وتتحوّل إلى البرتقالي عندما تكون القيمة غير طبيعية. يقودك مفتاح <b>الإدخال</b> إلى الخانة التالية. والخانة المحاطة بالأزرق <b>يجب قياسها</b> للوصول إلى نتيجة.'}},
+  {el:'#more', title:{fr:'Paramètres complémentaires', ar:'المعايير التكميلية'}, body:{fr:'LARS, flux veineux pulmonaire, TRIV, TDE… Utiles quand l’algorithme principal ne suffit pas : l’outil vous dit lesquels mesurer.', ar:'LARS وتدفق الأوردة الرئوية وTRIV وTDE… مفيدة عندما لا تكفي الخوارزمية الرئيسية، وتخبرك الأداة بما يجب قياسه.'}},
+  {el:'#res', title:{fr:'Le résultat', ar:'النتيجة'}, body:{fr:'Grade de dysfonction diastolique et pressions de remplissage, avec la couleur : vert normal, orange anormal, rouge sévère.', ar:'درجة الخلل الانبساطي وضغوط الامتلاء، مع اللون: أخضر طبيعي، برتقالي غير طبيعي، أحمر شديد.'}},
+  {el:'#sent', title:{fr:'La phrase du compte rendu', ar:'جملة التقرير'}, body:{fr:'Prête à coller dans votre compte rendu d’écho : bouton <b>Copier</b>.', ar:'جاهزة للّصق في تقرير الصدى: زر <b>نسخ</b>.'}},
+  {el:'#trail', title:{fr:'Le chemin dans l’algorithme', ar:'المسار في الخوارزمية'}, body:{fr:'Chaque étape franchie, puis l’organigramme officiel avec le chemin surligné en bleu. Sur téléphone, il s’ouvre avec « Organigramme complet ».', ar:'كل خطوة تمّ اجتيازها، ثم المخطط الرسمي مع المسار مظلَّلًا بالأزرق. وعلى الهاتف يُفتح بزر «المخطط الكامل».'}}
+]);
+})();
+</script>
+</body>
+</html>

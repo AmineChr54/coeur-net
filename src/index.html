@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Cœur Net · Outils de cardiologie</title>
+<!-- @include _base.css -->
+<style>
+/* ---------- Héros ---------- */
+.hero{position:relative;overflow:hidden;border-radius:24px;margin-top:6px;padding:clamp(20px,4vw,40px);
+  background:radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--heart) 18%,transparent) 0%,transparent 55%),
+             radial-gradient(90% 120% at 0% 100%,color-mix(in srgb,var(--accent) 16%,transparent) 0%,transparent 60%),var(--surface);
+  border:1px solid var(--line);box-shadow:var(--shadow-md);display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.9fr);gap:clamp(12px,3vw,32px);align-items:center}
+@media (max-width:820px){.hero{grid-template-columns:minmax(0,1fr)}.hero-art{order:-1;max-width:260px;margin:-6px auto -10px}}
+.hero .hi{font-size:.95rem;color:var(--muted);font-weight:600}
+.hero h2{font-size:clamp(1.9rem,4.6vw,3.1rem);font-weight:750;letter-spacing:-.03em;line-height:1.05;margin-top:6px}
+html[lang="ar"] .hero h2{letter-spacing:0;line-height:1.3}
+.hero h2 em{font-style:normal;background:linear-gradient(90deg,var(--heart),#e0703c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{color:var(--fg-2);font-size:clamp(.98rem,1.6vw,1.1rem);max-width:56ch;margin-top:14px;line-height:1.55}
+.hero .cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.hero .cta .btn{min-height:50px;padding:10px 18px;font-size:.98rem;border-radius:12px}
+@media (max-width:520px){.hero .cta .btn.primary,.hero .cta a.btn{flex:1 1 140px}.hero .cta .btn.ghost{flex:1 1 100%}}
+.hero .cta .btn.primary{background:linear-gradient(135deg,var(--heart),#b8233a);border-color:transparent;color:#fff;box-shadow:0 6px 18px color-mix(in srgb,var(--heart) 35%,transparent)}
+.hero .cta .btn.primary:hover{filter:brightness(1.05)}
+.hero .cta .btn small{display:block;font-weight:500;opacity:.85;font-size:.76rem}
+.hero .cta .btn .two{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2;text-align:start}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.facts span{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;padding:5px 11px;border-radius:999px;background:color-mix(in srgb,var(--surface) 80%,transparent);border:1px solid var(--line);color:var(--fg-2)}
+.facts svg{width:14px;height:14px;color:var(--ok)}
+.hero-art svg{width:100%;height:auto;display:block;overflow:visible}
+.ecgline{position:absolute;inset:auto 0 0 0;height:60px;opacity:.35;pointer-events:none}
+.ecgline path{fill:none;stroke:var(--heart);stroke-width:2;stroke-dasharray:1400;stroke-dashoffset:1400;animation:ecgdraw 4s ease-out .3s forwards}
+@keyframes ecgdraw{to{stroke-dashoffset:0}}
+/* cœur anatomique animé */
+.beat{transform-origin:170px 200px;animation:beat 1.15s cubic-bezier(.3,0,.3,1) infinite}
+@keyframes beat{0%,100%{transform:scale(1)}12%{transform:scale(1.045)}24%{transform:scale(.99)}36%{transform:scale(1.025)}52%{transform:scale(1)}}
+.flowdash{stroke-dasharray:6 10;animation:flow 1.15s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-32}}
+.glow{animation:glow 1.15s ease-in-out infinite}
+@keyframes glow{0%,100%{opacity:.25}15%{opacity:.6}}
+
+/* ---------- Tuiles rapides ---------- */
+.quick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+@media (max-width:860px){.quick{grid-template-columns:minmax(0,1fr)}}
+.qk{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);text-align:start;cursor:pointer;color:inherit;text-decoration:none;min-width:0;transition:border-color .15s,box-shadow .15s}
+.qk:hover{border-color:var(--line-strong);box-shadow:var(--shadow-md)}
+.qk .ic{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;flex:none;color:#fff}
+.qk .ic svg{width:22px;height:22px}
+.qk .tx{min-width:0;flex:1}
+.qk .tx b{display:block;font-size:.95rem}
+.qk .tx span{display:block;font-size:.82rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qk .chev{width:18px;height:18px;color:var(--muted);flex:none}
+.xpbar{height:6px;border-radius:6px;background:var(--surface-3);overflow:hidden;margin-top:6px}
+.xpbar i{display:block;height:100%;background:linear-gradient(90deg,#f0a73c,#e0703c);border-radius:6px}
+
+/* ---------- Menu des outils ---------- */
+.menu-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:34px 0 12px}
+.menu-h h2{font-size:1.45rem;letter-spacing:-.02em}
+.menu-h p{color:var(--muted);font-size:.9rem;margin-top:4px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;position:sticky;top:calc(58px + env(safe-area-inset-top,0px));z-index:20;padding:10px 0;background:linear-gradient(var(--bg) 70%,transparent)}
+.search{position:relative;flex:1 1 260px;max-width:440px}
+.search svg{position:absolute;inset-inline-start:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
+.search input{padding-inline-start:40px;min-height:46px;border-radius:12px}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;max-width:100%}
+.filters::-webkit-scrollbar{display:none}
+.filters .chip{white-space:nowrap}
+.grp{margin-top:22px}
+.grp-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.grp-h i{width:10px;height:10px;border-radius:3px;background:var(--g)}
+.grp-h h3{font-size:1.02rem}
+.grp-h span{color:var(--muted);font-size:.84rem}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+@media (max-width:560px){.cards{grid-template-columns:minmax(0,1fr)}}
+.tc{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;text-decoration:none;color:inherit;min-width:0;transition:transform .18s,box-shadow .18s,border-color .18s}
+.tc:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:transparent}
+.tc .pv{position:relative;height:120px;display:grid;place-items:center;background:linear-gradient(135deg,var(--g),color-mix(in srgb,var(--g) 55%,#0b1a2a));overflow:hidden}
+.tc .pv::after{content:"";position:absolute;inset:0;background:radial-gradient(80% 90% at 85% 0%,rgba(255,255,255,.28),transparent 60%)}
+.tc .pv svg{width:170px;height:96px;overflow:visible;position:relative;z-index:1}
+.tc .bd{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.tc .bd b{font-size:1.04rem;font-family:var(--font-display);font-weight:650}
+html[lang="ar"] .tc .bd b{font-family:var(--font-ar)}
+.tc .bd p{font-size:.86rem;color:var(--muted);line-height:1.45}
+.tc .meta{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:8px;font-size:.8rem;color:var(--muted)}
+.tc .go{color:var(--g);font-weight:700;display:inline-flex;align-items:center;gap:4px}
+.tc .go svg{width:15px;height:15px}
+[dir="rtl"] .tc .go svg{transform:scaleX(-1)}
+.tc .star{position:absolute;top:10px;inset-inline-end:10px;z-index:2;width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.22);backdrop-filter:blur(4px);display:grid;place-items:center;cursor:pointer;color:#fff}
+.tc .star svg{width:17px;height:17px}
+.tc .star[aria-pressed="true"]{color:#ffd166;background:rgba(0,0,0,.18)}
+.tc.feat{grid-column:span 2}
+@media (max-width:620px){.tc.feat{grid-column:auto}}
+.tc.feat .pv{height:150px}
+.tc.feat .pv svg{width:240px;height:120px}
+.tc .tag{position:absolute;top:12px;inset-inline-start:12px;z-index:2;font-size:.72rem;font-weight:700;color:#fff;background:rgba(0,0,0,.22);padding:3px 9px;border-radius:999px;backdrop-filter:blur(4px)}
+.empty{color:var(--muted);padding:26px 0;text-align:center}
+.recent{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.recent a{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;background:var(--surface);border:1px solid var(--line);text-decoration:none;color:var(--fg-2);font-size:.86rem}
+.recent a .d{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--g)}
+.recent a .d svg{width:15px;height:15px}
+/* aperçus animés (blanc sur couleur) */
+.pv .w{stroke:#fff;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.pv .w2{stroke:rgba(255,255,255,.55);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.pv .fw{fill:#fff} .pv .fw2{fill:rgba(255,255,255,.45)} .pv .fw3{fill:rgba(255,255,255,.2)}
+.an-draw{stroke-dasharray:260;stroke-dashoffset:260;animation:drawp 2.8s ease-in-out infinite alternate}
+@keyframes drawp{to{stroke-dashoffset:0}}
+.an-blink{animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:.3}50%{opacity:1}}
+.an-scroll{animation:scrollx 2.6s linear infinite}
+@keyframes scrollx{to{transform:translateX(-60px)}}
+.an-needle{transform-origin:85px 74px;animation:needle 3s ease-in-out infinite}
+@keyframes needle{0%,100%{transform:rotate(-55deg)}50%{transform:rotate(40deg)}}
+.an-pop{transform-box:fill-box;transform-origin:center;animation:pop 2.4s ease-in-out infinite}
+@keyframes pop{0%,100%{transform:scale(.7);opacity:.5}50%{transform:scale(1);opacity:1}}
+.an-sig{stroke-dasharray:300;stroke-dashoffset:300;animation:drawp 3.2s ease-in-out infinite alternate}
+.an-beat{transform-box:fill-box;transform-origin:center;animation:beat 1.15s ease-in-out infinite}
+</style>
+</head>
+<body>
+<header id="cs-top"></header>
+<main class="wrap">
+
+  <section class="hero" id="hero">
+    <div>
+      <div class="hi" id="hello"></div>
+      <h2 id="h-title"></h2>
+      <p class="lead" id="h-lead"></p>
+      <div class="cta" id="cta"></div>
+      <div class="facts" id="facts"></div>
+    </div>
+    <div class="hero-art" aria-hidden="true" id="art"></div>
+    <svg class="ecgline" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 40 H180 L195 34 L210 40 H260 L270 46 L285 6 L300 56 L310 40 H380 L400 28 L420 40 H600 L615 34 L630 40 H680 L690 46 L705 6 L720 56 L730 40 H800 L820 28 L840 40 H1020 L1035 34 L1050 40 H1100 L1110 46 L1125 6 L1140 56 L1150 40 H1200"/></svg>
+  </section>
+
+  <section class="quick" id="quick"></section>
+
+  <section id="menu">
+    <div class="menu-h">
+      <div><h2 id="m-title"></h2><p id="m-sub"></p></div>
+    </div>
+    <div class="toolbar">
+      <label class="search"><span id="s-ic"></span><input class="inp" id="q" type="search" autocomplete="off"></label>
+      <div class="filters" id="filters" role="group"></div>
+    </div>
+    <div id="recent-wrap"></div>
+    <div id="groups"></div>
+  </section>
+</main>
+<footer id="cs-foot"></footer>
+
+<!-- @include _base.js -->
+<!-- @include _tour.js -->
+<script>
+(function(){
+'use strict';
+var h = CS.h, t = CS.t, I = CS.I;
+var st = CS.store.get('hub', {fav:[], recent:[]});
+st.fav = st.fav || []; st.recent = st.recent || [];
+var filter = 'all';
+function save(){ CS.store.set('hub', st); }
+CS.init({title:'Cœur Net', cat:{fr:'Outils de cardiologie', ar:'أدوات أمراض القلب'}});
+
+/* ---------- Héros ---------- */
+function greeting(){
+  var hr = new Date().getHours();
+  var g = hr < 5 ? {fr:'Bonne nuit', ar:'تصبح على خير'} : hr < 18 ? {fr:'Bonjour', ar:'صباح الخير'} : {fr:'Bonsoir', ar:'مساء الخير'};
+  if(CS.isAr() && hr >= 12 && hr < 18) g = {ar:'مرحبًا'};
+  var n = CS.doctor();
+  return t(g) + (n ? ', ' + CS.doctorLabel() : '') + ' 👋';
+}
+CS.$('#hello').textContent = greeting();
+CS.$('#h-title').innerHTML = t({fr:'La cardiologie,<br><em>le cœur net.</em>', ar:'أمراض القلب<br><em>بكل وضوح.</em>'});
+CS.$('#h-lead').textContent = t({fr:'Les outils du quotidien du cardiologue, réunis et pensés pour la Tunisie : écho, explications au patient, scores et formation. Gratuit, sans compte, et ça marche même hors ligne.',
+  ar:'أدوات طبيب القلب اليومية مجتمعة ومصمَّمة لتونس: الصدى وشرح الحالة للمريض والمقاييس والتكوين. مجاني ودون حساب، ويعمل حتى دون اتصال بالإنترنت.'});
+
+var cta = CS.$('#cta');
+var last = st.last && CS.tool(st.last.id);
+if(last){
+  cta.appendChild(h('a', {class:'btn primary', id:'resume', href:last.id + '.html'},
+    h('span', {html:I.play}), h('span', {class:'two'}, h('span', {text:{fr:'Reprendre', ar:'متابعة'}}), h('small', {text:last.name}))));
+} else {
+  cta.appendChild(h('a', {class:'btn primary', id:'resume', href:'diastolique.html'},
+    h('span', {html:I.play}), h('span', {class:'two'}, h('span', {text:{fr:'Commencer', ar:'ابدأ'}}), h('small', {text:CS.tool('diastolique').name}))));
+}
+cta.appendChild(h('a', {class:'btn', href:'#menu', html:I.grid + '<span>' + CS.esc(t({fr:'Tous les outils', ar:'كل الأدوات'})) + '</span>'}));
+cta.appendChild(h('button', {class:'btn ghost', type:'button', html:I.help + '<span>' + CS.esc(t({fr:'Visite guidée', ar:'جولة إرشادية'})) + '</span>', onclick:function(){ CS.tour.start(true); }}));
+var tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>';
+[{fr:'Gratuit', ar:'مجاني'}, {fr:'Sans compte', ar:'دون حساب'}, {fr:'Hors ligne', ar:'دون اتصال'}, {fr:'Français · العربية', ar:'العربية · Français'}, {fr:'Données sur l’appareil', ar:'البيانات على الجهاز'}]
+  .forEach(function(f){ CS.$('#facts').appendChild(h('span', {html:tick + CS.esc(t(f))})); });
+
+/* Cœur anatomique en couches : dégradés, ombres, coronaires, gros vaisseaux */
+CS.$('#art').innerHTML =
+'<svg viewBox="0 0 300 320">' +
+'<defs>' +
+ '<radialGradient id="hb" cx="38%" cy="36%" r="75%"><stop offset="0" stop-color="#f07a74"/><stop offset=".55" stop-color="#d4424a"/><stop offset="1" stop-color="#8f1b31"/></radialGradient>' +
+ '<linearGradient id="ao" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ec5f5f"/><stop offset="1" stop-color="#a8243a"/></linearGradient>' +
+ '<linearGradient id="pa" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7d9ee8"/><stop offset="1" stop-color="#3e5fb8"/></linearGradient>' +
+ '<linearGradient id="vc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8aa6ea"/><stop offset="1" stop-color="#4a68bd"/></linearGradient>' +
+ '<radialGradient id="la" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#f29a8f"/><stop offset="1" stop-color="#c0444e"/></radialGradient>' +
+ '<radialGradient id="ra" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#9fb4ee"/><stop offset="1" stop-color="#5672c4"/></radialGradient>' +
+ '<radialGradient id="sh" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>' +
+ '<linearGradient id="hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>' +
+ '<filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6"/></filter>' +
+'</defs>' +
+'<ellipse cx="150" cy="300" rx="92" ry="12" fill="url(#sh)"/>' +
+'<circle cx="150" cy="170" r="120" fill="var(--heart)" opacity=".10" class="glow" filter="url(#soft)"/>' +
+'<g class="beat">' +
+ // veine cave supérieure
+ '<path d="M96 30 C96 60 98 84 104 104 L124 100 C118 80 116 58 118 30 Z" fill="url(#vc)"/>' +
+ // arche aortique
+ '<path d="M140 118 C134 70 150 34 190 30 C226 27 248 52 246 92 L246 112 L224 112 L224 92 C224 66 212 52 192 53 C168 55 160 76 164 118 Z" fill="url(#ao)"/>' +
+ '<path d="M168 40 L166 14 M190 34 L192 8 M212 40 L220 16" stroke="url(#ao)" stroke-width="13" stroke-linecap="round"/>' +
+ // tronc pulmonaire
+ '<path d="M150 132 C150 106 160 88 184 84 C204 81 222 88 232 100 L218 116 C210 108 200 104 188 106 C176 108 172 120 174 138 Z" fill="url(#pa)"/>' +
+ // oreillettes
+ '<ellipse cx="108" cy="140" rx="34" ry="30" fill="url(#ra)"/>' +
+ '<ellipse cx="222" cy="140" rx="30" ry="26" fill="url(#la)"/>' +
+ // ventricules
+ '<path d="M94 150 C80 196 98 240 140 266 C172 286 214 300 238 288 C256 276 258 240 252 206 C248 180 242 162 228 148 C190 132 130 132 94 150 Z" fill="url(#hb)"/>' +
+ // graisse du sillon et coronaires
+ '<path d="M98 152 C130 138 190 136 230 150" fill="none" stroke="#f1c46b" stroke-width="7" stroke-linecap="round" opacity=".75"/>' +
+ '<path d="M182 148 C190 190 208 240 236 286" fill="none" stroke="#ffd2cc" stroke-width="4.5" stroke-linecap="round"/>' +
+ '<path d="M182 148 C190 190 208 240 236 286" fill="none" stroke="#b81f35" stroke-width="2" stroke-linecap="round" class="flowdash"/>' +
+ '<path d="M192 190 C210 196 226 204 240 214 M198 226 C182 236 168 248 158 262 M190 146 C214 146 236 156 248 176" fill="none" stroke="#ffd2cc" stroke-width="3" stroke-linecap="round"/>' +
+ '<path d="M144 150 C114 156 98 180 100 214 C102 240 118 258 142 268" fill="none" stroke="#ffd2cc" stroke-width="3.6" stroke-linecap="round"/>' +
+ '<path d="M144 150 C114 156 98 180 100 214 C102 240 118 258 142 268" fill="none" stroke="#b81f35" stroke-width="1.6" stroke-linecap="round" class="flowdash"/>' +
+ // reflet
+ '<path d="M106 170 C114 154 142 150 162 156 C136 162 118 178 112 200 C104 190 102 180 106 170 Z" fill="url(#hl)"/>' +
+'</g>' +
+'</svg>';
+
+/* ---------- Tuiles rapides : patient, quiz, sauvegarde ---------- */
+function renderQuick(){
+  var q = CS.$('#quick'); q.innerHTML = '';
+  var ps = CS.patientSummary();
+  q.appendChild(h('button', {class:'qk', type:'button', id:'qk-patient', onclick:CS.editPatient},
+    h('span', {class:'ic', style:{background:'linear-gradient(135deg,#0b6e99,#1d5ea8)'}, html:I.user}),
+    h('span', {class:'tx'}, h('b', {text:{fr:'Patient en cours', ar:'المريض الحالي'}}), h('span', {text:ps || t({fr:'Âge, taille, poids : pré-remplit les outils', ar:'السن والطول والوزن: تعبئة مسبقة للأدوات'})})),
+    h('span', {class:'chev flip-rtl', html:I.chev})));
+  var qz = CS.store.get('quiz', null), lv = CS.level(qz && qz.xp || 0);
+  q.appendChild(h('a', {class:'qk', id:'qk-quiz', href:'quiz.html'},
+    h('span', {class:'ic', style:{background:'linear-gradient(135deg,#f0a73c,#e0703c)'}, html:I.star}),
+    h('span', {class:'tx'}, h('b', {text:t({fr:'Niveau ', ar:'المستوى '}) + lv.lvl + ' · ' + t(lv.title)}),
+      h('span', {text:lv.xp + ' XP · ' + t({fr:'encore ', ar:'تبقّى '}) + (lv.next - lv.xp) + t({fr:' XP pour monter', ar:' نقطة للترقّي'})}),
+      h('div', {class:'xpbar'}, h('i', {style:{width:Math.round(lv.pct * 100) + '%'}}))),
+    h('span', {class:'chev flip-rtl', html:I.chev})));
+  q.appendChild(h('button', {class:'qk', type:'button', id:'qk-settings', onclick:CS.settings},
+    h('span', {class:'ic', style:{background:'linear-gradient(135deg,#137a4b,#0f5f3b)'}, html:I.gear}),
+    h('span', {class:'tx'}, h('b', {text:{fr:'Réglages et sauvegarde', ar:'الإعدادات والنسخ الاحتياطي'}}), h('span', {text:{fr:'Langue, thème, nom, exporter / importer', ar:'اللغة والمظهر والاسم والتصدير والاستيراد'}})),
+    h('span', {class:'chev flip-rtl', html:I.chev})));
+}
+renderQuick();
+window.addEventListener('cs-patient', renderQuick);
+window.addEventListener('cs-doctor', function(){ CS.$('#hello').textContent = greeting(); });
+
+/* ---------- Menu ---------- */
+CS.$('#m-title').textContent = t({fr:'Choisissez un outil', ar:'اختر أداة'});
+CS.$('#m-sub').textContent = t({fr:'Sept outils, rangés par moment de la consultation.', ar:'سبع أدوات مرتَّبة حسب لحظة الاستشارة.'});
+CS.$('#s-ic').outerHTML = I.search;
+var q = CS.$('#q');
+q.placeholder = t({fr:'Rechercher : diastole, TAVI, consentement, SCORE2…', ar:'ابحث: انبساط، TAVI، موافقة، SCORE2…'});
+var KW = {
+  diastolique:'diastole e/a e/e\' vog lavi pression remplissage ase 2025 grade onde it septal latéral surface',
+  echo:'échographie compte rendu fevg ventricule valve rapport echo',
+  consentement:'consentement coronarographie angioplastie ablation pacemaker tavi formulaire signature',
+  decision:'décision statine tavi rétrécissement aortique score2 profil risque',
+  education:'éducation stent infarctus idm tavi pacemaker insuffisance cardiaque fa pontage illustration',
+  scores:'score2 cha2ds2 hasbled grace timi heart euroscore wells pesi crusade h2fpef',
+  quiz:'quiz ecg écho cas clinique xp niveau badge formation'
+};
+var PV = {
+  diastolique:'<path class="w2" d="M8 26 H162"/><path class="w an-draw" d="M12 26 L34 82 L56 26 L70 26 L82 58 L94 26 L110 26 L132 82 L154 26"/><text x="34" y="94" text-anchor="middle" style="font:700 11px var(--font);fill:#fff">E</text><text x="82" y="72" text-anchor="middle" style="font:700 11px var(--font);fill:#fff">A</text><circle cx="140" cy="12" r="5" class="fw an-blink"/>',
+  echo:'<path d="M85 4 L156 86 A110 110 0 0 1 14 86 Z" class="fw3"/><path class="w" d="M66 40 C52 54 56 78 85 84 C114 78 118 54 104 40 C97 33 91 35 85 42 C79 35 73 33 66 40Z"/><path class="w an-blink" d="M85 48 V74" style="stroke:#ffd166"/>',
+  consentement:'<rect x="44" y="6" width="82" height="84" rx="7" class="fw3"/><path class="w2" d="M56 22 H112 M56 34 H106 M56 46 H112"/><path class="w an-sig" d="M54 74 C62 56 68 56 70 68 C72 80 80 56 88 66 C94 74 98 72 104 62 C108 56 112 70 120 64"/>',
+  decision:(function(){ var s = ''; for(var i = 0; i < 40; i++){ var x = 22 + (i % 10) * 14, y = 14 + Math.floor(i / 10) * 20, c = i < 5 ? 'fw' : i < 9 ? 'fw2' : 'fw3'; s += '<g' + (i >= 5 && i < 9 ? ' class="an-pop" style="animation-delay:' + (i * .15) + 's"' : '') + '><circle cx="' + x + '" cy="' + y + '" r="3.6" class="' + c + '"/><rect x="' + (x - 4.5) + '" y="' + (y + 5) + '" width="9" height="9" rx="4" class="' + c + '"/></g>'; } return s; })(),
+  education:'<rect x="0" y="28" width="170" height="42" rx="6" style="fill:rgba(255,255,255,.3)"/><rect x="0" y="36" width="170" height="26" style="fill:rgba(120,15,35,.55)"/><path d="M52 36 L60 62 L68 36 L76 62 L84 36 L92 62 L100 36 L108 62 L116 36" class="w"/><circle cx="22" cy="49" r="5" class="fw an-blink"/><circle cx="140" cy="44" r="4" class="fw2 an-blink" style="animation-delay:.5s"/>',
+  scores:'<path class="w2" d="M25 74 A60 60 0 0 1 145 74" style="stroke-width:8"/><path class="w" d="M110 26 A60 60 0 0 1 145 74" style="stroke-width:8;stroke:#ffd166"/><g class="an-needle"><path class="w" d="M85 74 L85 26" style="stroke-width:3.4"/></g><circle cx="85" cy="74" r="6" class="fw"/>',
+  quiz:'<rect x="50" y="8" width="70" height="78" rx="10" class="fw3"/><text x="85" y="62" text-anchor="middle" style="font:800 40px var(--font-display);fill:#fff">?</text><g class="an-pop"><path d="M140 14 l4 9 10 1 -7 7 2 10 -9-5 -9 5 2-10 -7-7 10-1z" style="fill:#ffd166"/></g><text x="30" y="30" text-anchor="middle" style="font:800 13px var(--font);fill:#ffd166" class="an-blink">+50 XP</text>'
+};
+function filtersRender(){
+  var f = CS.$('#filters'); f.innerHTML = '';
+  [['all', {fr:'Tous', ar:'الكل'}]].concat(CS.GROUPS.map(function(g){ return [g.id, g.name]; })).concat([['fav', {fr:'★ Favoris', ar:'★ المفضلة'}]]).forEach(function(o){
+    f.appendChild(h('button', {class:'chip', type:'button', 'aria-pressed':filter === o[0] ? 'true' : 'false', text:o[1], onclick:function(){ filter = o[0]; filtersRender(); render(); }}));
+  });
+}
+function norm(s){ return String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function card(x, feat){
+  var fav = st.fav.indexOf(x.id) >= 0;
+  var a = h('a', {class:'tc g-' + x.grp + (feat ? ' feat' : ''), href:x.id + '.html', id:'tc-' + x.id},
+    h('div', {class:'pv', html:'<svg viewBox="0 0 170 96" aria-hidden="true">' + PV[x.id] + '</svg>'}),
+    feat ? h('span', {class:'tag', text:{fr:'★ Outil phare', ar:'★ الأداة الأبرز'}}) : null,
+    h('div', {class:'bd'},
+      h('b', {text:x.name}), h('p', {text:x.d}),
+      h('div', {class:'meta'}, h('span', {html:'<bdi>≈ ' + x.min + ' ' + t({fr:'min', ar:'دقائق'}) + '</bdi>'}), h('span', {class:'go', html:CS.esc(t({fr:'Ouvrir', ar:'فتح'})) + I.chev}))));
+  var star = h('button', {class:'star', type:'button', 'aria-pressed':fav ? 'true' : 'false', 'aria-label':{fr:'Favori', ar:'مفضلة'}, html:I.star, onclick:function(e){
+    e.preventDefault(); e.stopPropagation();
+    var i = st.fav.indexOf(x.id); if(i >= 0) st.fav.splice(i, 1); else st.fav.push(x.id);
+    save(); render();
+  }});
+  a.appendChild(star);
+  return a;
+}
+function render(){
+  var term = norm(q.value.trim());
+  var box = CS.$('#groups'); box.innerHTML = '';
+  var match = function(x){ return !term || norm(t(x.name) + ' ' + t(x.d) + ' ' + x.name.fr + ' ' + (KW[x.id] || '')).indexOf(term) >= 0; };
+  var any = false;
+  var groups = filter === 'fav' ? [{id:'fav', name:{fr:'Favoris', ar:'المفضلة'}}] : CS.GROUPS.filter(function(g){ return filter === 'all' || filter === g.id; });
+  groups.forEach(function(g){
+    var list = CS.TOOLS.filter(function(x){ return (g.id === 'fav' ? st.fav.indexOf(x.id) >= 0 : x.grp === g.id) && match(x); });
+    if(!list.length) return;
+    any = true;
+    var grid = h('div', {class:'cards'});
+    list.forEach(function(x){ grid.appendChild(card(x, x.id === 'diastolique' && !term && filter !== 'fav')); });
+    box.appendChild(h('section', {class:'grp g-' + (g.id === 'fav' ? 'learn' : g.id)},
+      h('div', {class:'grp-h'}, h('i'), h('h3', {text:g.name}), h('span', {text:list.length + ' ' + t(list.length > 1 ? {fr:'outils', ar:'أدوات'} : {fr:'outil', ar:'أداة'})})),
+      grid));
+  });
+  if(!any) box.appendChild(h('p', {class:'empty', text:filter === 'fav' && !term ? {fr:'Aucun favori pour l’instant : touchez l’étoile d’un outil.', ar:'لا توجد مفضلة بعد: المس نجمة أداة.'} : {fr:'Aucun outil ne correspond.', ar:'لا توجد أداة مطابقة.'}}));
+  // récents
+  var rw = CS.$('#recent-wrap'); rw.innerHTML = '';
+  var rec = st.recent.map(CS.tool).filter(Boolean).slice(0, 4);
+  if(rec.length && !term && filter === 'all'){
+    var r = h('div', {class:'recent'}, h('span', {class:'muted small', style:{alignSelf:'center'}, text:{fr:'Récents :', ar:'الأخيرة:'}}));
+    rec.forEach(function(x){ r.appendChild(h('a', {href:x.id + '.html', class:'g-' + x.grp}, h('span', {class:'d', html:CS.toolIcon(x.id)}), h('span', {text:x.name}))); });
+    rw.appendChild(r);
+  }
+}
+q.addEventListener('input', render);
+document.addEventListener('keydown', function(e){ if(e.key === '/' && document.activeElement !== q && !CS.$('.modal-bg')){ e.preventDefault(); q.focus(); } });
+filtersRender(); render();
+
+/* ---------- Visite guidée de l'accueil ---------- */
+CS.tour.define([
+  {title:{fr:'Bienvenue sur Cœur Net', ar:'مرحبًا بك في Cœur Net'},
+   body:{fr:'<p>Cœur Net rassemble les outils d’un cardiologue au quotidien : <b>écho</b>, <b>explications au patient</b>, <b>scores</b> et <b>formation</b>.</p><p>Cette visite dure une minute. Vous pouvez la relancer à tout moment avec le bouton <b>?</b> en haut.</p>',
+         ar:'<p>يجمع Cœur Net أدوات طبيب القلب اليومية: <b>الصدى</b> و<b>شرح الحالة للمريض</b> و<b>المقاييس</b> و<b>التكوين</b>.</p><p>تستغرق هذه الجولة دقيقة واحدة، ويمكنك إعادتها في أي وقت بزر <b>؟</b> في الأعلى.</p>'}},
+  {el:'#resume', title:{fr:'Reprendre là où vous étiez', ar:'المتابعة من حيث توقفت'},
+   body:{fr:'Ce bouton rouvre le dernier outil utilisé, <b>avec vos valeurs</b> : tout est enregistré automatiquement sur cet appareil.', ar:'يعيد هذا الزر فتح آخر أداة استعملتها <b>بقيمك</b>، فكل شيء يُحفظ تلقائيًا على هذا الجهاز.'}},
+  {el:'#qk-patient', title:{fr:'Le patient en cours', ar:'المريض الحالي'},
+   body:{fr:'Saisissez une fois l’âge, le sexe, la taille, le poids et le rythme : la <b>surface corporelle</b> est calculée et les outils sont <b>pré-remplis</b>. Aucun nom n’est demandé.', ar:'أدخل مرة واحدة السن والجنس والطول والوزن والنظم: تُحسب <b>مساحة سطح الجسم</b> وتُعبَّأ الأدوات <b>مسبقًا</b>. لا يُطلب أي اسم.'}},
+  {el:'#qk-quiz', title:{fr:'Votre niveau au quiz', ar:'مستواك في الاختبار'},
+   body:{fr:'Chaque bonne réponse rapporte de l’<b>XP</b>. Répondez vite pour un <b>coup critique</b> (XP doublée), montez de niveau et débloquez des badges.', ar:'كل إجابة صحيحة تمنحك <b>نقاط خبرة</b>. أجب بسرعة لتحصل على <b>ضربة حاسمة</b> (نقاط مضاعفة)، وارتقِ في المستويات وافتح الشارات.'}},
+  {el:'.toolbar', title:{fr:'Trouver un outil', ar:'إيجاد أداة'},
+   body:{fr:'Tapez un mot (« TAVI », « E/e′ », « consentement »…) ou filtrez par moment de la consultation. Raccourci clavier : <b>/</b>.', ar:'اكتب كلمة («TAVI»، «E/e′»، «موافقة»…) أو صفِّ حسب لحظة الاستشارة. اختصار لوحة المفاتيح: <b>/</b>.'}},
+  {el:'#tc-diastolique', title:{fr:'Les outils', ar:'الأدوات'},
+   body:{fr:'Touchez une carte pour ouvrir l’outil. L’<b>étoile</b> l’ajoute aux favoris. Chaque outil a sa propre visite guidée à la première ouverture.', ar:'المس بطاقة لفتح الأداة. تضيفها <b>النجمة</b> إلى المفضلة. لكل أداة جولتها الإرشادية الخاصة عند فتحها أول مرة.'}},
+  {el:function(){ return window.matchMedia('(max-width:720px)').matches ? CS.$('.cs-tabbar') : CS.$('.cs-lang'); },
+   title:{fr:'Langue et réglages', ar:'اللغة والإعدادات'},
+   body:{fr:'Passez en <b>arabe</b> d’un geste (bouton <b>ع</b>). Dans les réglages : thème sombre, nom du médecin, et <b>sauvegarde</b> pour passer d’un appareil à l’autre.', ar:'انتقل إلى <b>الفرنسية</b> بلمسة (زر <b>Fr</b>). في الإعدادات: المظهر الداكن واسم الطبيب و<b>النسخ الاحتياطي</b> للانتقال بين الأجهزة.'}}
+], {key:'home'});
+})();
+</script>
+</body>
+</html>
